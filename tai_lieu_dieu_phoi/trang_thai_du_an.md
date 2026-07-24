@@ -6,7 +6,7 @@ Cap nhat gan nhat: 2026-07-25
 
 - Kho: `Tienkhoaa2908/vn-quant-system`.
 - Nhanh chinh: `main`.
-- Dau `main` hien tai: `6e8d2ed49c2ef57e43c9f0f2249361b26b838b33`.
+- Dau `main` hien tai: `f52e06ffd4dde26e8af9d6451ec1e64f5a61b35d`.
 - Python muc tieu: 3.12; cong cu moi truong: `uv`.
 - GitHub la nguon su that ve nhanh, commit, PR va CI.
 
@@ -21,73 +21,52 @@ Cap nhat gan nhat: 2026-07-25
 
 Trang thai: **da dong hoan toan**.
 
-- PR so 5 da duoc chuyen khoi draft sau nghiem thu.
-- PR so 5 da gop bang merge commit, khong squash va khong rebase.
-- Merge commit: `6e8d2ed49c2ef57e43c9f0f2249361b26b838b33`.
-- PR da `closed`, `merged=true`.
+- PR so 5 da gop bang merge commit `6e8d2ed49c2ef57e43c9f0f2249361b26b838b33`.
+- `main` da duoc xac minh sau gop bang GitHub Actions run so 84.
+- Da hoan thanh tap co phieu theo thoi diem, thanh khoan, MA250, dong luong, tinh toan ven CLI va truy vet cau hinh.
+- Xac minh that FPT, HPG va MBB dat: moi ma 287 phien va 38 dong MA250.
+- Nguon lich su thanh vien that van chua duoc phe duyet; khong tuyen bo da loai bo thien lech song sot thuc te.
+
+## PR dieu phoi va dac ta Moc 3
+
+- PR so 6: `Dieu phoi: dong Moc 2 va dac ta Moc 3`.
+- Dac ta da duoc nguoi dung va doan `00` phe duyet toan bo 8 quyet dinh kien truc.
+- Dau nhanh PR so 6: `164f49b35f5167cfe21e3d85d32ee3656a1b95e8`.
+- CI truoc gop: run so 85, Run ID `30123231682`, job ID `89580559878`, thanh cong.
+- PR so 6 da gop bang merge commit `f52e06ffd4dde26e8af9d6451ec1e64f5a61b35d`.
 - `main` trung khop merge commit tren.
-
-Da hoan thanh:
-
-- tap co phieu theo tung thoi diem va quy tac ngan nhin truoc;
-- thanh khoan, MA250 va dong luong;
-- sua tinh toan ven san pham CLI;
-- ho tro `--so_nen`, mac dinh cong khai 400, truyen thanh `count` cho Vnstock 4.0.4;
-- luu ben vung `so_nen_yeu_cau` trong `tong_hop.json` va dung cung noi dung cho stdout;
-- giu tinh bat bien, khong doc roi ghi de san pham da cong bo;
-- cap nhat tai lieu xac minh va dieu phoi.
-
-## Xac minh that FPT, HPG va MBB
-
-Lan chay chi bao: `20260724T190515274806Z_6cd15c6d`; Python `3.12.10`.
-
-- Moi ma co 287 phien, tu 2025-06-02 den 2026-07-23.
-- Moi ma co 38 dong MA250.
-- MA250 cuoi: FPT `87.70488`, HPG `24.16668`, MBB `24.61656`.
-- Dong luong 20 phien cuoi: FPT `-0.08873239436619718`, HPG `-0.11111111111111105`, MBB `-0.07157894736842108`.
-- Thanh khoan co gia tri, khong co loi, tong dau ra 861 dong.
-- Canh bao khoang trong 2026-02-13 den 2026-02-23 xuat hien o ca ba ma; quy trinh khong tu dien du lieu va canh bao khong chan nghiem thu ky thuat.
-
-Lan chay xac minh truy vet: `20260724T194007268318Z_1ade6129`.
-
-- stdout co `so_nen_yeu_cau == 400`;
-- `du_lieu/nhat_ky/20260724T194007268318Z_1ade6129/tong_hop.json` co cung gia tri;
-- `trang_thai_tung_ma` tren dia va stdout giong nhau;
-- FPT, HPG va MBB deu `thanh_cong`, moi ma 287 phien.
-
-## CI sau gop
-
-- Workflow: `kiem_tra_tu_dong`.
-- Run number: `84`.
-- Kich hoat: `push` vao `main`.
-- Commit: `6e8d2ed49c2ef57e43c9f0f2249361b26b838b33`.
-- Trang thai: `Success`.
-- Job `kiem_tra`: thanh cong.
-- Tong thoi gian hien tren giao dien: 17 giay; job 13 giay.
-- Giao dien co canh bao Node.js 20 da bi ngung ho tro; day la canh bao khong chan, CI van thanh cong.
-- Run ID va job ID khong hien trong anh xac minh va connector hien tai khong liet ke run `push` theo commit, nen khong tu suy doan hai gia tri nay.
+- CI sau gop: run so 86, Run ID `30123567224`, job `kiem_tra` ID `89581624420`, `completed/success`.
+- Tat ca buoc cai Python 3.12, dong bo, compile va kiem thu ngoai tuyen deu dat.
+- Canh bao Node.js 20 deprecation la canh bao khong chan.
 
 ## Moc 3 — Mo phong giao dich va backtest
 
-Trang thai: **da co dac ta de nghi, chua phe duyet, chua trien khai ma**.
+Trang thai: **da mo; chua co ma nghiep vu va chua co PR trien khai**.
 
-- Dac ta: `tai_lieu/dac_ta_moc_3.md`.
-- Nhanh dieu phoi: `cap_nhat-sau-gop-m2-va-dac-ta-m3`.
-- Nhanh chuyen mon Moc 3 chua duoc tao.
-- Chua co PR ma Moc 3.
-- Chi duoc mo trien khai sau khi doan 00 phe duyet dac ta va chi dinh doan chuyen mon.
+- Dac ta chinh thuc: `tai_lieu/dac_ta_moc_3.md`.
+- Nhanh chuyen mon: `m3-mo_phong-giao_dich`.
+- Base duoc phe duyet: `f52e06ffd4dde26e8af9d6451ec1e64f5a61b35d`.
+- Nhanh da duoc tao truc tiep tu base tren sau khi CI `main` dat.
+- Doan phu trach: `03 Mo phong giao dich va backtest`.
+- Cac commit hien tai tren nhanh chi la cap nhat dieu phoi; chua trien khai engine.
 
-## Gioi han du lieu thanh vien
+Pham vi chinh:
 
-- Giao dien chong nhin truoc da co.
-- Xac minh gia va chi bao that da dat.
-- Nguon lich su thanh vien that van chua duoc phe duyet.
-- Khong tuyen bo da loai bo thien lech song sot bang du lieu thanh vien thuc te.
+- tin hieu tai `T`, khop som nhat tai mo cua phien ke tiep;
+- lenh `DAY`, khong tu dời khi thieu bar;
+- tien mat, vi the, lenh, khop lenh va so cai;
+- phi, thue ban, truot gia va lot size la cau hinh;
+- long-only, khong short, khong margin;
+- corporate actions MVP gom chia tach/co phieu thuong va co tuc tien mat;
+- baseline mua-va-giu, can bang deu va MA250/dong luong de kiem tra engine;
+- NAV, loi nhuan, drawdown, Sharpe, turnover va chi phi;
+- dau ra bat bien va kiem thu ngoai tuyen.
 
 ## Pham vi van bi khoa
 
-- Chua trien khai backtest hoac mo phong giao dich cho den khi dac ta Moc 3 duoc phe duyet.
-- Chua hoc may, LightGBM, nhan, chia von, toi uu danh muc hoac gioi han ty trong.
-- Chua tai toan bo VN100.
+- Khong mo Moc 4.
+- Khong trien khai Logistic Regression hoac LightGBM.
+- Khong trien khai chia von san xuat, tran 15% moi ma hoac 25% moi nganh trong Moc 3.
 - Khong commit du lieu thi truong that, nhat ky that, danh sach thanh vien bi han che hoac khoa.
 - Khong tich hop tai khoan SSI hay API dat lenh; nguoi dung tu giao dich thu cong.
+- PR Moc 3 phai giu draft cho den khi doan `00` ra phan quyet.
