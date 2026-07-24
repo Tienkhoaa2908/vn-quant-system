@@ -1,108 +1,74 @@
-# Công việc hiện tại
+# Cong viec hien tai
 
-Cập nhật: 2026-07-24
+Cap nhat: 2026-07-24
 
-## Đoạn phụ trách
+## Doan phu trach
 
-`01 Dữ liệu`, dưới sự nghiệm thu của `00 Điều phối trung tâm`.
+`00 Dieu phoi trung tam` dang thuc hien nghiem thu cuoi cho PR so 3 cua `01 Du lieu`.
 
-## Trạng thái nền
+## Trang thai nen
 
-- Yêu cầu gộp số `2` đã được gộp vào `main`.
-- Đầu `main` đã xác minh: `4eba2a77d5864027c84d4350769d95fd4abd5fee`.
-- Nhánh `m1-du_lieu` đã đồng bộ đầu `main` qua commit
-  `5ae994df47ce34a5ab5d3c5dd1e3d206d864811c`.
-- Yêu cầu gộp số `3` vẫn mở, nháp và chưa gộp.
+- PR so 2 da duoc gop vao `main`.
+- Dau `main` da xac minh: `4eba2a77d5864027c84d4350769d95fd4abd5fee`.
+- Nhanh `m1-du_lieu` da dong bo `main` va cham hon 0 commit.
+- PR so 3 mo, mergeable va chua gop.
+- Dau nhanh truoc cap nhat nghiem thu: `9552e4641327ba93fa02f1fd0953d378f3f879f1`.
+- PR co 24 tep thay doi va khong chua thu muc `du_lieu/`.
 
-## Kết quả thăm dò thật đã xác minh
+## Ket qua ky thuat da nghiem thu
 
-Mã lần chạy: `20260724T152739494769Z_521d23ce`.
+### Tham do that
 
-| Mã | Số dòng | Ngày đầu | Ngày cuối | Đơn vị giá |
-|---|---:|---|---|---|
-| FPT | 8 | 2026-07-01 | 2026-07-10 | nghìn đồng |
-| HPG | 8 | 2026-07-01 | 2026-07-10 | nghìn đồng |
-| MBB | 8 | 2026-07-01 | 2026-07-10 | nghìn đồng |
+- Vnstock Community `4.0.4`.
+- Ma lan chay: `20260724T152739494769Z_521d23ce`.
+- FPT, HPG, MBB deu thanh cong, moi ma 8 dong.
+- Khoang ngay that: `2026-07-01` den `2026-07-10`.
+- Cot that: `time`, `open`, `high`, `low`, `close`, `volume`.
+- Kieu that: `datetime64[ns]`, `float64`, `int64`.
+- Cach goi da hoat dong: `Market().equity(symbol=ma).ohlcv(...)`.
+- Khong can sua giao dien bo chuyen doi sau tham do.
 
-Cách gọi thật đã hoạt động:
+### Tai that nho
 
-```python
-Market().equity(symbol=ma).ohlcv(
-    start=ngay_bat_dau,
-    end=ngay_ket_thuc,
-    interval="1D",
-    source="kbs",
-)
-```
+- Ma lan chay: `20260724T153953222157Z_5383eaab`.
+- FPT, HPG, MBB deu thanh cong, 8 dong, 1 lan thu, 0 canh bao, khong loi.
+- Moi ma co du lieu tho JSON, CSV chuan hoa, CSV san sang, JSON bao cao chat luong, JSON nhat ky va SHA-256.
+- San pham that chi nam cuc bo duoi `du_lieu/`.
 
-Hợp đồng phản hồi thật:
+### Python va CI
 
-- cột: `time`, `open`, `high`, `low`, `close`, `volume`;
-- `time`: `datetime64[ns]`;
-- OHLC: `float64`;
-- `volume`: `int64`;
-- chưa phát hiện khả năng hoặc tham số chọn giá điều chỉnh/chưa điều chỉnh;
-- không có lỗi nguồn trong báo cáo thăm dò.
+- Python `3.12.13`.
+- `30/30` kiem thu dat; `Ran 30 tests in 0.696s`; `OK`.
+- GitHub Actions run so 32, ID `30108253709`: `success` tren commit `9552e4641327ba93fa02f1fd0953d378f3f879f1`.
+- Job `kiem_tra`, ID `89530965041`: `success`.
 
-## Kết quả tải thật nhỏ đã xác minh
+## Phan quyet
 
-Mã lần chạy: `20260724T153953222157Z_5383eaab`.
+**DAT — PHE DUYET KY THUAT MOC 1.**
 
-| Mã | Trạng thái | Số dòng | Số lần thử | Cảnh báo | Lỗi |
-|---|---|---:|---:|---:|---|
-| FPT | thành công | 8 | 1 | 0 | không |
-| HPG | thành công | 8 | 1 | 0 | không |
-| MBB | thành công | 8 | 1 | 0 | không |
+Cac dieu kien ky thuat bat buoc da duoc dap ung:
 
-Bản tổng hợp ghi nhận cho từng mã:
+1. Nhanh chua dau `main` hien hanh.
+2. Tham do that FPT, HPG, MBB dat.
+3. Tai that nho FPT, HPG, MBB dat.
+4. Python 3.12 dat 30/30 kiem thu.
+5. GitHub Actions dat tren dau nhanh da bao cao.
+6. Khong commit du lieu that.
+7. Khong vuot pham vi sang Moc 2.
 
-- dữ liệu thô JSON;
-- dữ liệu chuẩn hóa CSV;
-- dữ liệu sẵn sàng CSV;
-- báo cáo chất lượng JSON;
-- nhật ký JSON;
-- mã SHA-256 của dữ liệu thô.
+## Viec dang hoat dong
 
-Các sản phẩm nằm dưới `du_lieu/` trên máy người dùng và không được đưa vào GitHub.
+1. Cap nhat ba tep dieu phoi bang phan quyet doan 00.
+2. Cho GitHub Actions chay lai tren dau nhanh moi nhat sau cap nhat tai lieu.
+3. Neu CI dat, cap nhat PR body bang ket qua that.
+4. Chuyen PR so 3 khoi trang thai nhap sang san sang ra soat.
+5. Nguoi dung gop PR so 3 vao `main`.
+6. Sau khi gop, doan 00 phai xac minh commit hop nhat va CI tren `main`.
+7. Chi sau xac minh sau gop moi duoc tao loi giao viec Moc 2.
 
-## Kết quả Python 3.12
+## Pham vi bi khoa
 
-- Python: `CPython 3.12.13` Windows x86-64.
-- Đồng bộ môi trường: hoàn thành, log `Checked in 1ms`.
-- Biên dịch: không phát hiện lỗi trong log được cung cấp.
-- Unittest: `Ran 30 tests in 0.696s`.
-- Kết quả: `OK`.
-
-## Kết quả GitHub Actions
-
-Commit được xác minh: `ad1c54c41e2fc31d7a4327043b21f02b35b4603d`.
-
-- Push run số `25`, ID `30107975081`: thành công.
-- Pull-request run số `26`, ID `30107980910`: thành công.
-- Job `kiem_tra`: hoàn thành và thành công.
-- Các bước lấy mã nguồn, cài uv, cài Python 3.12, đồng bộ môi trường, kiểm tra cú pháp và chạy kiểm thử ngoại tuyến đều thành công.
-- Cảnh báo Node.js 20 bị loại bỏ dần là cảnh báo không chặn.
-
-## Việc đang hoạt động
-
-1. Giữ PR số `3` ở trạng thái nháp và chưa gộp.
-2. Bàn giao kết quả đầy đủ cho đoạn `00`.
-3. Chờ đoạn `00` rà soát và quyết định trạng thái PR.
-
-## Điều kiện nghiệm thu kỹ thuật
-
-- Thăm dò thật: đạt.
-- Tải thật nhỏ: đạt.
-- Python 3.12: đạt 30/30 kiểm thử.
-- GitHub Actions: đạt trên push và pull request.
-- PR không chứa thư mục `du_lieu/`.
-- Các điều kiện kỹ thuật bắt buộc của Mốc 1 đã hoàn thành.
-
-## Phạm vi bị khóa
-
-- Chưa mở Mốc 2.
-- Chưa thêm MA250 hoặc động lượng.
-- Chưa mô phỏng giao dịch.
-- Chưa học máy.
-- Chưa chia vốn.
-- Chưa tải toàn bộ VN100.
+- Khong tu dong gop PR trong buoc cap nhat tai lieu nay.
+- Khong mo Moc 2 truoc khi gop va xac minh PR so 3.
+- Khong them MA250, momentum, backtest, hoc may hoac chia von.
+- Khong tai toan bo VN100.
