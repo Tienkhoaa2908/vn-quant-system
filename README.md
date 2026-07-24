@@ -28,7 +28,7 @@ Ngay dung `YYYY-MM-DD`. Cap `ma,ngay` phai duy nhat. Gia dong cua phai la so huu
 
 ## Tai du lieu Moc 1 voi so nen ro rang
 
-CLI tai du lieu nhan `--so_nen`, la so nguyen duong duoc truyen truc tiep thanh `count` cho Vnstock 4.0.4. Mac dinh la `400`, duoc hien thi trong `--help`; bo chuyen doi khong tu gan cung 400 va khong con phu thuoc gioi han mac dinh 100 dong cua nguon.
+CLI tai du lieu nhan `--so_nen`, la so nguyen duong duoc truyen truc tiep thanh `count` cho Vnstock 4.0.4. Mac dinh la `400`, duoc hien thi trong `--help`; bo chuyen doi khong hard-code 400 va khong phu thuoc gioi han mac dinh 100 dong cua nguon.
 
 ```bash
 PYTHONPATH=src uv run --with vnstock==4.0.4 \
@@ -41,7 +41,7 @@ PYTHONPATH=src uv run --with vnstock==4.0.4 \
   --thu_muc_du_lieu du_lieu
 ```
 
-CLI truyen `so_nen_yeu_cau` vao cau hinh lan chay truoc khi quy trinh cong bo san pham. `du_lieu/nhat_ky/<ma_lan_chay>/tong_hop.json` va JSON in ra terminal dung cung mot mo hinh ket qua, nen cung ghi gia tri nay. He thong khong doc roi ghi de tep tong hop da cong bo. Du lieu that va nhat ky van nam duoi `du_lieu/` va khong duoc commit.
+CLI truyen `so_nen_yeu_cau` vao cau hinh lan chay truoc khi quy trinh cong bo san pham. `du_lieu/nhat_ky/<ma_lan_chay>/tong_hop.json` va JSON in ra terminal dung cung mot mo hinh ket qua, nen cung ghi gia tri nay. He thong khong doc roi ghi de tep tong hop da cong bo. Du lieu that va nhat ky nam duoi `du_lieu/` va khong duoc commit.
 
 ## Dau vao tap co phieu theo thoi diem
 
@@ -65,13 +65,7 @@ gia_tri_giao_dich = gia_dong_cua * khoi_luong
 
 Gia co phieu Moc 1 co don vi nghin dong moi co phieu, do do gia tri giao dich va trung binh thanh khoan co don vi nghin dong.
 
-Bo loc thanh khoan co ba tham so bat buoc:
-
-- `cua_so_thanh_khoan`;
-- `so_quan_sat_toi_thieu`;
-- `nguong_thanh_khoan`.
-
-Dat thanh khoan khi trung binh lon hon hoac bang nguong. Khong co nguong san xuat mac dinh.
+Bo loc thanh khoan co ba tham so bat buoc: `cua_so_thanh_khoan`, `so_quan_sat_toi_thieu` va `nguong_thanh_khoan`. Dat thanh khoan khi trung binh lon hon hoac bang nguong. Khong co nguong san xuat mac dinh.
 
 ### MA250
 
@@ -104,34 +98,27 @@ CSV co cac cot:
 ma,ngay,thuoc_tap_co_phieu,ngay_hieu_luc_tap_co_phieu,nguon_tap_co_phieu,phien_ban_tap_co_phieu,gia_tri_giao_dich,gia_tri_giao_dich_trung_binh,dat_thanh_khoan,ma250,tren_ma250,dong_luong,trang_thai_lich_su
 ```
 
-Bao cao JSON ghi cau hinh, don vi va tom tat rieng tung ma: so phien dau vao, ngay dau, ngay cuoi, so dong dau ra, so dong co MA250, MA250 cuoi, dong luong cuoi, trang thai thanh khoan, canh bao va loi. Bao cao canh bao rieng khi mot ma co duoi 250 phien, va khi co duoi nguong xac minh 260 phien.
+Bao cao JSON ghi cau hinh, don vi va tom tat rieng tung ma. Bao cao canh bao rieng khi mot ma co duoi 250 phien va khi co duoi nguong xac minh 260 phien.
 
-Tep da ton tai khong bi ghi de. Loi dau vao duoc ghi vao `bao_cao_loi.json` khi co the va duoc lam sach thong tin nhay cam.
+Tep da ton tai khong bi ghi de. Loi dau vao duoc ghi vao `bao_cao_loi.json` khi co the va duoc lam sach thong tin nhay cam. Thu muc thanh cong khong dong thoi chua bao cao loi.
 
 ## Chay CLI Moc 2
-
-Theo mot ngay danh gia:
 
 ```bash
 PYTHONPATH=src uv run --python 3.12 \
   python -m he_thong_dinh_luong.duong_co_so \
   --du_lieu_san_sang du_lieu/san_sang/<ma_lan_chay> \
   --anh_chup_tap_co_phieu du_lieu/tap_co_phieu/anh_chup.csv \
-  --ngay_danh_gia 2026-07-24 \
+  --ngay_bat_dau 2025-06-01 \
+  --ngay_ket_thuc 2026-07-24 \
   --cua_so_thanh_khoan 20 \
   --so_quan_sat_toi_thieu 20 \
   --nguong_thanh_khoan 0 \
   --cua_so_dong_luong 20 \
-  --thu_muc_dau_ra du_lieu/duong_co_so/kiem_tra_2026-07-24
+  --thu_muc_dau_ra du_lieu/duong_co_so/<thu_muc_moi>
 ```
 
-Theo khoang ngay, thay `--ngay_danh_gia` bang:
-
-```text
---ngay_bat_dau YYYY-MM-DD --ngay_ket_thuc YYYY-MM-DD
-```
-
-Gia tri `0` trong vi du chi dung de kiem tra ky thuat luong chay, khong phai nguong thanh khoan san xuat. Cua so dong luong trong vi du cung chua phai quyet dinh san xuat.
+Gia tri `0` va cua so dong luong `20` trong vi du chi dung de kiem tra ky thuat, khong phai cau hinh san xuat.
 
 ## Kiem thu ngoai tuyen
 
@@ -144,13 +131,9 @@ PYTHONPATH=src uv run --python 3.12 \
 
 CI khong goi mang, khong goi Vnstock va chi dung du lieu gia lap.
 
-## Xac minh cuc bo FPT, HPG va MBB
-
-Huong dan day du nam trong `tai_lieu/xac_minh_cuc_bo_moc_2.md`. Buoc nay chi tai ba ma, yeu cau it nhat 260 phien hop le, khong tai toan bo VN100 va khong commit dau ra that.
-
 ## Ket qua xac minh that FPT, HPG va MBB
 
-Lan chay `20260724T190515274806Z_6cd15c6d` tren Python `3.12.10` da dat nghiem thu ky thuat:
+Lan chay chi bao `20260724T190515274806Z_6cd15c6d` tren Python `3.12.10` da dat nghiem thu ky thuat:
 
 - moi ma co 287 phien, tu 2025-06-02 den 2026-07-23;
 - moi ma co 38 dong MA250;
@@ -158,7 +141,16 @@ Lan chay `20260724T190515274806Z_6cd15c6d` tren Python `3.12.10` da dat nghiem t
 - dong luong 20 phien cuoi: FPT `-0.08873239436619718`, HPG `-0.11111111111111105`, MBB `-0.07157894736842108`;
 - trang thai thanh khoan co gia tri, khong co loi, tong dau ra 861 dong.
 
-Canh bao khoang trong 2026-02-13 den 2026-02-23 xuat hien o ca ba ma. Quy trinh khong tu dien cac phien thieu; canh bao nay khong chan nghiem thu ky thuat. Lan chay cu chua co `so_nen_yeu_cau` trong `tong_hop.json`; sau ban sua truy vet, can chay mot ma lan chay moi de xac nhan san pham bat bien co khoa nay.
+Canh bao khoang trong 2026-02-13 den 2026-02-23 xuat hien o ca ba ma. Quy trinh khong tu dien cac phien thieu; canh bao nay khong chan nghiem thu ky thuat.
+
+Lan chay truy vet `20260724T194007268318Z_1ade6129` da xac nhan:
+
+- stdout co `so_nen_yeu_cau == 400`;
+- `du_lieu/nhat_ky/20260724T194007268318Z_1ade6129/tong_hop.json` co cung gia tri;
+- `trang_thai_tung_ma` tren dia va stdout giong nhau;
+- FPT, HPG va MBB deu thanh cong, moi ma 287 phien.
+
+Chi tiet nam trong `tai_lieu/xac_minh_cuc_bo_moc_2.md` va `tai_lieu/ket_qua_xac_minh_truy_vet_moc_2.md`.
 
 ## Cau truc du lieu cuc bo
 
@@ -171,5 +163,5 @@ San pham that nam duoi `du_lieu/`, thu muc nay da bi Git bo qua. Khong commit du
 - Khong tu dien gia, khoi luong, ngay giao dich hay thanh vien thieu.
 - Khong coi danh sach thanh vien hien tai la dung cho toan bo lich su.
 - Khong tao co du dieu kien dau tu tong hop khi chua co quyet dinh rieng.
-- Moi thay doi kien truc phai duoc ghi vao `DECISIONS.md`.
+- Nguon lich su thanh vien that chua duoc phe duyet; khong tuyen bo da loai bo thien lech song sot thuc te.
 - Khong mo Moc 3 trong nhanh Moc 2.
