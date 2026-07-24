@@ -5,11 +5,14 @@ import argparse
 import csv
 import json
 import math
+import os
 import re
 import sys
+from io import StringIO
 from datetime import date
 from pathlib import Path
 from typing import Iterable, Mapping
+from uuid import uuid4
 
 from ..kiem_tra_du_lieu import CAC_COT_BAT_BUOC
 from .chi_bao import (
@@ -72,20 +75,29 @@ def _gia_tri_csv(gia_tri: object) -> object:
     return gia_tri
 
 
-def _ghi_csv_bat_bien(duong_dan: Path, cac_dong: Iterable[Mapping[str, object]]) -> None:
+def _noi_dung_csv(cac_dong: Iterable[Mapping[str, object]]) -> str:
+    tep = StringIO(newline="")
+    bo_ghi = csv.DictWriter(tep, fieldnames=CAC_COT_DAU_RA, lineterminator="\n")
+    bo_ghi.writeheader()
+    for dong in cac_dong:
+        bo_ghi.writerow({cot: _gia_tri_csv(dong.get(cot)) for cot in CAC_COT_DAU_RA})
+    return tep.getvalue()
+
+
+def _noi_dung_json(du_lieu: object) -> str:
+    return json.dumps(du_lieu, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+
+
+def _ghi_noi_dung_bat_bien(duong_dan: Path, noi_dung: str) -> None:
     duong_dan.parent.mkdir(parents=True, exist_ok=True)
     with duong_dan.open("x", encoding="utf-8", newline="") as tep:
-        bo_ghi = csv.DictWriter(tep, fieldnames=CAC_COT_DAU_RA, lineterminator="\n")
-        bo_ghi.writeheader()
-        for dong in cac_dong:
-            bo_ghi.writerow({cot: _gia_tri_csv(dong.get(cot)) for cot in CAC_COT_DAU_RA})
+        tep.write(noi_dung)
+        tep.flush()
+        os.fsync(tep.fileno())
 
 
 def _ghi_json_bat_bien(duong_dan: Path, du_lieu: object) -> None:
-    duong_dan.parent.mkdir(parents=True, exist_ok=True)
-    with duong_dan.open("x", encoding="utf-8") as tep:
-        json.dump(du_lieu, tep, ensure_ascii=False, indent=2, sort_keys=True)
-        tep.write("\n")
+    _ghi_noi_dung_bat_bien(duong_dan, _noi_dung_json(du_lieu))
 
 
 def _bao_cao(
@@ -188,19 +200,68 @@ def _doc_khoang_ngay(tham_so: argparse.Namespace) -> tuple[date, date]:
     return ngay_bat_dau, ngay_ket_thuc
 
 
+TEN_TEP_THANH_CONG = ("duong_co_so.csv", "bao_cao.json")
+TEN_TEP_SAN_PHAM = (*TEN_TEP_THANH_CONG, "bao_cao_loi.json")
+
+
+def _cac_san_pham_da_ton_tai(thu_muc: Path) -> list[Path]:
+    return [thu_muc / ten for ten in TEN_TEP_SAN_PHAM if (thu_muc / ten).exists()]
+
+
 def _kiem_tra_dau_ra_trong(thu_muc: Path) -> None:
-    cac_tep = (thu_muc / "duong_co_so.csv", thu_muc / "bao_cao.json")
-    da_ton_tai = [str(tep) for tep in cac_tep if tep.exists()]
+    da_ton_tai = _cac_san_pham_da_ton_tai(thu_muc)
     if da_ton_tai:
         raise FileExistsError(
-            "Khong duoc ghi de san pham da ton tai: " + ", ".join(da_ton_tai)
+            "Khong duoc ghi de san pham da ton tai: "
+            + ", ".join(str(tep) for tep in da_ton_tai)
         )
+
+
+def _xoa_neu_co(duong_dan: Path) -> None:
+    try:
+        duong_dan.unlink()
+    except FileNotFoundError:
+        pass
+
+
+def _cong_bo_san_pham(
+    thu_muc: Path,
+    noi_dung_csv: str,
+    noi_dung_bao_cao: str,
+) -> None:
+    thu_muc.mkdir(parents=True, exist_ok=True)
+    ma_tam = uuid4().hex
+    tep_csv_tam = thu_muc / f".duong_co_so.{ma_tam}.tmp"
+    tep_json_tam = thu_muc / f".bao_cao.{ma_tam}.tmp"
+    tep_csv = thu_muc / "duong_co_so.csv"
+    tep_json = thu_muc / "bao_cao.json"
+    da_cong_bo: list[Path] = []
+
+    try:
+        _ghi_noi_dung_bat_bien(tep_csv_tam, noi_dung_csv)
+        _ghi_noi_dung_bat_bien(tep_json_tam, noi_dung_bao_cao)
+        _kiem_tra_dau_ra_trong(thu_muc)
+        for tep_tam, tep_dich in ((tep_csv_tam, tep_csv), (tep_json_tam, tep_json)):
+            os.link(tep_tam, tep_dich)
+            da_cong_bo.append(tep_dich)
+    except BaseException:
+        for tep in reversed(da_cong_bo):
+            _xoa_neu_co(tep)
+        raise
+    finally:
+        _xoa_neu_co(tep_csv_tam)
+        _xoa_neu_co(tep_json_tam)
 
 
 def _ghi_bao_cao_loi(thu_muc: Path, loi: BaseException) -> None:
     try:
+        if any((thu_muc / ten).exists() for ten in TEN_TEP_THANH_CONG):
+            return
+        tep_loi = thu_muc / "bao_cao_loi.json"
+        if tep_loi.exists():
+            return
         _ghi_json_bat_bien(
-            thu_muc / "bao_cao_loi.json",
+            tep_loi,
             {"trang_thai": "that_bai", "loi": _lam_sach_loi(loi)},
         )
     except (OSError, ValueError):
@@ -231,11 +292,11 @@ def main(argv: list[str] | None = None) -> int:
         )
         if not ket_qua:
             raise ValueError("Khong co dong dau ra trong khoang ngay yeu cau.")
-        _ghi_csv_bat_bien(thu_muc_dau_ra / "duong_co_so.csv", ket_qua)
-        _ghi_json_bat_bien(
-            thu_muc_dau_ra / "bao_cao.json",
-            _bao_cao(cac_dong, ket_qua, cau_hinh, ngay_bat_dau, ngay_ket_thuc),
+        noi_dung_csv = _noi_dung_csv(ket_qua)
+        noi_dung_bao_cao = _noi_dung_json(
+            _bao_cao(cac_dong, ket_qua, cau_hinh, ngay_bat_dau, ngay_ket_thuc)
         )
+        _cong_bo_san_pham(thu_muc_dau_ra, noi_dung_csv, noi_dung_bao_cao)
         return 0
     except SystemExit:
         raise

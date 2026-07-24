@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import csv
 import json
+import os
 import tempfile
 import unittest
 from datetime import date
 from pathlib import Path
+from unittest.mock import patch
 
 from he_thong_dinh_luong.duong_co_so.dong_lenh import _lam_sach_loi, main
 
@@ -94,18 +96,69 @@ class kiem_tra_cli(unittest.TestCase):
             self.assertEqual(trang_thai["ngay_dau"], "2026-01-01")
             self.assertEqual(trang_thai["ngay_cuoi"], "2026-01-01")
 
-    def test_cli_khong_ghi_de_san_pham(self) -> None:
+    def test_cli_khong_ghi_de_thu_muc_thanh_cong_va_khong_tao_bao_cao_loi(self) -> None:
         with tempfile.TemporaryDirectory() as thu_muc:
             goc = Path(thu_muc)
             du_lieu, tap = self._ghi_dau_vao(goc)
             dau_ra = goc / "dau_ra"
             argv = self._argv(du_lieu, tap, dau_ra)
             self.assertEqual(main(argv), 0)
-            noi_dung_cu = (dau_ra / "duong_co_so.csv").read_text(encoding="utf-8")
+            csv_cu = (dau_ra / "duong_co_so.csv").read_bytes()
+            json_cu = (dau_ra / "bao_cao.json").read_bytes()
+
             self.assertNotEqual(main(argv), 0)
+
+            self.assertEqual((dau_ra / "duong_co_so.csv").read_bytes(), csv_cu)
+            self.assertEqual((dau_ra / "bao_cao.json").read_bytes(), json_cu)
+            self.assertFalse((dau_ra / "bao_cao_loi.json").exists())
+
+    def test_cli_khong_ghi_de_bao_cao_loi_cu(self) -> None:
+        with tempfile.TemporaryDirectory() as thu_muc:
+            goc = Path(thu_muc)
+            du_lieu, tap = self._ghi_dau_vao(goc)
+            dau_ra = goc / "dau_ra"
+            dau_ra.mkdir()
+            tep_loi = dau_ra / "bao_cao_loi.json"
+            noi_dung_cu = '{"trang_thai":"that_bai","loi":"loi cu"}\n'
+            tep_loi.write_text(noi_dung_cu, encoding="utf-8")
+
+            self.assertNotEqual(main(self._argv(du_lieu, tap, dau_ra)), 0)
+
+            self.assertEqual(tep_loi.read_text(encoding="utf-8"), noi_dung_cu)
+            self.assertFalse((dau_ra / "duong_co_so.csv").exists())
+            self.assertFalse((dau_ra / "bao_cao.json").exists())
+
+    def test_cli_loi_cong_bo_san_pham_thu_hai_khong_de_lai_thanh_cong_mot_phan(self) -> None:
+        with tempfile.TemporaryDirectory() as thu_muc:
+            goc = Path(thu_muc)
+            du_lieu, tap = self._ghi_dau_vao(goc)
+            dau_ra = goc / "dau_ra"
+            lien_ket_that = os.link
+            so_lan = 0
+
+            def loi_o_san_pham_thu_hai(nguon: object, dich: object) -> None:
+                nonlocal so_lan
+                so_lan += 1
+                if so_lan == 2:
+                    raise OSError("loi ghi san pham thu hai token=BI_MAT")
+                lien_ket_that(nguon, dich)
+
+            with patch(
+                "he_thong_dinh_luong.duong_co_so.dong_lenh.os.link",
+                side_effect=loi_o_san_pham_thu_hai,
+            ):
+                self.assertNotEqual(main(self._argv(du_lieu, tap, dau_ra)), 0)
+
+            self.assertFalse((dau_ra / "duong_co_so.csv").exists())
+            self.assertFalse((dau_ra / "bao_cao.json").exists())
+            bao_cao_loi = dau_ra / "bao_cao_loi.json"
+            self.assertTrue(bao_cao_loi.exists())
+            noi_dung_loi = json.loads(bao_cao_loi.read_text(encoding="utf-8"))
+            self.assertEqual(noi_dung_loi["trang_thai"], "that_bai")
+            self.assertNotIn("BI_MAT", noi_dung_loi["loi"])
             self.assertEqual(
-                (dau_ra / "duong_co_so.csv").read_text(encoding="utf-8"),
-                noi_dung_cu,
+                sorted(tep.name for tep in dau_ra.iterdir()),
+                ["bao_cao_loi.json"],
             )
 
     def test_cli_dau_vao_khong_hop_le_tra_ma_khac_0_va_bao_cao_loi_sach(self) -> None:
