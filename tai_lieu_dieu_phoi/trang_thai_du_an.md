@@ -32,7 +32,7 @@ Trạng thái: **đã gộp vào `main`**.
 
 ## Mốc 1
 
-Trạng thái điều phối: **đã có bản triển khai nháp, chưa đủ điều kiện gộp**.
+Trạng thái điều phối: **thăm dò thật, tải thật nhỏ và kiểm thử Python 3.12 đã đạt; còn chờ GitHub Actions**.
 
 Yêu cầu gộp số `3`:
 
@@ -46,32 +46,42 @@ Yêu cầu gộp số `3`:
 
 ### Thăm dò thật Vnstock Community 4.0.4
 
-Đã nhận và đối chiếu báo cáo chạy thật:
-
 - Mã lần chạy: `20260724T152739494769Z_521d23ce`.
-- Khoảng ngày yêu cầu: `2026-07-01` đến `2026-07-10`.
+- Khoảng ngày: `2026-07-01` đến `2026-07-10`.
 - Cách gọi đã hoạt động:
   `Market().equity(symbol=ma).ohlcv(start=..., end=..., interval="1D", source="kbs")`.
-- Không có khả năng chọn giá điều chỉnh/chưa điều chỉnh được công cụ phát hiện.
-- Tên tham số giá điều chỉnh: không có.
-
-Kết quả theo mã:
-
-- `FPT`: thành công, 8 dòng, từ `2026-07-01` đến `2026-07-10`.
-- `HPG`: thành công, 8 dòng, từ `2026-07-01` đến `2026-07-10`.
-- `MBB`: thành công, 8 dòng, từ `2026-07-01` đến `2026-07-10`.
-- Cả ba mã trả các cột `time`, `open`, `high`, `low`, `close`, `volume`.
+- `FPT`, `HPG`, `MBB`: đều thành công, mỗi mã 8 dòng, từ `2026-07-01` đến `2026-07-10`.
+- Cột thật: `time`, `open`, `high`, `low`, `close`, `volume`.
 - Kiểu dữ liệu: `time=datetime64[ns]`, OHLC=`float64`, `volume=int64`.
 - Đơn vị giá do bộ chuyển đổi báo cáo: `nghin_dong`.
-- Không có lỗi nguồn trong lần thăm dò.
+- Chưa phát hiện tham số chọn giá điều chỉnh/chưa điều chỉnh.
+
+### Tải thật nhỏ
+
+- Mã lần chạy: `20260724T153953222157Z_5383eaab`.
+- Nguồn: `vnstock_kbs`, phiên bản `4.0.4`.
+- `FPT`: thành công, 8 dòng, một lần thử, không cảnh báo, không lỗi.
+- `HPG`: thành công, 8 dòng, một lần thử, không cảnh báo, không lỗi.
+- `MBB`: thành công, 8 dòng, một lần thử, không cảnh báo, không lỗi.
+- Mỗi mã có đường dẫn được ghi nhận cho dữ liệu thô, chuẩn hóa, sẵn sàng, báo cáo chất lượng và nhật ký.
+- Mỗi tệp dữ liệu thô có mã SHA-256 được ghi nhận trong bản tổng hợp.
+- Thư mục `du_lieu/` là sản phẩm cục bộ và không được commit.
+
+### Kiểm thử Python 3.12
+
+- Python đã cài: `CPython 3.12.13` cho Windows x86-64.
+- Đồng bộ môi trường bằng `uv` hoàn thành; log ghi `Checked in 1ms`.
+- Không phát hiện lỗi biên dịch trong phần log được cung cấp.
+- Bộ kiểm thử: `30/30` đạt.
+- Thời gian unittest: `0.696s`.
+- Kết quả cuối: `OK`.
 
 ### Điều kiện còn chặn
 
-1. Chưa có lần tải thật nhỏ và nhật ký tổng hợp cho FPT, HPG, MBB.
-2. Chưa chạy toàn bộ kiểm thử trên Python mục tiêu 3.12.
-3. GitHub chưa ghi nhận lần chạy Actions hoặc commit status cho đầu nhánh đã đồng bộ.
-4. Chưa cập nhật báo cáo cuối theo kết quả tải thật và CI.
-5. PR số `3` phải tiếp tục ở trạng thái nháp cho đến khi đoạn `00` nghiệm thu.
+1. GitHub Actions phải có lần chạy thật trên commit đầu nhánh cuối cùng.
+2. Toàn bộ job và bước của Actions phải đạt.
+3. Sau khi CI đạt, cập nhật báo cáo cuối và gửi đoạn `00` nghiệm thu.
+4. PR số `3` phải tiếp tục ở trạng thái nháp cho đến khi đoạn `00` quyết định.
 
 ## Phạm vi bị khóa
 
