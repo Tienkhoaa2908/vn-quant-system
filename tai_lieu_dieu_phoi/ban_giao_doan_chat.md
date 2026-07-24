@@ -31,14 +31,10 @@ Cập nhật: 2026-07-24
 
 ## Kết quả thăm dò thật Vnstock 4.0.4
 
-Báo cáo đã xác minh:
-
-- mã lần chạy: `20260724T152739494769Z_521d23ce`;
-- khoảng ngày: `2026-07-01` đến `2026-07-10`;
-- nguồn: `vnstock_kbs`;
-- phiên bản: `4.0.4`.
-
-Cách gọi đã hoạt động:
+- Mã lần chạy: `20260724T152739494769Z_521d23ce`.
+- Khoảng ngày: `2026-07-01` đến `2026-07-10`.
+- Nguồn: `vnstock_kbs`.
+- Cách gọi đã hoạt động:
 
 ```python
 Market().equity(symbol=ma).ohlcv(
@@ -49,38 +45,61 @@ Market().equity(symbol=ma).ohlcv(
 )
 ```
 
+- FPT: thành công, 8 dòng.
+- HPG: thành công, 8 dòng.
+- MBB: thành công, 8 dòng.
+- Cột: `time`, `open`, `high`, `low`, `close`, `volume`.
+- Kiểu: `datetime64[ns]`, `float64`, `int64`.
+- Đơn vị giá được báo cáo: nghìn đồng.
+- Chưa phát hiện tham số chọn giá điều chỉnh/chưa điều chỉnh.
+
+## Kết quả tải thật nhỏ
+
+Báo cáo tổng hợp đã xác minh:
+
+- mã lần chạy: `20260724T153953222157Z_5383eaab`;
+- khoảng ngày: `2026-07-01` đến `2026-07-10`;
+- nguồn: `vnstock_kbs`;
+- phiên bản: `4.0.4`.
+
 Kết quả:
 
-- FPT: thành công, 8 dòng, ngày đầu `2026-07-01`, ngày cuối `2026-07-10`;
-- HPG: thành công, 8 dòng, ngày đầu `2026-07-01`, ngày cuối `2026-07-10`;
-- MBB: thành công, 8 dòng, ngày đầu `2026-07-01`, ngày cuối `2026-07-10`.
+- FPT: thành công, 8 dòng, một lần thử, không cảnh báo, không lỗi;
+- HPG: thành công, 8 dòng, một lần thử, không cảnh báo, không lỗi;
+- MBB: thành công, 8 dòng, một lần thử, không cảnh báo, không lỗi.
 
-Cả ba mã:
+Mỗi mã có đường dẫn được ghi nhận cho:
 
-- cột thật: `time`, `open`, `high`, `low`, `close`, `volume`;
-- kiểu thật: `datetime64[ns]`, `float64`, `int64`;
-- đơn vị giá được báo cáo: nghìn đồng;
-- không có lỗi;
-- chưa phát hiện tham số chọn giá điều chỉnh/chưa điều chỉnh.
+- dữ liệu thô JSON;
+- dữ liệu chuẩn hóa CSV;
+- dữ liệu sẵn sàng CSV;
+- báo cáo chất lượng JSON;
+- nhật ký JSON.
 
-Kết luận chuyên môn của bước này: **giao diện Vnstock hiện tại đã được chứng minh bằng chạy thật cho FPT, HPG và MBB**. Không cần sửa bộ chuyển đổi chỉ vì bất nhất giữa các ví dụ tài liệu.
+Mỗi dữ liệu thô có mã SHA-256 trong bản tổng hợp. Không đưa bất kỳ tệp nào dưới `du_lieu/` lên GitHub.
+
+## Kết quả kiểm thử Python 3.12
+
+- Đã cài `CPython 3.12.13` cho Windows x86-64.
+- `uv` đồng bộ môi trường thành công; log ghi `Checked in 1ms`.
+- Không phát hiện lỗi biên dịch trong log được cung cấp.
+- `Ran 30 tests in 0.696s`.
+- Kết quả: `OK`.
 
 ## Điều kiện còn thiếu
 
-1. Chưa có lần tải thật nhỏ và nhật ký tổng hợp.
-2. Chưa có log kiểm thử Python 3.12.
-3. GitHub Actions chưa ghi nhận lần chạy trên đầu nhánh hiện tại.
-4. Chưa có báo cáo cuối về sản phẩm cục bộ và trạng thái từng mã.
-5. PR số `3` chưa được phép chuyển khỏi trạng thái nháp.
+1. GitHub Actions chưa được xác minh đạt trên đầu nhánh cuối cùng.
+2. Cần mã lần chạy, job và trạng thái từng bước của CI.
+3. Sau khi CI đạt, cần cập nhật tài liệu điều phối lần cuối và gửi báo cáo đoạn `00`.
+4. PR số `3` chưa được phép chuyển khỏi trạng thái nháp nếu chưa có quyết định của đoạn `00`.
 
 ## Trình tự tiếp theo
 
-1. Người dùng chạy lệnh tải thật nhỏ cho FPT, HPG, MBB.
-2. Người dùng gửi `du_lieu/nhat_ky/<ma_lan_chay>/tong_hop.json`.
-3. Người dùng chạy toàn bộ kiểm thử bằng Python 3.12 và gửi log.
-4. Đoạn `01` rà soát kết quả, sửa nhỏ nếu cần và kiểm tra Actions.
-5. Cập nhật ba tệp điều phối bằng sự thật đã xác minh.
-6. Gửi báo cáo cuối về đoạn `00`.
+1. Kiểm tra Actions trên commit đầu nhánh mới nhất.
+2. Nếu Actions không xuất hiện, kiểm tra `Settings → Actions → General`; không tạo commit rỗng.
+3. Nếu Actions chạy, rà soát toàn bộ job và bước.
+4. Cập nhật ba tệp điều phối bằng kết quả CI.
+5. Gửi báo cáo cuối về đoạn `00`.
 
 ## Không được làm
 
