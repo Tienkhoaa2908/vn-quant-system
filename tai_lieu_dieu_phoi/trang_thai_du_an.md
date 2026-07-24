@@ -8,7 +8,6 @@ Cap nhat gan nhat: 2026-07-25
 - Nhanh chinh: `main`.
 - Dau `main` khi mo Moc 2: `97399e291b0d3d237f247f58ffa03049826d40bd`.
 - Nhanh Moc 2: `m2-tap_co_phieu-duong_co_so`.
-- Dau nhanh truoc ghi nhan xac minh cuoi: `5e5a2c143805805b4af9b6b099ec5262d2c4006d`.
 - Python muc tieu: 3.12; cong cu moi truong: `uv`.
 - GitHub la nguon su that ve nhanh, commit, PR va CI.
 
@@ -30,7 +29,8 @@ Da hoan thanh:
 - sua tinh toan ven san pham CLI;
 - ho tro `--so_nen`, mac dinh cong khai 400, truyen thanh `count` cho Vnstock 4.0.4;
 - luu ben vung `so_nen_yeu_cau` trong `tong_hop.json` va dung cung noi dung cho stdout;
-- giu tinh bat bien, khong doc roi ghi de san pham da cong bo.
+- giu tinh bat bien, khong doc roi ghi de san pham da cong bo;
+- cap nhat tai lieu xac minh va dieu phoi.
 
 ## Xac minh that FPT, HPG va MBB
 
@@ -52,7 +52,8 @@ Lan chay xac minh truy vet: `20260724T194007268318Z_1ade6129`.
 
 ## CI va trang thai nghiem thu
 
-- CI truoc ghi nhan tai lieu: run so 75, ID `30120599648`, job `kiem_tra` ID `89571991558`, ket luan `success` tren merge ref `7b68c7a09d5ae2cdcdf7592224482ea485d71433`.
+- GitHub Actions da dat tren dau nhanh va merge ref sau cac thay doi ma va tai lieu.
+- Bang chung run, run ID, job ID, merge ref va tung buoc duoc ghi trong mo ta PR so 5 va bao cao ban giao ve doan 00.
 - PR so 5 tiep tuc giu draft.
 - Khong tu gop PR va khong mo Moc 3.
 - Buoc tiep theo chi la gui bao cao ve doan 00 va cho phan quyet.

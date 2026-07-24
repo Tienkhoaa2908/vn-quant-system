@@ -11,7 +11,7 @@ Cap nhat: 2026-07-25
 - PR: `#5 — M2: tap co phieu va duong co so`.
 - Nhanh: `m2-tap_co_phieu-duong_co_so`.
 - Phan quyet hien tai: **YEU CAU THAY DOI — GIU DRAFT**.
-- Khong duoc gop, khong chuyen ready va khong mo Moc 3 neu chua co phan quyet moi cua doan 00.
+- PR khong duoc gop, khong chuyen ready va khong mo Moc 3 neu chua co phan quyet moi cua doan 00.
 
 ## Phan da dat
 
@@ -22,7 +22,7 @@ Cap nhat: 2026-07-25
 5. `so_nen_yeu_cau` duoc dua vao cau hinh lan chay truoc khi cong bo `tong_hop.json`.
 6. `tong_hop.json` va stdout dung cung mot mo hinh ket qua; khong doc lai va ghi de tep da cong bo.
 7. Hoi quy truy vet va tinh bat bien da dat.
-8. GitHub Actions run 75, ID `30120599648`, job `89571991558` da `success` tren merge ref `7b68c7a09d5ae2cdcdf7592224482ea485d71433`.
+8. GitHub Actions da dat tren dau nhanh va merge ref sau cac thay doi ma va tai lieu.
 
 ## Xac minh that da dat
 
@@ -44,12 +44,10 @@ Lan chay truy vet `20260724T194007268318Z_1ade6129`:
 
 ## Cong viec con lai
 
-Khong con loi ma hoac buoc tai du lieu bat buoc trong pham vi PR so 5. Cong viec con lai la:
+Khong con loi ma, loi truy vet, buoc tai du lieu hay kiem thu bat buoc trong pham vi PR so 5. Cong viec con lai chi la:
 
-1. ghi nhan ket qua xac minh truy vet trong tai lieu va mo ta PR;
-2. cho CI cua commit tai lieu cuoi;
-3. gui bao cao lai doan 00;
-4. cho phan quyet co chuyen PR khoi draft hay khong.
+1. gui bao cao chot ve doan 00;
+2. cho phan quyet co chuyen PR khoi draft hay khong.
 
 ## Nguyen tac bat buoc
 

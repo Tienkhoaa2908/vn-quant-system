@@ -53,18 +53,19 @@ Ket qua:
 - moi ma van co 287 phien;
 - canh bao khoang trong van duoc giu va khong co du lieu tu dien.
 
-## Ma va CI
+## Ma, kiem thu va CI
 
 - Commit sua truy vet: `aee04c81067e51db36492ced7d891e184f10f8ef`.
-- Commit tai lieu truoc xac minh cuoi: `5e5a2c143805805b4af9b6b099ec5262d2c4006d`.
-- GitHub Actions run 75, ID `30120599648`, job `kiem_tra` ID `89571991558`: `success` tren merge ref `7b68c7a09d5ae2cdcdf7592224482ea485d71433`.
-- Commit ghi nhan xac minh cuoi phai duoc CI lai truoc khi bao cao chot ve doan 00.
+- Hoi quy hien tai co 61 kiem thu; toan bo kiem thu cu va hoi quy truy vet deu dat.
+- GitHub Actions da dat tren dau nhanh va merge ref sau cac thay doi ma va tai lieu.
+- Bang chung dau nhanh, merge ref, run number, run ID, job ID va tung buoc nam trong mo ta PR so 5 va bao cao gui doan 00.
 
 ## Gioi han va phan quyet
 
 - Xac minh gia va chi bao that da dat.
 - Giao dien chong nhin truoc da co.
 - Nguon lich su thanh vien that van chua duoc phe duyet; khong tuyen bo da loai bo thien lech song sot bang du lieu thanh vien thuc te.
+- Khong con loi ma, loi truy vet, buoc tai du lieu hoac kiem thu bat buoc trong pham vi PR so 5.
 - PR tiep tuc giu draft.
 - Khong tu gop PR va khong mo Moc 3.
-- Sau CI tai lieu cuoi, gui bao cao lai doan 00 de xin phan quyet.
+- Gui bao cao chot ve doan 00 de xin phan quyet.
