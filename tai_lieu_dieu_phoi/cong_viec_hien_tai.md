@@ -4,16 +4,22 @@ Cap nhat: 2026-07-25
 
 ## Doan phu trach
 
-`02 Tap co phieu va duong co so` dang phu trach PR so 5 cua Moc 2 duoi dieu phoi cua doan `00 Dieu phoi trung tam`.
+Doan `00 Dieu phoi trung tam` dang phu trach dong Moc 2 ve mat dieu phoi va trinh dac ta Moc 3 de phe duyet.
 
-## Trang thai PR so 5
+Doan `02 Tap co phieu va duong co so` da hoan thanh pham vi chuyen mon cua Moc 2. Khong con nhiem vu ma tren nhanh cu.
+
+## Trang thai Moc 2
 
 - PR: `#5 — M2: tap co phieu va duong co so`.
 - Nhanh: `m2-tap_co_phieu-duong_co_so`.
-- Phan quyet hien tai: **YEU CAU THAY DOI — GIU DRAFT**.
-- PR khong duoc gop, khong chuyen ready va khong mo Moc 3 neu chua co phan quyet moi cua doan 00.
+- PR da gop bang merge commit.
+- Merge commit: `6e8d2ed49c2ef57e43c9f0f2249361b26b838b33`.
+- `main` hien tai trung khop merge commit.
+- GitHub Actions sau gop: run so 84, `push` vao `main`, trang thai `Success`.
+- Job `kiem_tra` thanh cong.
+- Moc 2 da dong hoan toan.
 
-## Phan da dat
+## Bang chung nghiem thu Moc 2
 
 1. Tap co phieu theo thoi diem va quy tac ngan nhin truoc da co.
 2. Thanh khoan, MA250 va dong luong da co.
@@ -22,32 +28,33 @@ Cap nhat: 2026-07-25
 5. `so_nen_yeu_cau` duoc dua vao cau hinh lan chay truoc khi cong bo `tong_hop.json`.
 6. `tong_hop.json` va stdout dung cung mot mo hinh ket qua; khong doc lai va ghi de tep da cong bo.
 7. Hoi quy truy vet va tinh bat bien da dat.
-8. GitHub Actions da dat tren dau nhanh va merge ref sau cac thay doi ma va tai lieu.
+8. FPT, HPG va MBB moi ma co 287 phien va 38 dong MA250.
+9. CI Python 3.12 da dat truoc va sau gop.
+10. Khong co du lieu that duoi `du_lieu/` trong PR.
 
-## Xac minh that da dat
+## Cong viec dang mo
 
-Lan chay chi bao `20260724T190515274806Z_6cd15c6d` tren Python `3.12.10`:
+Nhanh dieu phoi:
 
-- FPT, HPG, MBB moi ma 287 phien, tu 2025-06-02 den 2026-07-23;
-- moi ma 38 dong MA250;
-- MA250 cuoi: FPT `87.70488`, HPG `24.16668`, MBB `24.61656`;
-- dong luong 20 phien cuoi: FPT `-0.08873239436619718`, HPG `-0.11111111111111105`, MBB `-0.07157894736842108`;
-- thanh khoan co gia tri, khong co loi, tong 861 dong dau ra;
-- canh bao khoang trong 2026-02-13 den 2026-02-23 xuat hien o ca ba ma, khong chan va khong duoc tu dien.
+`cap_nhat-sau-gop-m2-va-dac-ta-m3`
 
-Lan chay truy vet `20260724T194007268318Z_1ade6129`:
+Pham vi nhanh nay chi gom:
 
-- stdout co `so_nen_yeu_cau == 400`;
-- `tong_hop.json` co `so_nen_yeu_cau == 400`;
-- `trang_thai_tung_ma` tren dia va stdout giong nhau;
-- ca ba ma deu thanh cong va moi ma co 287 phien.
+- cap nhat bon tai lieu dieu phoi sau khi Moc 2 duoc gop;
+- tao `tai_lieu/dac_ta_moc_3.md`;
+- mo PR dieu phoi de doan 00 va nguoi dung ra soat;
+- khong them ma nguon backtest;
+- khong tao nhanh chuyen mon Moc 3.
 
-## Cong viec con lai
+## Cua kiem soat de mo Moc 3
 
-Khong con loi ma, loi truy vet, buoc tai du lieu hay kiem thu bat buoc trong pham vi PR so 5. Cong viec con lai chi la:
+Chi duoc mo trien khai Moc 3 khi tat ca dieu kien sau dat:
 
-1. gui bao cao chot ve doan 00;
-2. cho phan quyet co chuyen PR khoi draft hay khong.
+1. dac ta Moc 3 duoc nguoi dung va doan 00 phe duyet;
+2. PR dieu phoi sau gop Moc 2 duoc gop vao `main`;
+3. CI tren `main` sau PR dieu phoi thanh cong;
+4. doan 00 chi dinh doan chuyen mon phu trach;
+5. nhanh Moc 3 duoc tao tu dung dau `main` da xac minh.
 
 ## Nguyen tac bat buoc
 
@@ -55,4 +62,6 @@ Khong con loi ma, loi truy vet, buoc tai du lieu hay kiem thu bat buoc trong pha
 - Khong dung danh sach thanh vien hien tai cho toan bo lich su.
 - Khong tu dien quan sat thieu.
 - Nguon lich su thanh vien that chua duoc phe duyet; khong tuyen bo da loai bo thien lech song sot thuc te.
-- Khong force-push, khong tu gop va khong mo Moc 3.
+- Khong force-push.
+- Khong trien khai ma Moc 3 trong PR dieu phoi.
+- Khong tich hop SSI FastConnect; he thong chi sinh ket qua phan tich va lenh de xuat de nguoi dung dat lenh thu cong.

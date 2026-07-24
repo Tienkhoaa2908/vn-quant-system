@@ -28,7 +28,7 @@ Trạng thái: **đã hoàn thành, đã gộp và đã đóng hoàn toàn sau P
 
 ## Mốc 2 — Tập cổ phiếu và đường cơ sở
 
-Trạng thái: **đã mở; đoạn 02 đang phụ trách**.
+Trạng thái: **đã hoàn thành, đã gộp qua PR số 5 và đã xác minh CI sau gộp trên `main`**.
 
 - Tập cổ phiếu theo từng thời điểm, không dùng ảnh chụp tương lai.
 - Bộ lọc thanh khoản có tham số.
@@ -36,16 +36,30 @@ Trạng thái: **đã mở; đoạn 02 đang phụ trách**.
 - Động lượng có cửa sổ bắt buộc.
 - CSV và báo cáo JSON ổn định.
 - Kiểm thử hoàn toàn ngoại tuyến bằng dữ liệu giả lập.
-- Chưa dùng học máy và chưa tuyên bố có dữ liệu thành viên lịch sử thật.
+- CLI tải dữ liệu hỗ trợ `--so_nen`, mặc định công khai 400 và lưu bền vững cấu hình lần chạy.
+- Đã xác minh dữ liệu thật FPT, HPG và MBB: mỗi mã 287 phiên, 38 dòng MA250.
+- Không dùng học máy và chưa tuyên bố có dữ liệu thành viên lịch sử thật.
+- PR số 5 dùng merge commit `6e8d2ed49c2ef57e43c9f0f2249361b26b838b33`.
+- GitHub Actions sau gộp: run số 84, kích hoạt bởi `push` vào `main`, commit trên, trạng thái `Success`; job `kiem_tra` thành công.
 
-## Mốc 3 — Mô phỏng giao dịch
+## Mốc 3 — Mô phỏng giao dịch và backtest
 
-Chưa mở.
+Trạng thái: **đã có đặc tả đề xuất, chưa phê duyệt và chưa mở triển khai mã**.
 
-- Khớp lệnh từ phiên kế tiếp.
-- Phí, thuế bán, trượt giá và lô giao dịch.
-- Tiền mặt, vị thế, lệnh, khớp lệnh và nhật ký.
-- Báo cáo lợi nhuận, mức giảm, Sharpe, chi phí và vòng quay.
+Đặc tả đề xuất nằm tại `tai_lieu/dac_ta_moc_3.md`.
+
+Phạm vi dự kiến:
+
+- Tín hiệu tại phiên `T` chỉ được khớp sớm nhất từ phiên kế tiếp.
+- Tiền mặt, vị thế, lệnh, khớp lệnh và sổ cái danh mục.
+- Phí mua/bán, thuế bán, trượt giá và lô giao dịch đều là cấu hình truy vết được.
+- Long-only, không short và không margin.
+- Xử lý chia tách/cổ phiếu thưởng và cổ tức tiền mặt bằng dữ liệu sự kiện rõ nguồn.
+- Báo cáo lợi nhuận, mức giảm vốn, Sharpe, chi phí và vòng quay.
+- Baseline mua-và-giữ, cân bằng đều và quy tắc MA250/động lượng để kiểm tra bộ máy.
+- Kiểm thử ngoại tuyến, kịch bản vàng có kết quả biết trước và CI Python 3.12.
+
+Không được triển khai mã Mốc 3 cho đến khi đoạn `00 Điều phối trung tâm` phê duyệt đặc tả và chỉ định đoạn chuyên môn.
 
 ## Mốc 4 — Đặc trưng và học máy
 
@@ -65,4 +79,6 @@ Chưa mở.
 
 - Rà soát rò rỉ dữ liệu, thiên lệch sống sót và tối ưu quá mức.
 - Chạy danh mục giả lập hằng ngày.
+- Sinh danh mục và lệnh đề xuất để người dùng tự đặt lệnh trên SSI.
+- Không tích hợp tài khoản hoặc API đặt lệnh công ty chứng khoán trong phạm vi hiện tại.
 - Chỉ cân nhắc tiền thật sau thời gian giả lập ổn định.
