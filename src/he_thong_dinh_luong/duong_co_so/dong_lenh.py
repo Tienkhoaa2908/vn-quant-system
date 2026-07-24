@@ -122,15 +122,22 @@ def _bao_cao(
         )
         cac_dong_ra = dau_ra_theo_ma.get(ma, [])
         dong_cuoi = cac_dong_ra[-1] if cac_dong_ra else None
-        canh_bao = (
-            []
-            if cac_dong_ra
-            else ["Khong co dong dau ra trong khoang ngay yeu cau."]
-        )
+        so_phien = len(cac_dong_vao)
+        canh_bao: list[str] = []
+        if not cac_dong_ra:
+            canh_bao.append("Khong co dong dau ra trong khoang ngay yeu cau.")
+        if so_phien < 250:
+            canh_bao.append(
+                f"Chi co {so_phien} phien; can it nhat 250 phien de tinh MA250."
+            )
+        if so_phien < 260:
+            canh_bao.append(
+                f"Chi co {so_phien} phien; duoi nguong xac minh toi thieu 260 phien."
+            )
         trang_thai_tung_ma.append(
             {
                 "ma": ma,
-                "so_phien": len(cac_dong_vao),
+                "so_phien": so_phien,
                 "ngay_dau": str(cac_dong_vao[0]["ngay"])[:10],
                 "ngay_cuoi": str(cac_dong_vao[-1]["ngay"])[:10],
                 "so_dong_dau_ra": len(cac_dong_ra),
