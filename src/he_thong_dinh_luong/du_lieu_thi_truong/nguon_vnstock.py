@@ -59,9 +59,13 @@ class nguon_vnstock:
     def __init__(
         self,
         *,
+        so_nen: int,
         ham_tao_thi_truong: Callable[[], Any] | None = None,
         ham_lay_phien_ban: Callable[[str], str] | None = None,
     ) -> None:
+        if type(so_nen) is not int or so_nen <= 0:
+            raise ValueError("so_nen phai la so nguyen duong")
+        self.so_nen = so_nen
         self._ham_tao_thi_truong = ham_tao_thi_truong
         self._ham_lay_phien_ban = ham_lay_phien_ban or metadata.version
         self.phien_ban = self._ham_lay_phien_ban("vnstock")
@@ -96,6 +100,7 @@ class nguon_vnstock:
                 end=ngay_ket_thuc,
                 interval="1D",
                 source="kbs",
+                count=self.so_nen,
             )
         except Exception as exc:
             if _la_khong_co_du_lieu(exc):

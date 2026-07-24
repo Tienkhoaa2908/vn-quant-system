@@ -1,0 +1,323 @@
+"""CLI tao du lieu duong co so Moc 2."""
+from __future__ import annotations
+
+import argparse
+import csv
+import json
+import math
+import os
+import re
+import sys
+from io import StringIO
+from datetime import date
+from pathlib import Path
+from typing import Iterable, Mapping
+from uuid import uuid4
+
+from ..kiem_tra_du_lieu import CAC_COT_BAT_BUOC
+from .chi_bao import (
+    CAC_COT_DAU_RA,
+    DON_VI_GIA_TRI_GIAO_DICH,
+    cau_hinh_duong_co_so,
+    tinh_duong_co_so,
+)
+from .tap_co_phieu import doc_anh_chup_csv
+
+
+def _lam_sach_loi(loi: BaseException) -> str:
+    noi_dung = str(loi)
+    for mau in (
+        r"vnstock_[A-Za-z0-9_-]+",
+        r"(?i)(api[_ -]?key|token|secret|password)\s*[:=]\s*[^\s,;]+",
+        r"(?i)bearer\s+[A-Za-z0-9._~-]+",
+    ):
+        noi_dung = re.sub(mau, "[DA_AN]", noi_dung)
+    return noi_dung[:2000]
+
+
+def _doc_csv(duong_dan: Path) -> list[dict[str, str]]:
+    with duong_dan.open("r", encoding="utf-8", newline="") as tep:
+        bo_doc = csv.DictReader(tep)
+        if bo_doc.fieldnames is None:
+            raise ValueError(f"Tep CSV khong co dong tieu de: {duong_dan}")
+        thieu_cot = [cot for cot in CAC_COT_BAT_BUOC if cot not in bo_doc.fieldnames]
+        if thieu_cot:
+            raise ValueError(
+                f"Tep {duong_dan} thieu cot bat buoc: {', '.join(thieu_cot)}"
+            )
+        return [dict(dong) for dong in bo_doc]
+
+
+def doc_du_lieu_san_sang(duong_dan: str | Path) -> list[dict[str, str]]:
+    duong_dan = Path(duong_dan)
+    if duong_dan.is_file():
+        return _doc_csv(duong_dan)
+    if not duong_dan.is_dir():
+        raise ValueError(f"Khong tim thay duong dan du lieu san sang: {duong_dan}")
+    cac_tep = sorted(duong_dan.rglob("*.csv"))
+    if not cac_tep:
+        raise ValueError(f"Khong co tep CSV nao duoi {duong_dan}")
+    ket_qua: list[dict[str, str]] = []
+    for tep in cac_tep:
+        ket_qua.extend(_doc_csv(tep))
+    return ket_qua
+
+
+def _gia_tri_csv(gia_tri: object) -> object:
+    if gia_tri is None:
+        return ""
+    if isinstance(gia_tri, bool):
+        return "true" if gia_tri else "false"
+    if isinstance(gia_tri, float):
+        if not math.isfinite(gia_tri):
+            raise ValueError("Khong the ghi so khong huu han.")
+        return format(gia_tri, ".15g")
+    return gia_tri
+
+
+def _noi_dung_csv(cac_dong: Iterable[Mapping[str, object]]) -> str:
+    tep = StringIO(newline="")
+    bo_ghi = csv.DictWriter(tep, fieldnames=CAC_COT_DAU_RA, lineterminator="\n")
+    bo_ghi.writeheader()
+    for dong in cac_dong:
+        bo_ghi.writerow({cot: _gia_tri_csv(dong.get(cot)) for cot in CAC_COT_DAU_RA})
+    return tep.getvalue()
+
+
+def _noi_dung_json(du_lieu: object) -> str:
+    return json.dumps(du_lieu, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+
+
+def _ghi_noi_dung_bat_bien(duong_dan: Path, noi_dung: str) -> None:
+    duong_dan.parent.mkdir(parents=True, exist_ok=True)
+    with duong_dan.open("x", encoding="utf-8", newline="") as tep:
+        tep.write(noi_dung)
+        tep.flush()
+        os.fsync(tep.fileno())
+
+
+def _ghi_json_bat_bien(duong_dan: Path, du_lieu: object) -> None:
+    _ghi_noi_dung_bat_bien(duong_dan, _noi_dung_json(du_lieu))
+
+
+def _bao_cao(
+    cac_dong_dau_vao: list[dict[str, str]],
+    cac_dong_dau_ra: list[dict[str, object]],
+    cau_hinh: cau_hinh_duong_co_so,
+    ngay_bat_dau: date,
+    ngay_ket_thuc: date,
+) -> dict[str, object]:
+    dau_vao_theo_ma: dict[str, list[dict[str, str]]] = {}
+    for dong in cac_dong_dau_vao:
+        ma = str(dong["ma"]).strip().upper()
+        dau_vao_theo_ma.setdefault(ma, []).append(dong)
+    dau_ra_theo_ma: dict[str, list[dict[str, object]]] = {}
+    for dong in cac_dong_dau_ra:
+        dau_ra_theo_ma.setdefault(str(dong["ma"]), []).append(dong)
+
+    trang_thai_tung_ma: list[dict[str, object]] = []
+    for ma in sorted(dau_vao_theo_ma):
+        cac_dong_vao = sorted(
+            dau_vao_theo_ma[ma], key=lambda dong: str(dong["ngay"])
+        )
+        cac_dong_ra = dau_ra_theo_ma.get(ma, [])
+        dong_cuoi = cac_dong_ra[-1] if cac_dong_ra else None
+        so_phien = len(cac_dong_vao)
+        canh_bao: list[str] = []
+        if not cac_dong_ra:
+            canh_bao.append("Khong co dong dau ra trong khoang ngay yeu cau.")
+        if so_phien < 250:
+            canh_bao.append(
+                f"Chi co {so_phien} phien; can it nhat 250 phien de tinh MA250."
+            )
+        if so_phien < 260:
+            canh_bao.append(
+                f"Chi co {so_phien} phien; duoi nguong xac minh toi thieu 260 phien."
+            )
+        trang_thai_tung_ma.append(
+            {
+                "ma": ma,
+                "so_phien": so_phien,
+                "ngay_dau": str(cac_dong_vao[0]["ngay"])[:10],
+                "ngay_cuoi": str(cac_dong_vao[-1]["ngay"])[:10],
+                "so_dong_dau_ra": len(cac_dong_ra),
+                "so_dong_co_ma250": sum(
+                    dong["ma250"] is not None for dong in cac_dong_ra
+                ),
+                "ma250_cuoi": dong_cuoi["ma250"] if dong_cuoi else None,
+                "dong_luong_cuoi": dong_cuoi["dong_luong"] if dong_cuoi else None,
+                "trang_thai_thanh_khoan": (
+                    dong_cuoi["dat_thanh_khoan"] if dong_cuoi else None
+                ),
+                "canh_bao": canh_bao,
+                "loi": [],
+            }
+        )
+    return {
+        "trang_thai": "thanh_cong",
+        "so_dong": len(cac_dong_dau_ra),
+        "ngay_bat_dau": ngay_bat_dau.isoformat(),
+        "ngay_ket_thuc": ngay_ket_thuc.isoformat(),
+        "don_vi": {
+            "gia_dong_cua": "nghin_dong_moi_co_phieu",
+            "gia_tri_giao_dich": DON_VI_GIA_TRI_GIAO_DICH,
+        },
+        "cau_hinh": {
+            "cua_so_thanh_khoan": cau_hinh.cua_so_thanh_khoan,
+            "so_quan_sat_toi_thieu": cau_hinh.so_quan_sat_toi_thieu,
+            "nguong_thanh_khoan": cau_hinh.nguong_thanh_khoan,
+            "cua_so_dong_luong": cau_hinh.cua_so_dong_luong,
+            "cua_so_ma": 250,
+        },
+        "trang_thai_tung_ma": trang_thai_tung_ma,
+        "gioi_han_du_lieu": (
+            "Ket qua chi chung minh giao dien va quy tac khong nhin truoc. "
+            "Khong tuyen bo co du lieu thanh vien lich su that neu tep anh chup la gia lap."
+        ),
+    }
+
+
+def tao_bo_phan_tich() -> argparse.ArgumentParser:
+    bo = argparse.ArgumentParser(description="Tao tap co phieu va duong co so Moc 2.")
+    bo.add_argument("--du_lieu_san_sang", required=True)
+    bo.add_argument("--anh_chup_tap_co_phieu", required=True)
+    bo.add_argument("--ngay_danh_gia")
+    bo.add_argument("--ngay_bat_dau")
+    bo.add_argument("--ngay_ket_thuc")
+    bo.add_argument("--cua_so_thanh_khoan", required=True, type=int)
+    bo.add_argument("--so_quan_sat_toi_thieu", required=True, type=int)
+    bo.add_argument("--nguong_thanh_khoan", required=True, type=float)
+    bo.add_argument("--cua_so_dong_luong", required=True, type=int)
+    bo.add_argument("--thu_muc_dau_ra", required=True)
+    return bo
+
+
+def _doc_khoang_ngay(tham_so: argparse.Namespace) -> tuple[date, date]:
+    if tham_so.ngay_danh_gia:
+        if tham_so.ngay_bat_dau or tham_so.ngay_ket_thuc:
+            raise ValueError("Khong dung ngay_danh_gia cung khoang ngay.")
+        ngay = date.fromisoformat(tham_so.ngay_danh_gia)
+        return ngay, ngay
+    if not tham_so.ngay_bat_dau or not tham_so.ngay_ket_thuc:
+        raise ValueError("Can ngay_danh_gia hoac day du ngay_bat_dau va ngay_ket_thuc.")
+    ngay_bat_dau = date.fromisoformat(tham_so.ngay_bat_dau)
+    ngay_ket_thuc = date.fromisoformat(tham_so.ngay_ket_thuc)
+    if ngay_bat_dau > ngay_ket_thuc:
+        raise ValueError("Ngay bat dau khong duoc sau ngay ket thuc.")
+    return ngay_bat_dau, ngay_ket_thuc
+
+
+TEN_TEP_THANH_CONG = ("duong_co_so.csv", "bao_cao.json")
+TEN_TEP_SAN_PHAM = (*TEN_TEP_THANH_CONG, "bao_cao_loi.json")
+
+
+def _cac_san_pham_da_ton_tai(thu_muc: Path) -> list[Path]:
+    return [thu_muc / ten for ten in TEN_TEP_SAN_PHAM if (thu_muc / ten).exists()]
+
+
+def _kiem_tra_dau_ra_trong(thu_muc: Path) -> None:
+    da_ton_tai = _cac_san_pham_da_ton_tai(thu_muc)
+    if da_ton_tai:
+        raise FileExistsError(
+            "Khong duoc ghi de san pham da ton tai: "
+            + ", ".join(str(tep) for tep in da_ton_tai)
+        )
+
+
+def _xoa_neu_co(duong_dan: Path) -> None:
+    try:
+        duong_dan.unlink()
+    except FileNotFoundError:
+        pass
+
+
+def _cong_bo_san_pham(
+    thu_muc: Path,
+    noi_dung_csv: str,
+    noi_dung_bao_cao: str,
+) -> None:
+    thu_muc.mkdir(parents=True, exist_ok=True)
+    ma_tam = uuid4().hex
+    tep_csv_tam = thu_muc / f".duong_co_so.{ma_tam}.tmp"
+    tep_json_tam = thu_muc / f".bao_cao.{ma_tam}.tmp"
+    tep_csv = thu_muc / "duong_co_so.csv"
+    tep_json = thu_muc / "bao_cao.json"
+    da_cong_bo: list[Path] = []
+
+    try:
+        _ghi_noi_dung_bat_bien(tep_csv_tam, noi_dung_csv)
+        _ghi_noi_dung_bat_bien(tep_json_tam, noi_dung_bao_cao)
+        _kiem_tra_dau_ra_trong(thu_muc)
+        for tep_tam, tep_dich in ((tep_csv_tam, tep_csv), (tep_json_tam, tep_json)):
+            os.link(tep_tam, tep_dich)
+            da_cong_bo.append(tep_dich)
+    except BaseException:
+        for tep in reversed(da_cong_bo):
+            _xoa_neu_co(tep)
+        raise
+    finally:
+        _xoa_neu_co(tep_csv_tam)
+        _xoa_neu_co(tep_json_tam)
+
+
+def _ghi_bao_cao_loi(thu_muc: Path, loi: BaseException) -> None:
+    try:
+        if any((thu_muc / ten).exists() for ten in TEN_TEP_THANH_CONG):
+            return
+        tep_loi = thu_muc / "bao_cao_loi.json"
+        if tep_loi.exists():
+            return
+        _ghi_json_bat_bien(
+            tep_loi,
+            {"trang_thai": "that_bai", "loi": _lam_sach_loi(loi)},
+        )
+    except (OSError, ValueError):
+        pass
+
+
+def main(argv: list[str] | None = None) -> int:
+    bo = tao_bo_phan_tich()
+    try:
+        tham_so = bo.parse_args(argv)
+        thu_muc_dau_ra = Path(tham_so.thu_muc_dau_ra)
+        ngay_bat_dau, ngay_ket_thuc = _doc_khoang_ngay(tham_so)
+        _kiem_tra_dau_ra_trong(thu_muc_dau_ra)
+        cau_hinh = cau_hinh_duong_co_so(
+            cua_so_thanh_khoan=tham_so.cua_so_thanh_khoan,
+            so_quan_sat_toi_thieu=tham_so.so_quan_sat_toi_thieu,
+            nguong_thanh_khoan=tham_so.nguong_thanh_khoan,
+            cua_so_dong_luong=tham_so.cua_so_dong_luong,
+        )
+        tap_co_phieu = doc_anh_chup_csv(tham_so.anh_chup_tap_co_phieu)
+        cac_dong = doc_du_lieu_san_sang(tham_so.du_lieu_san_sang)
+        ket_qua = tinh_duong_co_so(
+            cac_dong,
+            tap_co_phieu,
+            cau_hinh,
+            ngay_bat_dau=ngay_bat_dau,
+            ngay_ket_thuc=ngay_ket_thuc,
+        )
+        if not ket_qua:
+            raise ValueError("Khong co dong dau ra trong khoang ngay yeu cau.")
+        noi_dung_csv = _noi_dung_csv(ket_qua)
+        noi_dung_bao_cao = _noi_dung_json(
+            _bao_cao(cac_dong, ket_qua, cau_hinh, ngay_bat_dau, ngay_ket_thuc)
+        )
+        _cong_bo_san_pham(thu_muc_dau_ra, noi_dung_csv, noi_dung_bao_cao)
+        return 0
+    except SystemExit:
+        raise
+    except (ValueError, OSError) as exc:
+        thu_muc = Path(getattr(locals().get("tham_so", None), "thu_muc_dau_ra", "."))
+        _ghi_bao_cao_loi(thu_muc, exc)
+        print(f"Loi: {_lam_sach_loi(exc)}", file=sys.stderr)
+        return 2
+    except Exception as exc:  # pragma: no cover - hang rao cuoi CLI
+        thu_muc = Path(getattr(locals().get("tham_so", None), "thu_muc_dau_ra", "."))
+        _ghi_bao_cao_loi(thu_muc, exc)
+        print(f"Loi he thong: {_lam_sach_loi(exc)}", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

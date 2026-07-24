@@ -1,87 +1,71 @@
 # Ban giao doan chat dieu phoi
 
-Cap nhat: 2026-07-24
+Cap nhat: 2026-07-25
 
-## Vai tro
+## Vai tro va nen
 
 - Doan `00` la dau moi dieu phoi trung tam.
-- Doan `01` da hoan thanh pham vi chuyen mon Moc 1 — du lieu.
-- GitHub la nguon su that ve nhanh, commit, PR va CI.
-- Moc 2 chua duoc giao cho den khi PR so 4 duoc gop va `main` duoc xac minh lan cuoi.
+- Doan `02` phu trach PR so 5 cua Moc 2.
+- Kho: `Tienkhoaa2908/vn-quant-system`.
+- Nhanh: `m2-tap_co_phieu-duong_co_so`.
+- Dau `main` khi mo Moc 2: `97399e291b0d3d237f247f58ffa03049826d40bd`.
+- PR phai giu draft, khong gop va khong mo Moc 3 cho den khi doan 00 ra phan quyet moi.
 
-## Trang thai ben vung
+## Cac sua doi da hoan thanh
 
-### PR so 3
+- Sua tinh toan ven dau ra CLI Moc 2: khoa ca ba san pham, khong ghi de, rollback thanh cong mot phan va khong de bao cao loi canh san pham thanh cong.
+- Them `--so_nen`, mac dinh cong khai 400, truyen thanh `count` cho Vnstock 4.0.4.
+- Them canh bao ro khi duoi 250 hoac duoi 260 phien.
+- Sua truy vet cau hinh: `ket_qua_lan_chay` tao noi dung tong hop duy nhat; quy trinh cong bo `tong_hop.json` mot lan; stdout dung cung noi dung.
+- Khong doc roi ghi de san pham da cong bo; tinh bat bien duoc giu nguyen.
 
-- Trang thai: `closed`, `merged=true`.
-- Thoi diem gop: `2026-07-24T16:40:46Z`.
-- Nhanh nguon: `m1-du_lieu`.
-- Nhanh dich: `main`.
-- Dau nhanh da gop: `639afabb406bd839540be9acfbfcf1d6c44f5aa8`.
-- Merge commit: `e94d4a340ac734bfabc14f340626c408af33645f`.
-- PR co 17 commit, 24 tep thay doi, khong co tep nao duoi `du_lieu/`.
+## Xac minh that chi bao
 
-### Moc 1 da co tren main
+Lan chay `20260724T190515274806Z_6cd15c6d`; Python `3.12.10`.
 
-- giao dien nguon du lieu;
-- nguon gia lap ngoai tuyen;
-- nguon Vnstock Community 4.0.4 va KBS;
-- JSON tho bat bien;
-- CSV chuan hoa va san sang;
-- bao cao chat luong va nhat ky JSON;
-- trang thai doc lap tung ma va retry loi tam thoi;
-- CLI tham do va tai that nho;
-- kiem thu ngoai tuyen;
-- workflow Python 3.12;
-- `.gitignore` cho `du_lieu/` va tep nhay cam.
+| Ma | So phien | Khoang ngay | So dong MA250 | MA250 cuoi | Dong luong 20 cuoi |
+|---|---:|---|---:|---:|---:|
+| FPT | 287 | 2025-06-02 den 2026-07-23 | 38 | 87.70488 | -0.08873239436619718 |
+| HPG | 287 | 2025-06-02 den 2026-07-23 | 38 | 24.16668 | -0.11111111111111105 |
+| MBB | 287 | 2025-06-02 den 2026-07-23 | 38 | 24.61656 | -0.07157894736842108 |
 
-## Bang chung ky thuat
+- Thanh khoan co gia tri cho ca ba ma.
+- Khong co loi.
+- Tong dau ra 861 dong.
+- Canh bao khoang trong 2026-02-13 den 2026-02-23 xuat hien dong thoi o ca ba ma, khong chan va khong bi tu dien.
 
-- Tham do that: `20260724T152739494769Z_521d23ce`.
-- Tai that nho: `20260724T153953222157Z_5383eaab`.
-- FPT, HPG, MBB: deu thanh cong, moi ma 8 dong.
-- Python 3.12: `Ran 30 tests in 0.696s`, ket qua `OK`.
-- GitHub Actions truoc gop: run so 38, ID `30108780878`, success tren commit `639afabb406bd839540be9acfbfcf1d6c44f5aa8`.
+## Xac minh truy vet cau hinh
 
-## Nghiệm thu sau gop
+Lan chay moi: `20260724T194007268318Z_1ade6129`.
 
-- Su kien CI: `push` tren nhanh `main`.
-- Commit duoc kiem tra: `e94d4a340ac734bfabc14f340626c408af33645f`.
-- GitHub Actions run so 39, ID `30110023878`: `completed`, `success`.
-- Job `kiem_tra`, ID `89536932151`: `completed`, `success`.
-- Tat ca buoc lay ma nguon, cai uv, cai Python, dong bo, kiem tra cu phap, kiem thu ngoai tuyen va don dep deu dat.
-- Canh bao Node.js 20 deprecated duoc GitHub chay tren Node.js 24; khong chan nghiem thu.
+San pham:
 
-## Phan quyet
+```text
+du_lieu/nhat_ky/20260724T194007268318Z_1ade6129/tong_hop.json
+```
 
-**MOC 1 DA HOAN TAT NGHIEM THU SAU GOP.**
+Ket qua:
 
-Da dat:
+- stdout co `so_nen_yeu_cau == 400`;
+- `tong_hop.json` co `so_nen_yeu_cau == 400`;
+- `trang_thai_tung_ma` tren dia va stdout giong nhau;
+- FPT, HPG va MBB deu `thanh_cong`;
+- moi ma van co 287 phien;
+- canh bao khoang trong van duoc giu va khong co du lieu tu dien.
 
-1. PR so 3 da gop.
-2. Merge commit da duoc xac minh tren `main`.
-3. Pham vi Moc 1 da xuat hien day du tren `main`.
-4. Khong co du lieu that trong Git.
-5. CI tren dau nhanh truoc gop dat.
-6. CI tren merge commit cua `main` dat.
+## Ma, kiem thu va CI
 
-## PR so 4
+- Commit sua truy vet: `aee04c81067e51db36492ced7d891e184f10f8ef`.
+- Hoi quy hien tai co 61 kiem thu; toan bo kiem thu cu va hoi quy truy vet deu dat.
+- GitHub Actions da dat tren dau nhanh va merge ref sau cac thay doi ma va tai lieu.
+- Bang chung dau nhanh, merge ref, run number, run ID, job ID va tung buoc nam trong mo ta PR so 5 va bao cao gui doan 00.
 
-- Muc tieu: ghi ben vung ket qua nghiem thu sau gop trong ba tep dieu phoi.
-- Nhanh: `cap_nhat-sau-gop-m1` vao `main`.
-- Khong sua ma Python, workflow, kiem thu hoac du lieu.
-- Can CI dat tren dau nhanh moi nhat truoc khi nguoi dung gop.
+## Gioi han va phan quyet
 
-## Viec nguoi dung can lam
-
-1. Cho CI moi nhat cua PR so 4 hoan tat.
-2. Neu CI dat, gop PR so 4 bang `Create a merge commit`.
-3. Khong xoa nhanh `m1-du_lieu` hoac `cap_nhat-sau-gop-m1` truoc khi doan `00` xac minh `main` lan cuoi.
-4. Dong bo may cuc bo ve `main` moi nhat sau khi PR so 4 duoc gop.
-5. Bao lai doan `00` de xac minh va nhan prompt giao viec Moc 2.
-
-## Khong duoc lam
-
-- Khong mo hoac trien khai Moc 2 truoc khi PR so 4 duoc gop va xac minh.
-- Khong dua du lieu that, nhat ky that hoac khoa len GitHub.
-- Khong them MA250, momentum, backtest, hoc may hoac chia von trong buoc cap nhat dieu phoi nay.
+- Xac minh gia va chi bao that da dat.
+- Giao dien chong nhin truoc da co.
+- Nguon lich su thanh vien that van chua duoc phe duyet; khong tuyen bo da loai bo thien lech song sot bang du lieu thanh vien thuc te.
+- Khong con loi ma, loi truy vet, buoc tai du lieu hoac kiem thu bat buoc trong pham vi PR so 5.
+- PR tiep tuc giu draft.
+- Khong tu gop PR va khong mo Moc 3.
+- Gui bao cao chot ve doan 00 de xin phan quyet.

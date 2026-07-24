@@ -16,10 +16,19 @@ class cot_gia_lap:
 
 
 class bang_gia_lap:
-    def __init__(self, cac_dong: list[dict[str, object]], kieu: dict[str, str] | None = None) -> None:
+    def __init__(
+        self,
+        cac_dong: list[dict[str, object]],
+        kieu: dict[str, str] | None = None,
+    ) -> None:
         self._cac_dong = cac_dong
         self.columns = list(cac_dong[0]) if cac_dong else [
-            "time", "open", "high", "low", "close", "volume"
+            "time",
+            "open",
+            "high",
+            "low",
+            "close",
+            "volume",
         ]
         self._kieu = kieu or {
             "time": "datetime64[ns]",
@@ -41,7 +50,11 @@ class bang_gia_lap:
 
 
 class bo_doc_gia_lap:
-    def __init__(self, bang: bang_gia_lap | None = None, loi: BaseException | None = None) -> None:
+    def __init__(
+        self,
+        bang: bang_gia_lap | None = None,
+        loi: BaseException | None = None,
+    ) -> None:
         self.bang = bang
         self.loi = loi
         self.tham_so: dict[str, object] | None = None
@@ -82,16 +95,19 @@ def dong_hop_le() -> dict[str, object]:
 
 
 class kiem_tra_nguon_vnstock(unittest.TestCase):
-    def tao_nguon(self, thi_truong: thi_truong_gia_lap) -> nguon_vnstock:
+    def tao_nguon(
+        self, thi_truong: thi_truong_gia_lap, *, so_nen: int = 321
+    ) -> nguon_vnstock:
         return nguon_vnstock(
+            so_nen=so_nen,
             ham_tao_thi_truong=lambda: thi_truong,
             ham_lay_phien_ban=lambda _: "4.0.4",
         )
 
-    def test_co_phieu_goi_dung_giao_dien_va_anh_xa(self) -> None:
+    def test_co_phieu_truyen_count_dung_cho_vnstock_va_anh_xa(self) -> None:
         bo_doc = bo_doc_gia_lap(bang_gia_lap([dong_hop_le()]))
         thi_truong = thi_truong_gia_lap(bo_doc)
-        bang = self.tao_nguon(thi_truong).lay_du_lieu(
+        bang = self.tao_nguon(thi_truong, so_nen=321).lay_du_lieu(
             "fpt", "2026-07-01", "2026-07-02"
         )
         self.assertEqual(thi_truong.loai, "equity")
@@ -103,6 +119,7 @@ class kiem_tra_nguon_vnstock(unittest.TestCase):
                 "end": "2026-07-02",
                 "interval": "1D",
                 "source": "kbs",
+                "count": 321,
             },
         )
         self.assertEqual(
@@ -122,6 +139,14 @@ class kiem_tra_nguon_vnstock(unittest.TestCase):
         self.assertEqual(thi_truong.loai, "index")
         self.assertEqual(bang.don_vi_gia, "diem")
         self.assertIn("can doi chieu log that", bang.ghi_chu_khoi_luong)
+
+    def test_so_nen_khong_duong_bi_tu_choi_tai_adapter(self) -> None:
+        with self.assertRaises(ValueError):
+            nguon_vnstock(
+                so_nen=0,
+                ham_tao_thi_truong=lambda: None,
+                ham_lay_phien_ban=lambda _: "4.0.4",
+            )
 
     def test_khong_co_du_lieu_duoc_phan_loai_rieng(self) -> None:
         thi_truong = thi_truong_gia_lap(bo_doc_gia_lap(bang_gia_lap([])))
@@ -152,6 +177,7 @@ class kiem_tra_nguon_vnstock(unittest.TestCase):
     def test_sai_phien_ban_bi_tu_choi(self) -> None:
         with self.assertRaises(RuntimeError):
             nguon_vnstock(
+                so_nen=400,
                 ham_tao_thi_truong=lambda: None,
                 ham_lay_phien_ban=lambda _: "4.0.5",
             )

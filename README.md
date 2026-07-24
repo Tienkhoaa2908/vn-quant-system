@@ -1,151 +1,167 @@
 # vn-quant-system
 
-He thong dinh luong co phieu Viet Nam, dang o Moc 1: thu thap, luu tru, chuan hoa va kiem tra du lieu thi truong theo ngay.
+He thong dinh luong co phieu Viet Nam, dang o Moc 2: tap co phieu theo tung thoi diem va cac duong co so khong nhin truoc.
 
 ## Pham vi hien tai
 
-Moc 1 gom:
+Moc 2 gom:
 
-- giao dien chung cho nguon du lieu;
-- nguon gia lap de kiem thu khong dung mang;
-- bo chuyen doi Vnstock Community dung dung phien ban `4.0.4` va nguon KBS;
-- luu du lieu tho JSON dang bang theo cach bat bien;
-- chuan hoa ve CSV UTF-8;
-- kiem tra chat luong va xuat bao cao JSON;
-- tao CSV san sang cho nghien cuu khi khong co loi nghiem trong;
-- nhat ky JSON va trang thai doc lap theo tung ma;
-- thu lai co gioi han cho loi nguon tam thoi.
+- doc anh chup tap co phieu theo ngay hieu luc;
+- chon anh chup gan nhat khong lon hon ngay danh gia;
+- tinh gia tri giao dich va trung binh thanh khoan theo tung ma;
+- tinh MA250 bang dung 250 quan sat gia dong cua;
+- tinh dong luong theo cua so bat buoc;
+- xuat CSV UTF-8 va bao cao JSON co thu tu on dinh;
+- CLI ngoai tuyen, khong tu tai VN100 va khong ghi de san pham.
 
-Ba ma bat buoc la `FPT`, `HPG` va `MBB`. `VNINDEX` la phan mo rong, khong chan nghiem thu ba ma bat buoc.
+Khong thuoc Moc 2: backtest, khop lenh, phi, thue, truot gia, hoc may, LightGBM, nhan, chia von, toi uu danh muc va gioi han ty trong.
 
-Chua trien khai MA250, dong luong, mo phong giao dich, hoc may, LightGBM, chia von, gioi han ty trong hoac tai toan bo VN100.
+## Dau vao du lieu gia
 
-## Luoc do du lieu chuan
-
-Tep CSV chuan hoa va san sang co cac cot:
+Tai su dung CSV san sang cua Moc 1:
 
 ```text
 ma,ngay,gia_mo_cua,gia_cao_nhat,gia_thap_nhat,gia_dong_cua,khoi_luong
 ```
 
-Ngay dung dinh dang `YYYY-MM-DD`.
+Ngay dung `YYYY-MM-DD`. Cap `ma,ngay` phai duy nhat. Gia dong cua phai la so huu han duong; khoi luong phai la so nguyen khong am.
 
-## Cau truc du lieu cuc bo
+## Tai du lieu Moc 1 voi so nen ro rang
 
-Moi lan chay tao mot ma rieng trong thu muc `du_lieu/`:
-
-```text
-du_lieu/
-├── tho/<ma_lan_chay>/<ma>.json
-├── chuan_hoa/<ma_lan_chay>/<ma>.csv
-├── bao_cao/<ma_lan_chay>/<ma>.json
-├── san_sang/<ma_lan_chay>/<ma>.csv
-├── nhat_ky/<ma_lan_chay>/<ma>.json
-└── nhat_ky/<ma_lan_chay>/tong_hop.json
-```
-
-`du_lieu/`, tep moi truong, khoa va tep bi mat da bi loai khoi Git. Du lieu tho khong bi ghi de im lang. Neu nguon khong tra du lieu, he thong chi ghi nhat ky that bai va khong tao tep tho gia.
-
-## Cai dat de phat trien
-
-Yeu cau Python 3.12 tro len va `uv`.
-
-```bash
-uv sync --frozen
-```
-
-Phu thuoc Vnstock khong nam trong moi truong kiem thu mac dinh. Lenh tai that dung `uv --with` de co lap phu thuoc nguon va giu GitHub Actions khong goi Vnstock.
-
-## Kiem thu ngoai tuyen
-
-```bash
-PYTHONPATH=src uv run python -m compileall -q src tests
-PYTHONPATH=src uv run python -m unittest discover -s tests -p 'test_*.py' -v
-```
-
-Tat ca kiem thu dung nguon gia lap hoac doi tuong gia, khong can khoa va khong goi mang.
-
-## Tham do Vnstock 4.0.4
-
-Chay buoc nay truoc lan tai that de ghi lai ten cot, kieu du lieu, don vi gia va trang thai rieng tung ma:
-
-```bash
-PYTHONPATH=src uv run --with vnstock==4.0.4 \
-  python -m he_thong_dinh_luong.tham_do_vnstock \
-  --ma FPT HPG MBB \
-  --ngay_bat_dau 2026-07-01 \
-  --ngay_ket_thuc 2026-07-10 \
-  --thu_muc_du_lieu du_lieu
-```
-
-Bao cao tham do duoc ghi vao `du_lieu/tham_do/<ma_lan_chay>/ket_qua.json`. Cong cu chi ghi tom tat cau truc, khong ghi toan bo du lieu thi truong.
-
-Thu rieng VNINDEX:
-
-```bash
-PYTHONPATH=src uv run --with vnstock==4.0.4 \
-  python -m he_thong_dinh_luong.tham_do_vnstock \
-  --ma VNINDEX \
-  --ngay_bat_dau 2026-07-01 \
-  --ngay_ket_thuc 2026-07-10
-```
-
-## Tai that nho cho FPT, HPG va MBB
-
-Sau khi buoc tham do thanh cong:
+CLI tai du lieu nhan `--so_nen`, la so nguyen duong duoc truyen truc tiep thanh `count` cho Vnstock 4.0.4. Mac dinh la `400`, duoc hien thi trong `--help`; bo chuyen doi khong hard-code 400 va khong phu thuoc gioi han mac dinh 100 dong cua nguon.
 
 ```bash
 PYTHONPATH=src uv run --with vnstock==4.0.4 \
   python -m he_thong_dinh_luong.tai_du_lieu \
   --ma FPT HPG MBB \
-  --ngay_bat_dau 2026-07-01 \
-  --ngay_ket_thuc 2026-07-10 \
-  --ngay_kiem_tra 2026-07-24 \
+  --ngay_bat_dau 2025-06-01 \
+  --ngay_ket_thuc 2026-07-24 \
+  --ngay_kiem_tra 2026-07-25 \
+  --so_nen 400 \
   --thu_muc_du_lieu du_lieu
 ```
 
-Moi ma duoc xu ly doc lap. Mot ma that bai khong xoa ket qua cua ma khac. Lenh tra ma `2` neu mot trong cac ma bat buoc duoc yeu cau khong thanh cong.
+CLI truyen `so_nen_yeu_cau` vao cau hinh lan chay truoc khi quy trinh cong bo san pham. `du_lieu/nhat_ky/<ma_lan_chay>/tong_hop.json` va JSON in ra terminal dung cung mot mo hinh ket qua, nen cung ghi gia tri nay. He thong khong doc roi ghi de tep tong hop da cong bo. Du lieu that va nhat ky nam duoi `du_lieu/` va khong duoc commit.
 
-Khong dua thu muc `du_lieu/` hoac log tai that vao commit va yeu cau gop.
+## Dau vao tap co phieu theo thoi diem
 
-## Ket qua tham do tinh cua Vnstock 4.0.4
+CSV UTF-8:
 
-Ma nguon tag `v4.0.4` cho thay:
-
-- khoi tao bang `from vnstock import Market`;
-- co phieu: `Market().equity(symbol=ma).ohlcv(...)`;
-- chi so: `Market().index(symbol=ma).ohlcv(...)`;
-- du lieu ngay dung `interval="1D"`, nguon `source="kbs"`;
-- cac cot chuan la `time`, `open`, `high`, `low`, `close`, `volume`;
-- kieu du lieu la `datetime64[ns]`, bon cot gia `float64`, khoi luong `int64`;
-- gia co phieu da duoc Vnstock chia cho 1.000 va co don vi nghin dong;
-- gia VNINDEX duoc giu theo diem chi so;
-- khong co tham so cong khai de chon gia dieu chinh hay chua dieu chinh trong giao dien nay.
-
-Y nghia kinh te cua `volume` cho VNINDEX chua duoc coi la da xac nhan cho nghien cuu cho den khi co log tham do that va doi chieu nguon.
-
-Chi tiet xem `tai_lieu/tham_do_vnstock_4_0_4.md`.
-
-## Chay trinh kiem tra CSV cu
-
-```bash
-PYTHONPATH=src uv run python -m he_thong_dinh_luong \
-  tests/du_lieu/gia_lap_hop_le.csv \
-  --ngay_kiem_tra 2026-07-24
+```text
+ngay_hieu_luc,ma,nguon,phien_ban
 ```
 
-Ma thoat:
+Voi ngay `T`, he thong chi chon anh chup co `ngay_hieu_luc <= T` va lay anh chup gan nhat. Anh chup tuong lai khong duoc su dung. Neu khong co anh chup hop le, lenh dung voi ma thoat khac `0`.
 
-- `0`: du lieu hop le;
-- `1`: loi doc tep hoac tham so;
-- `2`: du lieu khong dat quy tac chat luong.
+Tep trong `tests/du_lieu/tap_co_phieu_gia_lap.csv` chi la du lieu gia lap. Du an chua tuyen bo co lich su thanh vien that hay da giai quyet thien lech song sot bang du lieu that.
+
+## Cong thuc
+
+### Gia tri giao dich va thanh khoan
+
+```text
+gia_tri_giao_dich = gia_dong_cua * khoi_luong
+```
+
+Gia co phieu Moc 1 co don vi nghin dong moi co phieu, do do gia tri giao dich va trung binh thanh khoan co don vi nghin dong.
+
+Bo loc thanh khoan co ba tham so bat buoc: `cua_so_thanh_khoan`, `so_quan_sat_toi_thieu` va `nguong_thanh_khoan`. Dat thanh khoan khi trung binh lon hon hoac bang nguong. Khong co nguong san xuat mac dinh.
+
+### MA250
+
+```text
+ma250 = trung binh cong cua dung 250 gia dong cua gan nhat
+```
+
+Truoc quan sat thu 250, `ma250` va `tren_ma250` de trong. `tren_ma250=true` khi gia dong cua lon hon hoac bang MA250.
+
+### Dong luong
+
+```text
+dong_luong_N = gia_dong_cua_t / gia_dong_cua_t_tru_N - 1
+```
+
+`N` la tham so bat buoc. Can toi thieu `N + 1` quan sat cua cung ma.
+
+## Dau ra Moc 2
+
+CLI tao hai tep trong thu muc dau ra:
+
+```text
+duong_co_so.csv
+bao_cao.json
+```
+
+CSV co cac cot:
+
+```text
+ma,ngay,thuoc_tap_co_phieu,ngay_hieu_luc_tap_co_phieu,nguon_tap_co_phieu,phien_ban_tap_co_phieu,gia_tri_giao_dich,gia_tri_giao_dich_trung_binh,dat_thanh_khoan,ma250,tren_ma250,dong_luong,trang_thai_lich_su
+```
+
+Bao cao JSON ghi cau hinh, don vi va tom tat rieng tung ma. Bao cao canh bao rieng khi mot ma co duoi 250 phien va khi co duoi nguong xac minh 260 phien.
+
+Tep da ton tai khong bi ghi de. Loi dau vao duoc ghi vao `bao_cao_loi.json` khi co the va duoc lam sach thong tin nhay cam. Thu muc thanh cong khong dong thoi chua bao cao loi.
+
+## Chay CLI Moc 2
+
+```bash
+PYTHONPATH=src uv run --python 3.12 \
+  python -m he_thong_dinh_luong.duong_co_so \
+  --du_lieu_san_sang du_lieu/san_sang/<ma_lan_chay> \
+  --anh_chup_tap_co_phieu du_lieu/tap_co_phieu/anh_chup.csv \
+  --ngay_bat_dau 2025-06-01 \
+  --ngay_ket_thuc 2026-07-24 \
+  --cua_so_thanh_khoan 20 \
+  --so_quan_sat_toi_thieu 20 \
+  --nguong_thanh_khoan 0 \
+  --cua_so_dong_luong 20 \
+  --thu_muc_dau_ra du_lieu/duong_co_so/<thu_muc_moi>
+```
+
+Gia tri `0` va cua so dong luong `20` trong vi du chi dung de kiem tra ky thuat, khong phai cau hinh san xuat.
+
+## Kiem thu ngoai tuyen
+
+```bash
+uv sync --frozen --python 3.12
+PYTHONPATH=src uv run --python 3.12 python -m compileall -q src tests
+PYTHONPATH=src uv run --python 3.12 \
+  python -m unittest discover -s tests -p 'test_*.py' -v
+```
+
+CI khong goi mang, khong goi Vnstock va chi dung du lieu gia lap.
+
+## Ket qua xac minh that FPT, HPG va MBB
+
+Lan chay chi bao `20260724T190515274806Z_6cd15c6d` tren Python `3.12.10` da dat nghiem thu ky thuat:
+
+- moi ma co 287 phien, tu 2025-06-02 den 2026-07-23;
+- moi ma co 38 dong MA250;
+- MA250 cuoi: FPT `87.70488`, HPG `24.16668`, MBB `24.61656`;
+- dong luong 20 phien cuoi: FPT `-0.08873239436619718`, HPG `-0.11111111111111105`, MBB `-0.07157894736842108`;
+- trang thai thanh khoan co gia tri, khong co loi, tong dau ra 861 dong.
+
+Canh bao khoang trong 2026-02-13 den 2026-02-23 xuat hien o ca ba ma. Quy trinh khong tu dien cac phien thieu; canh bao nay khong chan nghiem thu ky thuat.
+
+Lan chay truy vet `20260724T194007268318Z_1ade6129` da xac nhan:
+
+- stdout co `so_nen_yeu_cau == 400`;
+- `du_lieu/nhat_ky/20260724T194007268318Z_1ade6129/tong_hop.json` co cung gia tri;
+- `trang_thai_tung_ma` tren dia va stdout giong nhau;
+- FPT, HPG va MBB deu thanh cong, moi ma 287 phien.
+
+Chi tiet nam trong `tai_lieu/xac_minh_cuc_bo_moc_2.md` va `tai_lieu/ket_qua_xac_minh_truy_vet_moc_2.md`.
+
+## Cau truc du lieu cuc bo
+
+San pham that nam duoi `du_lieu/`, thu muc nay da bi Git bo qua. Khong commit du lieu thi truong that, danh sach thanh vien bi han che ban quyen, nhat ky that, khoa hoac token.
 
 ## Nguyen tac du an
 
-- GitHub la nguon su that.
-- Khong dua khoa truy cap, mat khau, log hoac du lieu thi truong that vao kho ma nguon.
-- Khong dung du lieu tuong lai trong nghien cuu.
-- Khong tu dien ngay thieu khi chua co lich giao dich dang tin cay.
-- Canh bao khoang ngay khong tu dong chan dau ra hop le.
-- Du lieu gia lap chi dung cho kiem thu, khong dai dien cho thi truong that.
-- Moi thay doi kien truc phai duoc ghi vao `DECISIONS.md`.
+- GitHub la nguon su that ve nhanh, commit, PR va CI.
+- Khong dung du lieu tuong lai.
+- Khong tu dien gia, khoi luong, ngay giao dich hay thanh vien thieu.
+- Khong coi danh sach thanh vien hien tai la dung cho toan bo lich su.
+- Khong tao co du dieu kien dau tu tong hop khi chua co quyet dinh rieng.
+- Nguon lich su thanh vien that chua duoc phe duyet; khong tuyen bo da loai bo thien lech song sot thuc te.
+- Khong mo Moc 3 trong nhanh Moc 2.
