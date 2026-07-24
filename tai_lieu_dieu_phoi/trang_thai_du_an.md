@@ -32,7 +32,7 @@ Trạng thái: **đã gộp vào `main`**.
 
 ## Mốc 1
 
-Trạng thái điều phối: **thăm dò thật, tải thật nhỏ và kiểm thử Python 3.12 đã đạt; còn chờ GitHub Actions**.
+Trạng thái điều phối: **toàn bộ điều kiện kỹ thuật bắt buộc đã đạt; chờ đoạn `00` nghiệm thu và quyết định trạng thái PR**.
 
 Yêu cầu gộp số `3`:
 
@@ -42,6 +42,7 @@ Yêu cầu gộp số `3`:
 - Commit lát cắt dữ liệu ngoại tuyến: `0310e0667f569608676066dfe935fd3f9e782f4f`.
 - Commit nguồn Vnstock và lệnh tải nhỏ: `e6dd3d8125e092cbee2d956269324a96a543e026`.
 - Commit đồng bộ `origin/main` vào nhánh: `5ae994df47ce34a5ab5d3c5dd1e3d206d864811c`.
+- Commit sửa workflow cuối đã được xác minh: `ad1c54c41e2fc31d7a4327043b21f02b35b4603d`.
 - Nhánh đã chứa đầu `main` mới; so sánh GitHub xác nhận chậm hơn `main` 0 commit.
 
 ### Thăm dò thật Vnstock Community 4.0.4
@@ -76,12 +77,21 @@ Yêu cầu gộp số `3`:
 - Thời gian unittest: `0.696s`.
 - Kết quả cuối: `OK`.
 
-### Điều kiện còn chặn
+### GitHub Actions
 
-1. GitHub Actions phải có lần chạy thật trên commit đầu nhánh cuối cùng.
-2. Toàn bộ job và bước của Actions phải đạt.
-3. Sau khi CI đạt, cập nhật báo cáo cuối và gửi đoạn `00` nghiệm thu.
-4. PR số `3` phải tiếp tục ở trạng thái nháp cho đến khi đoạn `00` quyết định.
+Đã xác minh trên commit `ad1c54c41e2fc31d7a4327043b21f02b35b4603d`:
+
+- run đẩy nhánh số `25`, ID `30107975081`: `success`;
+- run đồng bộ pull request số `26`, ID `30107980910`: `success`;
+- job `kiem_tra`: `completed`, `success`;
+- toàn bộ bước `Lay ma nguon`, `Cai dat uv`, `Cai dat Python`, `Dong bo moi truong`, `Kiem tra cu phap`, `Chay kiem thu ngoai tuyen` đều đạt;
+- cảnh báo Node.js 20 bị loại bỏ dần là cảnh báo không chặn và không làm thay đổi kết luận CI.
+
+### Điều kiện còn lại
+
+1. Đoạn `00` rà soát báo cáo bàn giao và quyết định có chuyển PR số `3` khỏi trạng thái nháp hay không.
+2. Không gộp PR số `3` trong đoạn `01`.
+3. Không mở Mốc 2 trước quyết định của đoạn `00`.
 
 ## Phạm vi bị khóa
 
