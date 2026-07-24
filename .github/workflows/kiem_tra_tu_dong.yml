@@ -2,7 +2,7 @@ name: kiem_tra_tu_dong
 
 on:
   push:
-    branches: [main, m0-khoi_tao]
+    branches: [main, m1-du_lieu]
   pull_request:
 
 jobs:
@@ -19,5 +19,8 @@ jobs:
         run: uv sync --frozen --python 3.12
       - name: Kiem tra cu phap
         run: PYTHONPATH=src uv run --python 3.12 python -m compileall -q src tests
-      - name: Chay kiem thu
+      - name: Chay kiem thu ngoai tuyen
+        env:
+          NO_PROXY: "*"
+          no_proxy: "*"
         run: PYTHONPATH=src uv run --python 3.12 python -m unittest discover -s tests -p 'test_*.py' -v

@@ -11,12 +11,20 @@ THU_MUC_DU_LIEU = Path(__file__).parent / "du_lieu"
 
 
 def tao_dong(**thay_doi: str) -> dict[str, str]:
-    dong = {"ma": "AAA", "ngay": "2026-07-20", "gia_mo_cua": "10", "gia_cao_nhat": "11", "gia_thap_nhat": "9", "gia_dong_cua": "10.5", "khoi_luong": "1000"}
+    dong = {
+        "ma": "AAA",
+        "ngay": "2026-07-20",
+        "gia_mo_cua": "10",
+        "gia_cao_nhat": "11",
+        "gia_thap_nhat": "9",
+        "gia_dong_cua": "10.5",
+        "khoi_luong": "1000",
+    }
     dong.update(thay_doi)
     return dong
 
 
-class KiemTraDuLieuGia(unittest.TestCase):
+class kiem_tra_du_lieu_gia(unittest.TestCase):
     def quy_tac(self, *cac_dong: dict[str, str]) -> set[str]:
         bao_cao = kiem_tra_cac_dong(cac_dong, NGAY_KIEM_TRA)
         return {loi.quy_tac for loi in bao_cao.loi}
@@ -34,7 +42,10 @@ class KiemTraDuLieuGia(unittest.TestCase):
         self.assertIn("gia_thap_nhat_khong_hop_le", self.quy_tac(tao_dong(gia_thap_nhat="10.2")))
 
     def test_phat_hien_gia_thap_nhat_lon_hon_gia_dong_cua(self) -> None:
-        self.assertIn("gia_thap_nhat_khong_hop_le", self.quy_tac(tao_dong(gia_mo_cua="11", gia_dong_cua="10", gia_thap_nhat="10.2")))
+        self.assertIn(
+            "gia_thap_nhat_khong_hop_le",
+            self.quy_tac(tao_dong(gia_mo_cua="11", gia_dong_cua="10", gia_thap_nhat="10.2")),
+        )
 
     def test_phat_hien_gia_bang_0(self) -> None:
         self.assertIn("gia_khong_duong", self.quy_tac(tao_dong(gia_mo_cua="0")))
@@ -50,6 +61,14 @@ class KiemTraDuLieuGia(unittest.TestCase):
 
     def test_phat_hien_ngay_sau_ngay_kiem_tra(self) -> None:
         self.assertIn("ngay_sau_ngay_kiem_tra", self.quy_tac(tao_dong(ngay="2026-07-25")))
+
+    def test_canh_bao_khoang_ngay_khong_chan_du_lieu(self) -> None:
+        bao_cao = kiem_tra_cac_dong(
+            [tao_dong(ngay="2026-07-01"), tao_dong(ngay="2026-07-20")],
+            NGAY_KIEM_TRA,
+        )
+        self.assertTrue(bao_cao.hop_le)
+        self.assertEqual(bao_cao.canh_bao[0].quy_tac, "khoang_ngay_bat_thuong")
 
     def test_tep_gia_lap_hop_le(self) -> None:
         bao_cao = kiem_tra_tep(THU_MUC_DU_LIEU / "gia_lap_hop_le.csv", NGAY_KIEM_TRA)

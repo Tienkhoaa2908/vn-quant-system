@@ -149,6 +149,8 @@ activemq-data/
 
 # Environments
 .env
+.env.*
+!.env.example
 .envrc
 .venv
 env/
@@ -216,3 +218,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Du lieu thi truong va thong tin nhay cam cua Moc 1
+/du_lieu/
+*.pem
+*.key
+*secret*
+*token*
