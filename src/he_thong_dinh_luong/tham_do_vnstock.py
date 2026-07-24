@@ -10,15 +10,23 @@ from pathlib import Path
 from .du_lieu_thi_truong.luu_tru import kho_luu_tru
 from .du_lieu_thi_truong.nguon_vnstock import nguon_vnstock
 from .du_lieu_thi_truong.quy_trinh import lam_sach_loi, tao_ma_lan_chay
+from .du_lieu_thi_truong.tham_so_vnstock import SO_NEN_MAC_DINH, so_nguyen_duong
 
 
 def tao_bo_phan_tich() -> argparse.ArgumentParser:
     bo_phan_tich = argparse.ArgumentParser(
-        description="Tham do Vnstock 4.0.4 cho tung ma, khong luu du lieu thi truong day du."
+        description="Tham do Vnstock 4.0.4 cho tung ma, khong luu du lieu thi truong day du.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     bo_phan_tich.add_argument("--ma", nargs="+", default=["FPT", "HPG", "MBB"])
     bo_phan_tich.add_argument("--ngay_bat_dau", required=True)
     bo_phan_tich.add_argument("--ngay_ket_thuc", required=True)
+    bo_phan_tich.add_argument(
+        "--so_nen",
+        type=so_nguyen_duong,
+        default=SO_NEN_MAC_DINH,
+        help="So nen toi da yeu cau Vnstock tra cho moi ma.",
+    )
     bo_phan_tich.add_argument("--thu_muc_du_lieu", default="du_lieu")
     return bo_phan_tich
 
@@ -30,7 +38,7 @@ def chay() -> int:
     if ngay_bat_dau > ngay_ket_thuc:
         raise SystemExit("ngay_bat_dau phai khong sau ngay_ket_thuc")
 
-    nguon = nguon_vnstock()
+    nguon = nguon_vnstock(so_nen=tham_so.so_nen)
     ket_qua: list[dict[str, object]] = []
     for ma_ban_dau in tham_so.ma:
         ma = ma_ban_dau.strip().upper()
@@ -65,7 +73,11 @@ def chay() -> int:
         "ma_lan_chay": ma_lan_chay,
         "nguon": nguon.ten_nguon,
         "phien_ban": nguon.phien_ban,
-        "cach_goi": "Market().equity/index(symbol).ohlcv(start, end, interval='1D', source='kbs')",
+        "cach_goi": (
+            "Market().equity/index(symbol).ohlcv(start, end, interval='1D', "
+            "source='kbs', count=so_nen)"
+        ),
+        "so_nen_yeu_cau": tham_so.so_nen,
         "ho_tro_chon_gia_dieu_chinh": False,
         "ten_tham_so_gia": None,
         "ngay_bat_dau": ngay_bat_dau,
