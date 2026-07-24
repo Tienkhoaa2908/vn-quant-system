@@ -2,7 +2,7 @@
 
 ## Trang thai
 
-Tham do tinh da hoan thanh tren ma nguon tag `v4.0.4`. Tham do du lieu that chua hoan thanh trong moi truong phat trien hien tai do moi truong khong phan giai duoc ten mien va khong cai duoc goi tu PyPI. Ket noi nguon chi duoc coi la dat sau khi nguoi dung chay lenh tham do va gui log theo tung ma.
+Tham do tinh da hoan thanh tren ma nguon tag `v4.0.4`. Tham do du lieu that voi `count=400` da xac nhan FPT, HPG va MBB deu tra 287 dong trong khoang yeu cau 2025-06-01 den 2026-07-24. Gioi han 100 dong truoc do den tu `count` mac dinh.
 
 ## Giao dien da xac minh
 
@@ -10,21 +10,25 @@ Tham do tinh da hoan thanh tren ma nguon tag `v4.0.4`. Tham do du lieu that chua
 from vnstock import Market
 
 bang_co_phieu = Market().equity(symbol="FPT").ohlcv(
-    start="2026-07-01",
-    end="2026-07-10",
+    start="2025-06-01",
+    end="2026-07-24",
     interval="1D",
     source="kbs",
+    count=400,
 )
 
 bang_chi_so = Market().index(symbol="VNINDEX").ohlcv(
-    start="2026-07-01",
-    end="2026-07-10",
+    start="2025-06-01",
+    end="2026-07-24",
     interval="1D",
     source="kbs",
+    count=400,
 )
 ```
 
 `EquityMarket.ohlcv` va `IndexMarket.ohlcv` deu nhan `start`, `end`, `interval`, `count`, `source` va `**kwargs`. Bo cung cap KBS goi `Quote.history` va tra bang du lieu.
+
+Bo chuyen doi chi truyen gia tri `so_nen` duoc cung cap tu ben ngoai thanh `count`; khong hard-code 400. Hai CLI Vnstock dung mac dinh ro rang `--so_nen 400` va tu choi gia tri khong phai so nguyen duong.
 
 ## Cot va kieu du lieu
 
@@ -51,7 +55,13 @@ Chu ky cong khai cua `ohlcv` va `Quote.history` khong co tham so chon gia dieu c
 
 ## FPT, HPG va MBB
 
-Theo bo chuyen doi da xac minh, ba ma nay dung cung nhanh `Market().equity` va cung hop dong cot/loai du lieu. So dong, ngay dau, ngay cuoi va gia tri thuc te phai lay tu lenh tham do that.
+Ket qua tham do that voi `count=400`:
+
+- FPT: 287 dong, 2025-06-02 den 2026-07-23;
+- HPG: 287 dong, 2025-06-02 den 2026-07-23;
+- MBB: 287 dong, 2025-06-02 den 2026-07-23.
+
+Ket qua nay xac nhan du lich su de tinh MA250 va vuot nguong xac minh 260 phien, nhung chua thay the buoc tai qua pipeline Moc 1 va chay Moc 2.
 
 ## VNINDEX
 
@@ -63,8 +73,10 @@ KBS liet ke `VNINDEX` trong tap chi so duoc ho tro va Vnstock dung nhanh `Market
 PYTHONPATH=src uv run --with vnstock==4.0.4 \
   python -m he_thong_dinh_luong.tham_do_vnstock \
   --ma FPT HPG MBB \
-  --ngay_bat_dau 2026-07-01 \
-  --ngay_ket_thuc 2026-07-10
+  --ngay_bat_dau 2025-06-01 \
+  --ngay_ket_thuc 2026-07-24 \
+  --so_nen 400 \
+  --thu_muc_du_lieu du_lieu
 ```
 
 VNINDEX duoc chay rieng:
@@ -73,8 +85,10 @@ VNINDEX duoc chay rieng:
 PYTHONPATH=src uv run --with vnstock==4.0.4 \
   python -m he_thong_dinh_luong.tham_do_vnstock \
   --ma VNINDEX \
-  --ngay_bat_dau 2026-07-01 \
-  --ngay_ket_thuc 2026-07-10
+  --ngay_bat_dau 2025-06-01 \
+  --ngay_ket_thuc 2026-07-24 \
+  --so_nen 400 \
+  --thu_muc_du_lieu du_lieu
 ```
 
-Bao cao JSON can duoc gui ve de ra soat, nhung khong dua vao commit.
+Bao cao JSON ghi `so_nen_yeu_cau`, can duoc gui ve de ra soat, nhung khong dua vao commit.

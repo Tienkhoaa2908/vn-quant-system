@@ -36,7 +36,7 @@ Khi hai quan sat lien tiep cach nhau hon bay ngay lich, he thong ghi canh bao. H
 
 Bo chuyen doi khoa dung Vnstock Community `4.0.4`. Giao dien da duoc xac minh tu ma nguon tag `v4.0.4`: `Market().equity/index(symbol).ohlcv(start, end, interval="1D", source="kbs")` tra cac cot `time`, `open`, `high`, `low`, `close`, `volume`.
 
-Vnstock chuyen gia co phieu ve nghin dong, con chi so giu don vi diem. Giao dien cong khai nay khong co tham so chon gia dieu chinh hay chua dieu chinh, vi vay du an khong truyen tham so suy doan.
+Vnstock chuyen gia co phieu ve nghin dong, con chi so giu don vi diem. Giao dien cong khai nay khong co tham so chon gia dieu chinh hay chua dieu ching, vi vay du an khong truyen tham so suy doan.
 
 ## QD-0010: VNINDEX la phan mo rong
 
@@ -93,3 +93,9 @@ He thong khong tu dien gia, khoi luong, ngay giao dich, thanh vien hoac chi bao.
 Dau ra chinh la CSV UTF-8 co thu tu cot on dinh va bao cao JSON. CSV co it nhat `ma`, `ngay`, `thuoc_tap_co_phieu`, `gia_tri_giao_dich`, `gia_tri_giao_dich_trung_binh`, `dat_thanh_khoan`, `ma250`, `tren_ma250`, `dong_luong`, `trang_thai_lich_su`, dong thoi kem ngay hieu luc, nguon va phien ban anh chup de truy vet. San pham khong duoc ghi de im lang.
 
 Moc 2 khong tao co du dieu kien dau tu tong hop, khong backtest, khong mo phong giao dich, khong hoc may va khong chia von. Cho den khi co nguon lich su dang tin cay duoc doan 00 phe duyet, viec chong thien lech song sot chi duoc kiem chung o cap giao dien va du lieu gia lap; khong tuyen bo da co lich su thanh vien that.
+
+## QD-0019: So nen Vnstock phai duoc yeu cau ro rang
+
+Bo chuyen doi Vnstock nhan `so_nen` tu ben ngoai, xac thuc la so nguyen duong va truyen nguyen gia tri do thanh tham so `count` cua `ohlcv`. Bo chuyen doi khong hard-code `400`. Cac CLI Vnstock dung mac dinh duoc cong bo la `400`, ghi gia tri yeu cau trong bao cao va khong con am tham phu thuoc gioi han mac dinh 100 dong cua nguon.
+
+Bao cao Moc 2 canh bao rieng khi mot ma co duoi 250 phien, vi chua du de tinh MA250, va khi co duoi 260 phien, vi chua dat nguong xac minh du lieu that. Hai canh bao nay khong tu dong bien du lieu hop le thanh loi.

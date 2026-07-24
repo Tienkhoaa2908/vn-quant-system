@@ -26,6 +26,24 @@ ma,ngay,gia_mo_cua,gia_cao_nhat,gia_thap_nhat,gia_dong_cua,khoi_luong
 
 Ngay dung `YYYY-MM-DD`. Cap `ma,ngay` phai duy nhat. Gia dong cua phai la so huu han duong; khoi luong phai la so nguyen khong am.
 
+
+## Tai du lieu Moc 1 voi so nen ro rang
+
+CLI tai du lieu nhan `--so_nen`, la so nguyen duong duoc truyen truc tiep thanh `count` cho Vnstock 4.0.4. Mac dinh la `400`, duoc hien thi trong `--help`; bo chuyen doi khong tu gan cung 400 va khong con phu thuoc gioi han mac dinh 100 dong cua nguon.
+
+```bash
+PYTHONPATH=src uv run --with vnstock==4.0.4 \
+  python -m he_thong_dinh_luong.tai_du_lieu \
+  --ma FPT HPG MBB \
+  --ngay_bat_dau 2025-06-01 \
+  --ngay_ket_thuc 2026-07-24 \
+  --ngay_kiem_tra 2026-07-25 \
+  --so_nen 400 \
+  --thu_muc_du_lieu du_lieu
+```
+
+Ket qua in ra ghi `so_nen_yeu_cau`. Du lieu that va nhat ky van nam duoi `du_lieu/` va khong duoc commit.
+
 ## Dau vao tap co phieu theo thoi diem
 
 CSV UTF-8:
@@ -87,7 +105,7 @@ CSV co cac cot:
 ma,ngay,thuoc_tap_co_phieu,ngay_hieu_luc_tap_co_phieu,nguon_tap_co_phieu,phien_ban_tap_co_phieu,gia_tri_giao_dich,gia_tri_giao_dich_trung_binh,dat_thanh_khoan,ma250,tren_ma250,dong_luong,trang_thai_lich_su
 ```
 
-Bao cao JSON ghi cau hinh, don vi va tom tat rieng tung ma: so phien dau vao, ngay dau, ngay cuoi, so dong dau ra, so dong co MA250, MA250 cuoi, dong luong cuoi, trang thai thanh khoan, canh bao va loi.
+Bao cao JSON ghi cau hinh, don vi va tom tat rieng tung ma: so phien dau vao, ngay dau, ngay cuoi, so dong dau ra, so dong co MA250, MA250 cuoi, dong luong cuoi, trang thai thanh khoan, canh bao va loi. Bao cao canh bao rieng khi mot ma co duoi 250 phien, va khi co duoi nguong xac minh 260 phien.
 
 Tep da ton tai khong bi ghi de. Loi dau vao duoc ghi vao `bao_cao_loi.json` khi co the va duoc lam sach thong tin nhay cam.
 
