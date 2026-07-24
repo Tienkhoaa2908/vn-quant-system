@@ -1,103 +1,88 @@
-# Trạng thái dự án
+# Trang thai du an
 
-Cập nhật gần nhất: 2026-07-24
+Cap nhat gan nhat: 2026-07-24
 
-## Kho mã nguồn
+## Kho ma nguon
 
 - Kho: `Tienkhoaa2908/vn-quant-system`.
-- Nhánh chính: `main`.
-- Commit đầu `main` đã xác minh: `4eba2a77d5864027c84d4350769d95fd4abd5fee`.
-- Đầu `main` đã chứa toàn bộ thư mục `tai_lieu_dieu_phoi/`.
-- Thư mục cục bộ của người dùng: `C:\Users\welcome\Documents\vn-quant-system`.
-- Môi trường người dùng: Windows và Git Bash.
-- Python mục tiêu: 3.12.
-- Công cụ môi trường: `uv`.
+- Nhanh chinh: `main`.
+- Dau `main` da xac minh: `4eba2a77d5864027c84d4350769d95fd4abd5fee`.
+- `main` da chua thu muc `tai_lieu_dieu_phoi/`.
+- Python muc tieu: 3.12.
+- Cong cu moi truong: `uv`.
 
-## Mốc 0
+## Moc 0
 
-Trạng thái: **đã hoàn thành, đã kiểm tra và đã gộp vào `main`**.
+Trang thai: **da hoan thanh, da kiem tra va da gop vao main**.
 
-- Yêu cầu gộp số `1`: đã gộp.
-- Commit triển khai chính: `3385e401532e51457b9e9360e17df7af0e021881`.
-- Commit hợp nhất trên `main`: `b132578b763ead96ad172a1ace68acdff6e36007`.
-- Kiểm tra tự động Mốc 0: đạt.
+- PR so 1: da gop.
+- Commit trien khai chinh: `3385e401532e51457b9e9360e17df7af0e021881`.
+- Commit hop nhat: `b132578b763ead96ad172a1ace68acdff6e36007`.
 
-## Bộ tài liệu điều phối
+## Bo tai lieu dieu phoi
 
-Trạng thái: **đã gộp vào `main`**.
+Trang thai: **da gop vao main**.
 
-- Yêu cầu gộp số `2`: đã gộp.
-- Commit hợp nhất trên `main`: `4eba2a77d5864027c84d4350769d95fd4abd5fee`.
-- Nhánh Mốc 1 đã được cập nhật từ commit này.
+- PR so 2: da gop.
+- Commit hop nhat: `4eba2a77d5864027c84d4350769d95fd4abd5fee`.
 
-## Mốc 1
+## Moc 1 — Du lieu
 
-Trạng thái điều phối: **toàn bộ điều kiện kỹ thuật bắt buộc đã đạt; chờ đoạn `00` nghiệm thu và quyết định trạng thái PR**.
+Trang thai dieu phoi: **da duoc doan 00 nghiem thu ky thuat; du dieu kien chuyen PR sang san sang ra soat sau khi CI dat tren dau nhanh moi nhat**.
 
-Yêu cầu gộp số `3`:
+PR so 3:
 
-- Nhánh nguồn: `m1-du_lieu`.
-- Nhánh đích: `main`.
-- Trạng thái: mở, nháp, chưa gộp.
-- Commit lát cắt dữ liệu ngoại tuyến: `0310e0667f569608676066dfe935fd3f9e782f4f`.
-- Commit nguồn Vnstock và lệnh tải nhỏ: `e6dd3d8125e092cbee2d956269324a96a543e026`.
-- Commit đồng bộ `origin/main` vào nhánh: `5ae994df47ce34a5ab5d3c5dd1e3d206d864811c`.
-- Commit sửa workflow cuối đã được xác minh: `ad1c54c41e2fc31d7a4327043b21f02b35b4603d`.
-- Nhánh đã chứa đầu `main` mới; so sánh GitHub xác nhận chậm hơn `main` 0 commit.
+- nhanh nguon: `m1-du_lieu`;
+- nhanh dich: `main`;
+- dau truoc quyet dinh nghiem thu: `9552e4641327ba93fa02f1fd0953d378f3f879f1`;
+- trang thai truoc quyet dinh: mo, nhap, chua gop;
+- mergeable: co;
+- nhanh chua dau `main`, cham hon `main` 0 commit;
+- 24 tep thay doi;
+- khong co tep nao trong `du_lieu/`.
 
-### Thăm dò thật Vnstock Community 4.0.4
+### Tham do that Vnstock 4.0.4
 
-- Mã lần chạy: `20260724T152739494769Z_521d23ce`.
-- Khoảng ngày: `2026-07-01` đến `2026-07-10`.
-- Cách gọi đã hoạt động:
-  `Market().equity(symbol=ma).ohlcv(start=..., end=..., interval="1D", source="kbs")`.
-- `FPT`, `HPG`, `MBB`: đều thành công, mỗi mã 8 dòng, từ `2026-07-01` đến `2026-07-10`.
-- Cột thật: `time`, `open`, `high`, `low`, `close`, `volume`.
-- Kiểu dữ liệu: `time=datetime64[ns]`, OHLC=`float64`, `volume=int64`.
-- Đơn vị giá do bộ chuyển đổi báo cáo: `nghin_dong`.
-- Chưa phát hiện tham số chọn giá điều chỉnh/chưa điều chỉnh.
+- Ma lan chay: `20260724T152739494769Z_521d23ce`.
+- Khoang ngay: `2026-07-01` den `2026-07-10`.
+- Cach goi da hoat dong: `Market().equity(symbol=ma).ohlcv(start=..., end=..., interval="1D", source="kbs")`.
+- FPT, HPG, MBB: deu thanh cong, moi ma 8 dong.
+- Cot that: `time`, `open`, `high`, `low`, `close`, `volume`.
+- Kieu: `time=datetime64[ns]`, OHLC=`float64`, `volume=int64`.
+- Don vi gia do bo chuyen doi bao cao: `nghin_dong`.
+- Chua phat hien tham so chon gia dieu chinh/chua dieu chinh.
 
-### Tải thật nhỏ
+### Tai that nho
 
-- Mã lần chạy: `20260724T153953222157Z_5383eaab`.
-- Nguồn: `vnstock_kbs`, phiên bản `4.0.4`.
-- `FPT`: thành công, 8 dòng, một lần thử, không cảnh báo, không lỗi.
-- `HPG`: thành công, 8 dòng, một lần thử, không cảnh báo, không lỗi.
-- `MBB`: thành công, 8 dòng, một lần thử, không cảnh báo, không lỗi.
-- Mỗi mã có đường dẫn được ghi nhận cho dữ liệu thô, chuẩn hóa, sẵn sàng, báo cáo chất lượng và nhật ký.
-- Mỗi tệp dữ liệu thô có mã SHA-256 được ghi nhận trong bản tổng hợp.
-- Thư mục `du_lieu/` là sản phẩm cục bộ và không được commit.
+- Ma lan chay: `20260724T153953222157Z_5383eaab`.
+- Nguon: `vnstock_kbs`, phien ban `4.0.4`.
+- FPT, HPG, MBB: deu thanh cong, 8 dong, 1 lan thu, khong canh bao, khong loi.
+- Moi ma co JSON tho, CSV chuan hoa, CSV san sang, JSON bao cao chat luong, JSON nhat ky va SHA-256.
+- Tat ca san pham that nam cuc bo duoi `du_lieu/` va khong duoc commit.
 
-### Kiểm thử Python 3.12
+### Kiem thu
 
-- Python đã cài: `CPython 3.12.13` cho Windows x86-64.
-- Đồng bộ môi trường bằng `uv` hoàn thành; log ghi `Checked in 1ms`.
-- Không phát hiện lỗi biên dịch trong phần log được cung cấp.
-- Bộ kiểm thử: `30/30` đạt.
-- Thời gian unittest: `0.696s`.
-- Kết quả cuối: `OK`.
+- Python: `CPython 3.12.13`, Windows x86-64.
+- Unittest: `Ran 30 tests in 0.696s`.
+- Ket qua: `OK`.
+- GitHub Actions run so 32, ID `30108253709`, da dat tren commit `9552e4641327ba93fa02f1fd0953d378f3f879f1`.
+- Job `kiem_tra`, ID `89530965041`: thanh cong; toan bo buoc dong bo, bien dich va kiem thu ngoai tuyen deu dat.
 
-### GitHub Actions
+### Phan quyet doan 00
 
-Đã xác minh trên commit `ad1c54c41e2fc31d7a4327043b21f02b35b4603d`:
+**DAT — PHE DUYET KY THUAT MOC 1.**
 
-- run đẩy nhánh số `25`, ID `30107975081`: `success`;
-- run đồng bộ pull request số `26`, ID `30107980910`: `success`;
-- job `kiem_tra`: `completed`, `success`;
-- toàn bộ bước `Lay ma nguon`, `Cai dat uv`, `Cai dat Python`, `Dong bo moi truong`, `Kiem tra cu phap`, `Chay kiem thu ngoai tuyen` đều đạt;
-- cảnh báo Node.js 20 bị loại bỏ dần là cảnh báo không chặn và không làm thay đổi kết luận CI.
+1. Cap nhat ba tep dieu phoi bang phan quyet nay.
+2. Chay lai GitHub Actions tren dau nhanh sau cap nhat.
+3. Neu CI dat, cap nhat PR body va chuyen PR so 3 khoi trang thai nhap.
+4. Chua gop PR tu dong; nguoi dung thuc hien buoc gop sau khi nhan bao cao dieu phoi.
+5. Khong mo Moc 2 truoc khi PR so 3 duoc gop va dau `main` duoc xac minh lai.
 
-### Điều kiện còn lại
+## Pham vi bi khoa
 
-1. Đoạn `00` rà soát báo cáo bàn giao và quyết định có chuyển PR số `3` khỏi trạng thái nháp hay không.
-2. Không gộp PR số `3` trong đoạn `01`.
-3. Không mở Mốc 2 trước quyết định của đoạn `00`.
-
-## Phạm vi bị khóa
-
-- Không mở Mốc 2.
-- Không thêm MA250 hoặc động lượng.
-- Không mô phỏng giao dịch.
-- Không học máy.
-- Không chia vốn.
-- Không tải toàn bộ VN100.
+- Chua mo Moc 2.
+- Chua them MA250 hoac momentum.
+- Chua backtest.
+- Chua hoc may.
+- Chua chia von.
+- Chua tai toan bo VN100.
