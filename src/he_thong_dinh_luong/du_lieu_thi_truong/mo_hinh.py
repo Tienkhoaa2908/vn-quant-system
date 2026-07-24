@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
-from typing import Any
+from dataclasses import asdict, dataclass, field
+from typing import Any, Mapping
 
 
 class loi_nguon_du_lieu(RuntimeError):
@@ -60,12 +60,31 @@ class trang_thai_ma:
 @dataclass(frozen=True)
 class ket_qua_lan_chay:
     ma_lan_chay: str
+    nguon: str
+    phien_ban: str
+    ngay_bat_dau: str
+    ngay_ket_thuc: str
     trang_thai_tung_ma: tuple[trang_thai_ma, ...]
     duong_dan_nhat_ky: str
+    cau_hinh_lan_chay: Mapping[str, Any] = field(default_factory=dict)
+
+    def noi_dung_tong_hop(self) -> dict[str, Any]:
+        """Tạo đúng nội dung bất biến được lưu trong ``tong_hop.json``."""
+        ket_qua: dict[str, Any] = {
+            "ma_lan_chay": self.ma_lan_chay,
+            "nguon": self.nguon,
+            "phien_ban": self.phien_ban,
+            "ngay_bat_dau": self.ngay_bat_dau,
+            "ngay_ket_thuc": self.ngay_ket_thuc,
+        }
+        ket_qua.update(dict(self.cau_hinh_lan_chay))
+        ket_qua["trang_thai_tung_ma"] = [
+            muc.thanh_tu_dien() for muc in self.trang_thai_tung_ma
+        ]
+        return ket_qua
 
     def thanh_tu_dien(self) -> dict[str, Any]:
-        return {
-            "ma_lan_chay": self.ma_lan_chay,
-            "trang_thai_tung_ma": [muc.thanh_tu_dien() for muc in self.trang_thai_tung_ma],
-            "duong_dan_nhat_ky": self.duong_dan_nhat_ky,
-        }
+        """Trả nội dung terminal, dùng cùng cấu hình với tổng hợp trên đĩa."""
+        ket_qua = self.noi_dung_tong_hop()
+        ket_qua["duong_dan_nhat_ky"] = self.duong_dan_nhat_ky
+        return ket_qua

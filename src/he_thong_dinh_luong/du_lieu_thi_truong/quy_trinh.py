@@ -6,10 +6,9 @@ import os
 import re
 import time
 import uuid
-from dataclasses import replace
 from datetime import date, datetime, timezone
 from pathlib import Path
-from typing import Callable, Iterable
+from typing import Any, Callable, Iterable, Mapping
 
 from ..kiem_tra_du_lieu import CAC_COT_BAT_BUOC, kiem_tra_cac_dong
 from .chuan_hoa import chuan_hoa_bang
@@ -23,6 +22,16 @@ from .mo_hinh import (
 )
 from .nguon import nguon_du_lieu
 
+CAC_KHOA_TONG_HOP_CO_DINH = {
+    "ma_lan_chay",
+    "nguon",
+    "phien_ban",
+    "ngay_bat_dau",
+    "ngay_ket_thuc",
+    "trang_thai_tung_ma",
+    "duong_dan_nhat_ky",
+}
+
 
 def tao_ma_lan_chay() -> str:
     thoi_gian = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
@@ -32,7 +41,9 @@ def tao_ma_lan_chay() -> str:
 def lam_sach_loi(loi: BaseException) -> str:
     noi_dung = str(loi)
     for ten, gia_tri in os.environ.items():
-        if gia_tri and any(tu in ten.upper() for tu in ("KEY", "TOKEN", "SECRET", "PASSWORD")):
+        if gia_tri and any(
+            tu in ten.upper() for tu in ("KEY", "TOKEN", "SECRET", "PASSWORD")
+        ):
             noi_dung = noi_dung.replace(gia_tri, "[DA_AN]")
     cac_mau = (
         r"vnstock_[A-Za-z0-9_-]+",
@@ -66,11 +77,26 @@ def _lay_voi_thu_lai(
             ham_cho(float(2 ** (lan_thu - 1)))
 
 
-def _ngay_dau_cuoi(cac_dong: list[dict[str, object]]) -> tuple[str | None, str | None]:
+def _ngay_dau_cuoi(
+    cac_dong: list[dict[str, object]],
+) -> tuple[str | None, str | None]:
     if not cac_dong:
         return None, None
     cac_ngay = [str(dong["ngay"]) for dong in cac_dong]
     return min(cac_ngay), max(cac_ngay)
+
+
+def _doc_cau_hinh_lan_chay(
+    cau_hinh_lan_chay: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    cau_hinh = dict(cau_hinh_lan_chay or {})
+    trung_khoa = CAC_KHOA_TONG_HOP_CO_DINH.intersection(cau_hinh)
+    if trung_khoa:
+        raise ValueError(
+            "Cau hinh lan chay trung khoa tong hop: "
+            + ", ".join(sorted(trung_khoa))
+        )
+    return cau_hinh
 
 
 def chay_quy_trinh(
@@ -84,7 +110,9 @@ def chay_quy_trinh(
     so_lan_thu_toi_da: int = 3,
     ham_cho: Callable[[float], None] = time.sleep,
     ma_lan_chay: str | None = None,
+    cau_hinh_lan_chay: Mapping[str, Any] | None = None,
 ) -> ket_qua_lan_chay:
+    cau_hinh = _doc_cau_hinh_lan_chay(cau_hinh_lan_chay)
     ma_lan_chay = ma_lan_chay or tao_ma_lan_chay()
     kho = kho_luu_tru(thu_muc_du_lieu)
     cac_trang_thai: list[trang_thai_ma] = []
@@ -92,7 +120,9 @@ def chay_quy_trinh(
     for ma_ban_dau in cac_ma:
         ma = ma_ban_dau.strip().upper()
         thoi_diem = datetime.now(timezone.utc).isoformat()
-        duong_dan_nhat_ky_ma = kho.duong_dan("nhat_ky", ma_lan_chay, f"{ma}.json")
+        duong_dan_nhat_ky_ma = kho.duong_dan(
+            "nhat_ky", ma_lan_chay, f"{ma}.json"
+        )
         bang: bang_du_lieu_nguon | None = None
         duong_dan_tho: Path | None = None
         duong_dan_chuan_hoa: Path | None = None
@@ -163,7 +193,9 @@ def chay_quy_trinh(
                 don_vi_gia=bang.don_vi_gia,
                 duong_dan_tho=str(duong_dan_tho),
                 duong_dan_chuan_hoa=str(duong_dan_chuan_hoa),
-                duong_dan_san_sang=(str(duong_dan_san_sang) if duong_dan_san_sang else None),
+                duong_dan_san_sang=(
+                    str(duong_dan_san_sang) if duong_dan_san_sang else None
+                ),
                 duong_dan_bao_cao=str(duong_dan_bao_cao),
                 duong_dan_nhat_ky=str(duong_dan_nhat_ky_ma),
                 ma_sha256=ma_sha256,
@@ -174,7 +206,9 @@ def chay_quy_trinh(
             )
         except Exception as exc:
             if so_lan_thu == 0:
-                so_lan_thu = max(1, getattr(nguon, "so_lan_goi", {}).get(ma, 1))
+                so_lan_thu = max(
+                    1, getattr(nguon, "so_lan_goi", {}).get(ma, 1)
+                )
             trang_thai = trang_thai_ma(
                 ma=ma,
                 trang_thai="that_bai",
@@ -187,9 +221,13 @@ def chay_quy_trinh(
                 kieu_du_lieu=(bang.kieu_du_lieu if bang is not None else None),
                 don_vi_gia=(bang.don_vi_gia if bang is not None else None),
                 duong_dan_tho=(str(duong_dan_tho) if duong_dan_tho else None),
-                duong_dan_chuan_hoa=(str(duong_dan_chuan_hoa) if duong_dan_chuan_hoa else None),
+                duong_dan_chuan_hoa=(
+                    str(duong_dan_chuan_hoa) if duong_dan_chuan_hoa else None
+                ),
                 duong_dan_san_sang=None,
-                duong_dan_bao_cao=(str(duong_dan_bao_cao) if duong_dan_bao_cao else None),
+                duong_dan_bao_cao=(
+                    str(duong_dan_bao_cao) if duong_dan_bao_cao else None
+                ),
                 duong_dan_nhat_ky=str(duong_dan_nhat_ky_ma),
                 ma_sha256=ma_sha256,
                 loi=lam_sach_loi(exc),
@@ -203,21 +241,23 @@ def chay_quy_trinh(
         )
         cac_trang_thai.append(trang_thai)
 
-    duong_dan_tong_hop, _ = kho.ghi_json(
+    duong_dan_tong_hop = kho.duong_dan(
+        "nhat_ky", ma_lan_chay, "tong_hop.json"
+    )
+    ket_qua = ket_qua_lan_chay(
+        ma_lan_chay=ma_lan_chay,
+        nguon=nguon.ten_nguon,
+        phien_ban=nguon.phien_ban,
+        ngay_bat_dau=ngay_bat_dau,
+        ngay_ket_thuc=ngay_ket_thuc,
+        trang_thai_tung_ma=tuple(cac_trang_thai),
+        duong_dan_nhat_ky=str(duong_dan_tong_hop),
+        cau_hinh_lan_chay=cau_hinh,
+    )
+    kho.ghi_json(
         "nhat_ky",
         ma_lan_chay,
         "tong_hop.json",
-        {
-            "ma_lan_chay": ma_lan_chay,
-            "nguon": nguon.ten_nguon,
-            "phien_ban": nguon.phien_ban,
-            "ngay_bat_dau": ngay_bat_dau,
-            "ngay_ket_thuc": ngay_ket_thuc,
-            "trang_thai_tung_ma": [muc.thanh_tu_dien() for muc in cac_trang_thai],
-        },
+        ket_qua.noi_dung_tong_hop(),
     )
-    return ket_qua_lan_chay(
-        ma_lan_chay=ma_lan_chay,
-        trang_thai_tung_ma=tuple(cac_trang_thai),
-        duong_dan_nhat_ky=str(duong_dan_tong_hop),
-    )
+    return ket_qua

@@ -54,10 +54,16 @@ def chay() -> int:
         ngay_ket_thuc.isoformat(),
         tham_so.thu_muc_du_lieu,
         ngay_kiem_tra,
+        cau_hinh_lan_chay={"so_nen_yeu_cau": tham_so.so_nen},
     )
-    bao_cao = ket_qua.thanh_tu_dien()
-    bao_cao["so_nen_yeu_cau"] = tham_so.so_nen
-    print(json.dumps(bao_cao, ensure_ascii=False, indent=2, sort_keys=True))
+    print(
+        json.dumps(
+            ket_qua.thanh_tu_dien(),
+            ensure_ascii=False,
+            indent=2,
+            sort_keys=True,
+        )
+    )
 
     trang_thai = {muc.ma: muc.trang_thai for muc in ket_qua.trang_thai_tung_ma}
     bat_buoc_trong_lan_chay = MA_BAT_BUOC.intersection(cac_ma)
