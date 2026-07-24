@@ -1,75 +1,53 @@
 # Cong viec hien tai
 
-Cap nhat: 2026-07-24
+Cap nhat: 2026-07-25
 
 ## Doan phu trach
 
-`00 Dieu phoi trung tam` dang hoan tat cap nhat tai lieu sau khi Moc 1 da duoc nghiem thu sau gop.
+`02 Tap co phieu va duong co so` dang phu trach chuyen mon Moc 2 duoi dieu phoi cua doan `00 Dieu phoi trung tam`.
 
-## Trang thai da xac minh
+## Trang thai nen da xac minh
 
-- PR so 3 da duoc gop vao `main` bang merge commit.
-- Thoi diem gop: `2026-07-24T16:40:46Z`.
-- Dau nhanh Moc 1 da gop: `639afabb406bd839540be9acfbfcf1d6c44f5aa8`.
-- Dau `main` sau gop: `e94d4a340ac734bfabc14f340626c408af33645f`.
-- PR co 24 tep thay doi va khong chua tep duoi `du_lieu/`.
+- PR so 3 da gop phan trien khai Moc 1.
+- PR so 4 da gop phan tai lieu dieu phoi sau nghiem thu.
+- Dau `main`: `97399e291b0d3d237f247f58ffa03049826d40bd`.
+- Nhanh `m2-tap_co_phieu-duong_co_so` ton tai va tai thoi diem mo moc trung khop hoan toan voi dau `main` neu tren.
+- Python muc tieu: 3.12.
+- Cong cu moi truong: `uv`.
 
-## Moc 1 tren main
+## Bang chung GitHub Actions cuoi cung cua Moc 1
 
-Da xac minh `main` co:
-
-- workflow `kiem_tra_tu_dong` dung Python 3.12;
-- giao dien va cac nguon du lieu;
-- nguon Vnstock Community 4.0.4;
-- luu tru, chuan hoa, kiem tra chat luong va quy trinh xu ly;
-- CLI tham do va tai that nho;
-- kiem thu du lieu thi truong va nguon Vnstock;
-- quy tac `.gitignore` bo qua `/du_lieu/` va tep nhay cam;
-- tai lieu kien truc va huong dan van hanh.
-
-## Bang chung ky thuat
-
-### Truoc gop
-
-- Tham do that FPT, HPG, MBB: dat.
-- Tai that nho FPT, HPG, MBB: dat.
-- Python 3.12: 30/30 kiem thu dat.
-- GitHub Actions run so 38, ID `30108780878`: success tren commit `639afabb406bd839540be9acfbfcf1d6c44f5aa8`.
-
-### Sau gop tren main
-
-- Su kien: `push`.
-- Nhanh: `main`.
-- Commit: `e94d4a340ac734bfabc14f340626c408af33645f`.
-- Run so 39, ID `30110023878`: `completed`, `success`.
-- Job `kiem_tra`, ID `89536932151`: `completed`, `success`.
+- Run so 44, ID `30111176831`: `completed`, `success`.
+- Job `kiem_tra`, ID `89540796877`: `completed`, `success`.
 - Tat ca buoc cua job deu dat.
-- Canh bao Node.js 20 deprecated la canh bao bao tri khong chan.
 
 ## Ket luan Moc 1
 
-**DAT — MOC 1 DA HOAN TAT NGHIEM THU SAU GOP.**
+**DAT — MOC 1 DA DONG HOAN TOAN.**
 
-Tat ca dieu kien bat buoc da dat:
+## Viec dang hoat dong cua Moc 2
 
-1. PR so 3 da merged.
-2. Merge commit tren `main` da xac minh.
-3. Pham vi Moc 1 ton tai day du tren `main`.
-4. Khong co du lieu that trong Git.
-5. CI truoc gop dat.
-6. CI sau gop tren `main` dat.
+1. Cap nhat tai lieu dieu phoi trong commit dau tien, khong kem ma chuyen mon.
+2. Chot quyet dinh kien truc trong `DECISIONS.md`.
+3. Xay tap co phieu theo tung thoi diem bang anh chup co ngay hieu luc.
+4. Them gia tri giao dich, bo loc thanh khoan, MA250 va dong luong khong nhin truoc.
+5. Them CLI, CSV/JSON dau ra, kiem thu ngoai tuyen va tai lieu van hanh.
+6. Mo draft PR `M2: tap co phieu va duong co so` vao `main` va giu draft cho den khi doan 00 phe duyet.
 
-## Viec dang hoat dong
+## Nguyen tac bat buoc
 
-1. Hoan tat PR so 4 chi cap nhat ba tep dieu phoi.
-2. Cho CI chay tren dau nhanh moi nhat cua PR so 4.
-3. Neu CI dat, nguoi dung gop PR so 4 bang merge commit.
-4. Sau khi gop, doan `00` xac minh dau `main` va CI lan cuoi.
-5. Chi sau buoc 4 moi duoc giao ke hoach Moc 2.
+- Khong dung danh sach co phieu hien tai cho toan bo lich su.
+- Khong lay anh chup tap co phieu co ngay hieu luc sau ngay danh gia.
+- Khong gia mao du lieu thanh vien lich su va khong tu suy doan thanh vien thieu.
+- Khong dung quan sat tuong lai cho thanh khoan, MA250 hoac dong luong.
+- Khong hard-code nguong thanh khoan hay cua so dong luong san xuat chua duoc phe duyet.
+- Khong ghi de im lang san pham da ton tai.
+- CI hoan toan ngoai tuyen; khong goi Vnstock hoac mang.
 
-## Pham vi bi khoa
+## Ngoai pham vi
 
-- Khong mo hoac trien khai Moc 2 truoc khi PR so 4 duoc gop va xac minh.
-- Khong them MA250, momentum, backtest, hoc may hoac chia von.
-- Khong tai toan bo VN100.
-- Chua xoa nhanh `m1-du_lieu` truoc khi cap nhat dieu phoi sau gop hoan tat.
+- Moc 3 va mo phong giao dich.
+- Backtest, phi, thue, truot gia va lot size.
+- Hoc may, LightGBM va nhan.
+- Chia von, toi uu danh muc va gioi han ty trong.
+- Tai toan bo VN100.

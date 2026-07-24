@@ -1,15 +1,18 @@
 # Trang thai du an
 
-Cap nhat gan nhat: 2026-07-24
+Cap nhat gan nhat: 2026-07-25
 
 ## Kho ma nguon
 
 - Kho: `Tienkhoaa2908/vn-quant-system`.
 - Nhanh chinh: `main`.
-- Dau `main` da xac minh sau khi gop Moc 1: `e94d4a340ac734bfabc14f340626c408af33645f`.
-- Commit nay la merge commit cua PR so `3` tu `m1-du_lieu` vao `main`.
+- Dau `main` da xac minh khi mo Moc 2: `97399e291b0d3d237f247f58ffa03049826d40bd`.
+- Commit nay la merge commit cua PR so `4` tu `cap_nhat-sau-gop-m1` vao `main`.
+- Nhanh Moc 2: `m2-tap_co_phieu-duong_co_so`.
+- Nhanh Moc 2 duoc tach chinh xac tu dau `main` neu tren; tai thoi diem mo moc, so commit truoc/sau la `0/0`.
 - Python muc tieu: 3.12.
 - Cong cu moi truong: `uv`.
+- GitHub la nguon su that ve nhanh, commit, PR va CI.
 
 ## Moc 0
 
@@ -28,63 +31,39 @@ Trang thai: **da gop vao main**.
 
 ## Moc 1 — Du lieu
 
-Trang thai dieu phoi: **da nghiem thu ky thuat, da gop vao main va da nghiem thu sau gop**.
+Trang thai dieu phoi: **da dong hoan toan**.
 
 ### PR va commit
 
 - PR so 3: da gop luc `2026-07-24T16:40:46Z`.
-- Nhanh nguon: `m1-du_lieu`.
 - Dau nhanh duoc phe duyet: `639afabb406bd839540be9acfbfcf1d6c44f5aa8`.
-- Merge commit tren `main`: `e94d4a340ac734bfabc14f340626c408af33645f`.
-- PR co 17 commit, 24 tep thay doi va khong chua tep nao duoi `du_lieu/`.
+- Merge commit cua PR so 3: `e94d4a340ac734bfabc14f340626c408af33645f`.
+- PR so 4: da gop vao `main`.
+- Merge commit cua PR so 4 va dau `main` khi mo Moc 2: `97399e291b0d3d237f247f58ffa03049826d40bd`.
 
-### Pham vi da co tren main
+### Bang chung CI cuoi cung tren main
 
-- giao dien chung cho nguon du lieu;
-- nguon gia lap de kiem thu ngoai tuyen;
-- bo chuyen doi Vnstock Community `4.0.4`, nguon KBS;
-- luu JSON tho bat bien;
-- chuan hoa CSV UTF-8;
-- bao cao chat luong va nhat ky JSON;
-- du lieu san sang CSV;
-- trang thai doc lap tung ma va thu lai loi tam thoi;
-- CLI tham do va tai that nho;
-- kiem thu ngoai tuyen va workflow Python 3.12.
+- GitHub Actions run so 44, ID `30111176831`: `completed`, `success`.
+- Job `kiem_tra`, ID `89540796877`: `completed`, `success`.
+- Tat ca buoc lay ma nguon, cai uv, cai Python, dong bo moi truong, kiem tra cu phap, kiem thu ngoai tuyen va don dep deu dat.
 
-### Tham do va tai that
+### Ket luan
 
-- Tham do that: `20260724T152739494769Z_521d23ce`.
-- Tai that nho: `20260724T153953222157Z_5383eaab`.
-- FPT, HPG, MBB: deu thanh cong, moi ma 8 dong trong khoang `2026-07-01` den `2026-07-10`.
-- Du lieu that va nhat ky that chi nam cuc bo duoi `du_lieu/` va khong duoc commit.
+**DAT — MOC 1 DA DONG HOAN TOAN.**
 
-### Kiem thu truoc gop
+## Moc 2 — Tap co phieu va duong co so
 
-- Python: `CPython 3.12.13`, Windows x86-64.
-- Unittest: `30/30` dat, `Ran 30 tests in 0.696s`, ket qua `OK`.
-- GitHub Actions run so 38, ID `30108780878`, dat tren dau nhanh `639afabb406bd839540be9acfbfcf1d6c44f5aa8`.
-- Job `kiem_tra`, ID `89532709434`: thanh cong; tat ca buoc deu dat.
+Trang thai: **da mo**.
 
-### Kiem thu sau gop tren main
-
-- Su kien: `push` tren nhanh `main`.
-- Commit: `e94d4a340ac734bfabc14f340626c408af33645f`.
-- GitHub Actions run so 39, ID `30110023878`: `completed`, `success`.
-- Job `kiem_tra`, ID `89536932151`: `completed`, `success`.
-- Tat ca buoc lay ma nguon, cai uv, cai Python, dong bo, kiem tra cu phap, kiem thu ngoai tuyen va don dep deu dat.
-- Canh bao Node.js 20 deprecated duoc GitHub chay tren Node.js 24; day la canh bao bao tri, khong chan nghiem thu.
-
-### Ket luan nghiem thu sau gop
-
-**DAT — MOC 1 DA HOAN TAT NGHIEM THU SAU GOP.**
-
-PR so 4 chi cap nhat ba tep dieu phoi de ghi ben vung ket qua nay. PR so 4 phai duoc gop va `main` phai duoc xac minh lan cuoi truoc khi giao viec Moc 2.
+- Doan chuyen mon dang phu trach: `02 Tap co phieu va duong co so`.
+- Nhanh lam viec bat buoc: `m2-tap_co_phieu-duong_co_so`.
+- Pham vi: tap co phieu theo tung thoi diem, bo loc thanh khoan, MA250, dong luong va du lieu dau ra duong co so.
+- Tap co phieu lich su that chua duoc coi la da co; truoc mat chi xay giao dien, dinh dang va kiem thu bang du lieu gia lap.
+- Khong mo Moc 3.
 
 ## Pham vi bi khoa
 
-- Chua mo hoac trien khai Moc 2 truoc khi PR so 4 duoc gop va `main` duoc xac minh lan cuoi.
-- Chua them MA250 hoac momentum.
-- Chua backtest.
-- Chua hoc may.
-- Chua chia von.
-- Chua tai toan bo VN100.
+- Khong mo phong giao dich, khop lenh, phi, thue, truot gia hoac backtest.
+- Khong hoc may, LightGBM, nhan, chia von, toi uu danh muc hoac gioi han ty trong.
+- Khong tai toan bo VN100.
+- Khong commit du lieu thi truong that, danh sach thanh vien bi han che, nhat ky that hoac khoa.
