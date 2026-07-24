@@ -15,32 +15,32 @@ Kết quả:
 
 ## Mốc 1 — Dữ liệu thị trường thật
 
-Trạng thái: kế hoạch đạt có điều kiện, chưa triển khai.
+Trạng thái: **đã hoàn thành, đã gộp và đã đóng hoàn toàn sau PR số 4**.
 
-- Thăm dò Vnstock Community 4.0.4 trước khi xây bộ chuyển đổi đầy đủ.
-- Kết nối một nguồn thật cho FPT, HPG và MBB.
-- VNINDEX là phần mở rộng, không phải điều kiện chặn.
-- Lưu dữ liệu thô bất biến dưới dạng JSON dạng bảng.
-- Ghi nhật ký JSON và mã SHA-256.
-- Chuẩn hóa về bảy cột trong CSV UTF-8.
-- Tạo dữ liệu sẵn sàng trong CSV UTF-8.
-- Dùng lại kiểm tra chất lượng Mốc 0 và xuất báo cáo JSON.
-- Kiểm thử bằng nguồn giả, không cần mạng hoặc khóa.
-- Người dùng chạy lần tải thật nhỏ trên máy cá nhân.
+- Thăm dò Vnstock Community 4.0.4.
+- Kết nối nguồn thật giới hạn cho FPT, HPG và MBB.
+- Lưu JSON thô bất biến, nhật ký và SHA-256.
+- Chuẩn hóa và tạo CSV sẵn sàng.
+- Kiểm thử ngoại tuyến và CI Python 3.12.
 - Không đưa dữ liệu thật hoặc khóa lên GitHub.
-
-Không thuộc Mốc 1: MA250, mô phỏng giao dịch, học máy, chia vốn hoặc tải toàn bộ VN100.
+- Đầu `main` khi đóng Mốc 1: `97399e291b0d3d237f247f58ffa03049826d40bd`.
+- GitHub Actions run số 44, ID `30111176831`, job `kiem_tra` ID `89540796877`: thành công.
 
 ## Mốc 2 — Tập cổ phiếu và đường cơ sở
 
-Chỉ bắt đầu sau khi Mốc 1 đã được gộp và xác minh.
+Trạng thái: **đã mở; đoạn 02 đang phụ trách**.
 
-- Tập cổ phiếu theo từng thời điểm.
-- Bộ lọc thanh khoản.
-- MA250 và động lượng.
-- Chưa dùng học máy.
+- Tập cổ phiếu theo từng thời điểm, không dùng ảnh chụp tương lai.
+- Bộ lọc thanh khoản có tham số.
+- MA250 đủ đúng 250 quan sát.
+- Động lượng có cửa sổ bắt buộc.
+- CSV và báo cáo JSON ổn định.
+- Kiểm thử hoàn toàn ngoại tuyến bằng dữ liệu giả lập.
+- Chưa dùng học máy và chưa tuyên bố có dữ liệu thành viên lịch sử thật.
 
 ## Mốc 3 — Mô phỏng giao dịch
+
+Chưa mở.
 
 - Khớp lệnh từ phiên kế tiếp.
 - Phí, thuế bán, trượt giá và lô giao dịch.
