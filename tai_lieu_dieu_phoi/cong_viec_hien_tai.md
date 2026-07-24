@@ -18,8 +18,6 @@ Cập nhật: 2026-07-24
 
 Mã lần chạy: `20260724T152739494769Z_521d23ce`.
 
-Cả ba mã bắt buộc đều thành công:
-
 | Mã | Số dòng | Ngày đầu | Ngày cuối | Đơn vị giá |
 |---|---:|---|---|---|
 | FPT | 8 | 2026-07-01 | 2026-07-10 | nghìn đồng |
@@ -75,22 +73,30 @@ Các sản phẩm nằm dưới `du_lieu/` trên máy người dùng và không 
 - Unittest: `Ran 30 tests in 0.696s`.
 - Kết quả: `OK`.
 
+## Kết quả GitHub Actions
+
+Commit được xác minh: `ad1c54c41e2fc31d7a4327043b21f02b35b4603d`.
+
+- Push run số `25`, ID `30107975081`: thành công.
+- Pull-request run số `26`, ID `30107980910`: thành công.
+- Job `kiem_tra`: hoàn thành và thành công.
+- Các bước lấy mã nguồn, cài uv, cài Python 3.12, đồng bộ môi trường, kiểm tra cú pháp và chạy kiểm thử ngoại tuyến đều thành công.
+- Cảnh báo Node.js 20 bị loại bỏ dần là cảnh báo không chặn.
+
 ## Việc đang hoạt động
 
-Theo đúng thứ tự:
+1. Giữ PR số `3` ở trạng thái nháp và chưa gộp.
+2. Bàn giao kết quả đầy đủ cho đoạn `00`.
+3. Chờ đoạn `00` rà soát và quyết định trạng thái PR.
 
-1. Kiểm tra GitHub Actions trên commit đầu nhánh sau các cập nhật tài liệu này.
-2. Nếu có run, rà soát mã run, job và từng bước.
-3. Nếu không có run, xác minh trạng thái kích hoạt Actions của kho; không tạo commit rỗng.
-4. Cập nhật ba tệp điều phối bằng trạng thái CI cuối cùng.
-5. Gửi báo cáo đầy đủ về đoạn `00`.
+## Điều kiện nghiệm thu kỹ thuật
 
-## Điều kiện nghiệm thu còn lại
-
-- GitHub Actions phải có mã lần chạy thật trên đầu nhánh cuối cùng.
-- Toàn bộ job và bước phải đạt.
-- Không được commit thư mục `du_lieu/`.
-- PR số `3` tiếp tục ở trạng thái nháp cho đến khi đoạn `00` kết luận đủ điều kiện.
+- Thăm dò thật: đạt.
+- Tải thật nhỏ: đạt.
+- Python 3.12: đạt 30/30 kiểm thử.
+- GitHub Actions: đạt trên push và pull request.
+- PR không chứa thư mục `du_lieu/`.
+- Các điều kiện kỹ thuật bắt buộc của Mốc 1 đã hoàn thành.
 
 ## Phạm vi bị khóa
 
