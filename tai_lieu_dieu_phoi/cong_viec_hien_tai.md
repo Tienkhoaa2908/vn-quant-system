@@ -1,84 +1,74 @@
-# Công việc hiện tại
+# Cong viec hien tai
 
-Cập nhật: 2026-07-24
+Cap nhat: 2026-07-24
 
-## Đoạn phụ trách
+## Doan phu trach
 
-`00 Điều phối trung tâm`.
+`00 Dieu phoi trung tam` dang thuc hien nghiem thu cuoi cho PR so 3 cua `01 Du lieu`.
 
-## Việc ưu tiên số 1 — hoàn tất bộ tài liệu điều phối
+## Trang thai nen
 
-Yêu cầu gộp số `2` từ nhánh `bo_sung-dieu_phoi` vào `main` đang mở.
+- PR so 2 da duoc gop vao `main`.
+- Dau `main` da xac minh: `4eba2a77d5864027c84d4350769d95fd4abd5fee`.
+- Nhanh `m1-du_lieu` da dong bo `main` va cham hon 0 commit.
+- PR so 3 mo, mergeable va chua gop.
+- Dau nhanh truoc cap nhat nghiem thu: `9552e4641327ba93fa02f1fd0953d378f3f879f1`.
+- PR co 24 tep thay doi va khong chua thu muc `du_lieu/`.
 
-- Đầu nhánh trước cập nhật rà soát Mốc 1: `838bd9b9f746771b8b9b3f0d763da6184fd2b060`.
-- Kiểm tra tự động lần `6`, mã `30099007729`, đã đạt trên commit đó.
-- Commit hiện tại bổ sung kết quả rà soát yêu cầu gộp số `3` vào ba tệp trạng thái.
-- Chỉ gộp yêu cầu số `2` sau khi kiểm tra tự động của commit tài liệu cuối cùng đạt.
-- Sau khi gộp, phải xác minh đầu `main` mới có nguyên thư mục `tai_lieu_dieu_phoi/`.
+## Ket qua ky thuat da nghiem thu
 
-## Phán quyết triển khai Mốc 1
+### Tham do that
 
-Yêu cầu gộp số `3` — `m1-du_lieu` vào `main`:
+- Vnstock Community `4.0.4`.
+- Ma lan chay: `20260724T152739494769Z_521d23ce`.
+- FPT, HPG, MBB deu thanh cong, moi ma 8 dong.
+- Khoang ngay that: `2026-07-01` den `2026-07-10`.
+- Cot that: `time`, `open`, `high`, `low`, `close`, `volume`.
+- Kieu that: `datetime64[ns]`, `float64`, `int64`.
+- Cach goi da hoat dong: `Market().equity(symbol=ma).ohlcv(...)`.
+- Khong can sua giao dien bo chuyen doi sau tham do.
 
-**YÊU CẦU THAY ĐỔI — CHƯA ĐỦ ĐIỀU KIỆN GỘP.**
+### Tai that nho
 
-### Nội dung đã đạt ở mức rà soát mã
+- Ma lan chay: `20260724T153953222157Z_5383eaab`.
+- FPT, HPG, MBB deu thanh cong, 8 dong, 1 lan thu, 0 canh bao, khong loi.
+- Moi ma co du lieu tho JSON, CSV chuan hoa, CSV san sang, JSON bao cao chat luong, JSON nhat ky va SHA-256.
+- San pham that chi nam cuc bo duoi `du_lieu/`.
 
-- Có giao diện nguồn chung và nguồn giả ngoại tuyến.
-- Có lưu JSON thô bất biến, JSON nhật ký và JSON báo cáo chất lượng.
-- Có CSV chuẩn hóa và CSV sẵn sàng.
-- Có trạng thái độc lập theo từng mã.
-- Không tạo tệp thô giả khi nguồn không trả dữ liệu.
-- Có cơ chế làm sạch lỗi và thử lại lỗi tạm thời.
-- Có cảnh báo khoảng ngày không chặn đầu ra.
-- Có hai commit tách theo lát cắt đã giao.
-- Có hướng dẫn thăm dò và tải thật nhỏ.
-- Không có dữ liệu thật hoặc khóa truy cập trong danh sách tệp thay đổi.
-- Không triển khai MA250, mô phỏng giao dịch, học máy hoặc chia vốn.
+### Python va CI
 
-### Điều kiện chặn bắt buộc
+- Python `3.12.13`.
+- `30/30` kiem thu dat; `Ran 30 tests in 0.696s`; `OK`.
+- GitHub Actions run so 32, ID `30108253709`: `success` tren commit `9552e4641327ba93fa02f1fd0953d378f3f879f1`.
+- Job `kiem_tra`, ID `89530965041`: `success`.
 
-1. Yêu cầu gộp số `2` phải được gộp và xác minh trước.
-2. Nhánh `m1-du_lieu` phải được cập nhật từ đầu `main` mới sau khi yêu cầu số `2` được gộp.
-3. Ba tệp trạng thái trong `tai_lieu_dieu_phoi/` phải được cập nhật trên nhánh Mốc 1 khi trạng thái thay đổi.
-4. Phải chạy thăm dò thật Vnstock Community 4.0.4 cho FPT, HPG và MBB.
-5. Phải xác minh bằng phản hồi thật:
-   - cách gọi giao diện;
-   - tên cột;
-   - kiểu dữ liệu;
-   - đơn vị giá;
-   - khả năng chọn giá điều chỉnh hoặc chưa điều chỉnh.
-6. Cần xử lý bất nhất giao diện: bộ chuyển đổi hiện dùng `Market().equity(symbol=ma).ohlcv(...)`, trong khi tài liệu gói của phiên bản 4.0.4 có ví dụ `Market().equity.ohlcv(symbol=ma, ...)`. Không được đoán; kết quả chạy thật quyết định cách gọi.
-7. Phải chạy tải thật nhỏ cho FPT, HPG và MBB và gửi nhật ký riêng từng mã.
-8. GitHub Actions phải được tạo và đạt trên commit đầu nhánh cuối cùng của yêu cầu gộp số `3`.
-9. Phải chạy lại kiểm thử trên Python 3.12; kết quả Python 3.13 chỉ là bằng chứng bổ sung.
-10. PR số `3` tiếp tục ở trạng thái nháp và không được gộp cho đến khi đoạn `00` rà soát lại.
+## Phan quyet
 
-## Việc giao lại cho đoạn 01
+**DAT — PHE DUYET KY THUAT MOC 1.**
 
-Theo đúng thứ tự:
+Cac dieu kien ky thuat bat buoc da duoc dap ung:
 
-1. Chờ yêu cầu số `2` được gộp.
-2. Cập nhật `m1-du_lieu` từ `main` mới.
-3. Chạy bước thăm dò thật trước khi sửa hoặc xác nhận bộ chuyển đổi.
-4. Sửa giao diện và kiểm thử theo phản hồi thật nếu cần.
-5. Chạy tải thật nhỏ cho FPT, HPG, MBB trên máy người dùng.
-6. Không commit thư mục `du_lieu/` hoặc nhật ký thật.
-7. Đẩy các commit sửa nhỏ, giữ PR số `3` ở trạng thái nháp.
-8. Chờ GitHub Actions đạt.
-9. Gửi về đoạn `00`:
-   - mã commit đầu nhánh mới;
-   - kết quả kiểm thử Python 3.12;
-   - trạng thái CI;
-   - báo cáo riêng FPT, HPG, MBB;
-   - các điểm đã sửa sau thăm dò;
-   - kết luận đề nghị gộp hay chưa.
+1. Nhanh chua dau `main` hien hanh.
+2. Tham do that FPT, HPG, MBB dat.
+3. Tai that nho FPT, HPG, MBB dat.
+4. Python 3.12 dat 30/30 kiem thu.
+5. GitHub Actions dat tren dau nhanh da bao cao.
+6. Khong commit du lieu that.
+7. Khong vuot pham vi sang Moc 2.
 
-## Phạm vi bị khóa
+## Viec dang hoat dong
 
-- Chưa mở Mốc 2.
-- Chưa thêm MA250 hoặc động lượng.
-- Chưa mô phỏng giao dịch.
-- Chưa học máy.
-- Chưa chia vốn.
-- Chưa tải toàn bộ VN100.
+1. Cap nhat ba tep dieu phoi bang phan quyet doan 00.
+2. Cho GitHub Actions chay lai tren dau nhanh moi nhat sau cap nhat tai lieu.
+3. Neu CI dat, cap nhat PR body bang ket qua that.
+4. Chuyen PR so 3 khoi trang thai nhap sang san sang ra soat.
+5. Nguoi dung gop PR so 3 vao `main`.
+6. Sau khi gop, doan 00 phai xac minh commit hop nhat va CI tren `main`.
+7. Chi sau xac minh sau gop moi duoc tao loi giao viec Moc 2.
+
+## Pham vi bi khoa
+
+- Khong tu dong gop PR trong buoc cap nhat tai lieu nay.
+- Khong mo Moc 2 truoc khi gop va xac minh PR so 3.
+- Khong them MA250, momentum, backtest, hoc may hoac chia von.
+- Khong tai toan bo VN100.

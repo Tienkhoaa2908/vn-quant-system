@@ -1,84 +1,95 @@
-# Bàn giao đoạn chat điều phối
+# Ban giao doan chat dieu phoi
 
-Cập nhật: 2026-07-24
+Cap nhat: 2026-07-24
 
-## Vai trò
+## Vai tro
 
-- Đoạn `00` là đầu mối điều phối trung tâm.
-- Đoạn `01` đến `06` phụ trách chuyên môn theo nhiệm vụ được giao.
-- GitHub là nguồn sự thật về nhánh, commit, yêu cầu gộp và kiểm tra tự động.
-- Không chuyển mốc khi mốc hiện tại chưa được gộp và xác minh.
+- Doan `00` la dau moi dieu phoi trung tam.
+- Doan `01` phu trach chuyen mon Moc 1 — du lieu.
+- GitHub la nguon su that ve nhanh, commit, PR va CI.
+- Khong chuyen moc khi Moc 1 chua duoc gop va xac minh sau gop.
 
-## Trạng thái bền vững đã xác minh
+## Trang thai ben vung
 
-### Mốc 0
+### Nen dieu phoi
 
-- Yêu cầu gộp số `1`: đã gộp.
-- Commit triển khai chính: `3385e401532e51457b9e9360e17df7af0e021881`.
-- Commit đầu nhánh trước khi gộp: `1124e7a7786bffd01a4eea4c8d292c11413ac9f1`.
-- Đầu `main`: `b132578b763ead96ad172a1ace68acdff6e36007`.
-- Kiểm tra tự động Mốc 0: đạt.
+- PR so 2 da gop.
+- Dau `main`: `4eba2a77d5864027c84d4350769d95fd4abd5fee`.
+- `main` da chua `tai_lieu_dieu_phoi/`.
+- Nhanh `m1-du_lieu` da cap nhat tu `main` va cham hon 0 commit.
 
-### Bộ tài liệu điều phối
+### PR so 3
 
-- Nhánh: `bo_sung-dieu_phoi`.
-- Yêu cầu gộp số `2`: đang mở vào `main`, chưa gộp.
-- Commit trước kết quả rà soát Mốc 1: `838bd9b9f746771b8b9b3f0d763da6184fd2b060`.
-- Kiểm tra tự động lần `6`, mã `30099007729`: đạt trên commit đó.
-- Commit hiện tại cập nhật ba tệp trạng thái theo kết quả rà soát Mốc 1; phải chờ kiểm tra tự động mới trước khi gộp.
+- Nhanh: `m1-du_lieu` vao `main`.
+- Dau truoc quyet dinh nghiem thu: `9552e4641327ba93fa02f1fd0953d378f3f879f1`.
+- Truoc cap nhat: mo, nhap, mergeable, chua gop.
+- Co 24 tep thay doi, khong chua tep duoi `du_lieu/`.
+- Khong co review thread hoac review submission dang chan.
 
-### Mốc 1
+## Ket qua Moc 1
 
-- Yêu cầu gộp số `3`: mở, nháp, chưa gộp.
-- Nhánh: `m1-du_lieu`.
-- Đầu nhánh: `e6dd3d8125e092cbee2d956269324a96a543e026`.
-- Hai commit đã báo cáo:
-  1. `0310e0667f569608676066dfe935fd3f9e782f4f` — lát cắt dữ liệu ngoại tuyến.
-  2. `e6dd3d8125e092cbee2d956269324a96a543e026` — nguồn Vnstock và lệnh tải thật nhỏ.
-- Báo cáo đoạn `01`: 30/30 kiểm thử đạt trên Python 3.13.
-- Không có GitHub Actions hoặc trạng thái commit cho đầu nhánh Mốc 1.
-- Chưa có thăm dò và tải thật FPT, HPG, MBB.
+### Tham do that Vnstock 4.0.4
 
-## Phán quyết điều phối hiện tại
+- Ma lan chay: `20260724T152739494769Z_521d23ce`.
+- Khoang ngay: `2026-07-01` den `2026-07-10`.
+- Cach goi da hoat dong:
 
-Yêu cầu gộp số `3`:
+```python
+Market().equity(symbol=ma).ohlcv(
+    start=ngay_bat_dau,
+    end=ngay_ket_thuc,
+    interval="1D",
+    source="kbs",
+)
+```
 
-**YÊU CẦU THAY ĐỔI — CHƯA ĐỦ ĐIỀU KIỆN GỘP.**
+- FPT: thanh cong, 8 dong.
+- HPG: thanh cong, 8 dong.
+- MBB: thanh cong, 8 dong.
+- Cot: `time`, `open`, `high`, `low`, `close`, `volume`.
+- Kieu: `datetime64[ns]`, OHLC `float64`, volume `int64`.
+- Don vi gia do bo chuyen doi bao cao: nghin dong.
+- Chua phat hien tham so cong khai chon gia dieu chinh/chua dieu chinh.
 
-Lý do chính:
+### Tai that nho
 
-1. Bộ tài liệu điều phối chưa được gộp vào `main`, nhưng Mốc 1 đã được triển khai từ nền `main` cũ.
-2. Chưa có phản hồi chạy thật của Vnstock cho ba mã bắt buộc.
-3. Chưa có kiểm tra tự động GitHub cho đầu nhánh Mốc 1.
-4. Chưa chạy kiểm thử trên Python mục tiêu 3.12.
-5. Cách gọi giao diện Vnstock trong bộ chuyển đổi chưa được chứng minh bằng chạy thật và có khác biệt với ví dụ công khai của gói 4.0.4.
-6. Đơn vị giá và hợp đồng cột chưa được đối chiếu bằng dữ liệu trả về thực tế.
+- Ma lan chay: `20260724T153953222157Z_5383eaab`.
+- Nguon `vnstock_kbs`, phien ban `4.0.4`.
+- FPT, HPG, MBB: deu thanh cong, 8 dong, 1 lan thu, khong canh bao, khong loi.
+- Moi ma co JSON tho, CSV chuan hoa, CSV san sang, JSON bao cao, JSON nhat ky va SHA-256.
+- Du lieu that chi nam cuc bo duoi `du_lieu/`.
 
-## Điểm kỹ thuật đã rà soát
+### Kiem thu
 
-- Kiến trúc giao diện nguồn, nguồn giả, chuẩn hóa, lưu trữ bất biến và trạng thái từng mã phù hợp hướng đã giao.
-- Quy trình không tạo tệp thô giả khi nguồn thất bại.
-- Định dạng đầu ra phù hợp yêu cầu Mốc 1.
-- Kiểm thử bộ chuyển đổi hiện dựa trên đối tượng giả mô phỏng đúng giả định của chính bộ chuyển đổi; đây không phải bằng chứng giao diện Vnstock thật.
-- VNINDEX vẫn là phần mở rộng, không chặn FPT, HPG và MBB.
+- Python `CPython 3.12.13`, Windows x86-64.
+- `Ran 30 tests in 0.696s`.
+- Ket qua `OK`.
+- GitHub Actions run so 32, ID `30108253709`, da dat tren commit `9552e4641327ba93fa02f1fd0953d378f3f879f1`.
+- Job `kiem_tra`, ID `89530965041`: thanh cong; toan bo buoc deu dat.
 
-## Trình tự bắt buộc tiếp theo
+## Phan quyet cua doan 00
 
-1. Chờ kiểm tra tự động của commit tài liệu điều phối cuối cùng đạt.
-2. Gộp yêu cầu số `2` vào `main`.
-3. Xác minh đầu `main` có `tai_lieu_dieu_phoi/`.
-4. Cập nhật nhánh `m1-du_lieu` từ `main` mới.
-5. Chạy thăm dò thật Vnstock 4.0.4.
-6. Sửa bộ chuyển đổi nếu giao diện thật khác giả định.
-7. Chạy tải thật nhỏ cho FPT, HPG, MBB.
-8. Chạy kiểm thử Python 3.12 và GitHub Actions.
-9. Gửi kết quả mới về đoạn `00` để nghiệm thu.
-10. Chỉ chuyển PR số `3` khỏi trạng thái nháp khi đoạn `00` kết luận đủ điều kiện.
+**MOC 1 DAT DIEU KIEN KY THUAT VA DUOC PHE DUYET.**
 
-## Không được làm
+Quyet dinh van hanh:
 
-- Không gộp PR số `3` ở trạng thái hiện tại.
-- Không mở Mốc 2.
-- Không đưa dữ liệu thật, nhật ký thật hoặc khóa lên GitHub.
-- Không tự điền ngày thiếu.
-- Không thêm MA250, mô phỏng giao dịch, học máy hoặc chia vốn.
+1. Ghi phan quyet vao ba tep dieu phoi.
+2. Xac minh CI tren dau nhanh moi sau cap nhat tai lieu.
+3. Neu CI dat, cap nhat noi dung PR va chuyen PR so 3 sang san sang ra soat.
+4. Khong tu dong gop PR; nguoi dung thuc hien thao tac gop.
+5. Sau khi gop, doan 00 xac minh dau `main`, CI va pham vi tep.
+6. Chi sau xac minh sau gop moi giao Moc 2.
+
+## Viec nguoi dung can lam sau thong bao dieu phoi
+
+1. Mo PR so 3 tren GitHub.
+2. Xac nhan PR da o trang thai san sang ra soat va CI dau nhanh moi nhat da dat.
+3. Chon `Merge pull request` va xac nhan gop.
+4. Khong xoa nhanh cho den khi doan 00 xac minh xong neu GitHub hoi.
+5. Bao lai doan `00`: `Da gop PR so 3`.
+
+## Khong duoc lam
+
+- Khong mo Moc 2 truoc khi PR so 3 duoc gop va xac minh.
+- Khong dua du lieu that, nhat ky that hoac khoa len GitHub.
+- Khong them MA250, backtest, hoc may hoac chia von trong Moc 1.

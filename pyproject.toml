@@ -1,7 +1,7 @@
 [project]
 name = "he-thong-dinh-luong"
 version = "0.1.0"
-description = "Bo khung Moc 0 cho he thong dinh luong co phieu Viet Nam"
+description = "Moc 1 du lieu thi truong cho he thong dinh luong co phieu Viet Nam"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = []
