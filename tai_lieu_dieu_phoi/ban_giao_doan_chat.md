@@ -25,6 +25,7 @@ Cập nhật: 2026-07-24
 - Hai commit triển khai chính:
   1. `0310e0667f569608676066dfe935fd3f9e782f4f` — lát cắt dữ liệu ngoại tuyến.
   2. `e6dd3d8125e092cbee2d956269324a96a543e026` — nguồn Vnstock và lệnh tải thật nhỏ.
+- Commit sửa CI đã được xác minh: `ad1c54c41e2fc31d7a4327043b21f02b35b4603d`.
 - Kiến trúc nguồn, lưu dữ liệu thô bất biến, chuẩn hóa, kiểm tra chất lượng,
   dữ liệu sẵn sàng và trạng thái từng mã đã có.
 - VNINDEX vẫn là phần mở rộng và không chặn ba mã bắt buộc.
@@ -86,24 +87,32 @@ Mỗi dữ liệu thô có mã SHA-256 trong bản tổng hợp. Không đưa b�
 - `Ran 30 tests in 0.696s`.
 - Kết quả: `OK`.
 
-## Điều kiện còn thiếu
+## Kết quả GitHub Actions
 
-1. GitHub Actions chưa được xác minh đạt trên đầu nhánh cuối cùng.
-2. Cần mã lần chạy, job và trạng thái từng bước của CI.
-3. Sau khi CI đạt, cần cập nhật tài liệu điều phối lần cuối và gửi báo cáo đoạn `00`.
-4. PR số `3` chưa được phép chuyển khỏi trạng thái nháp nếu chưa có quyết định của đoạn `00`.
+Đã xác minh commit `ad1c54c41e2fc31d7a4327043b21f02b35b4603d`:
 
-## Trình tự tiếp theo
+- push run số `25`, ID `30107975081`: `success`;
+- pull-request run số `26`, ID `30107980910`: `success`;
+- job `kiem_tra`: `completed`, `success`;
+- các bước `Lay ma nguon`, `Cai dat uv`, `Cai dat Python`, `Dong bo moi truong`, `Kiem tra cu phap`, `Chay kiem thu ngoai tuyen` đều thành công;
+- cảnh báo Node.js 20 bị loại bỏ dần là cảnh báo không chặn.
 
-1. Kiểm tra Actions trên commit đầu nhánh mới nhất.
-2. Nếu Actions không xuất hiện, kiểm tra `Settings → Actions → General`; không tạo commit rỗng.
-3. Nếu Actions chạy, rà soát toàn bộ job và bước.
-4. Cập nhật ba tệp điều phối bằng kết quả CI.
-5. Gửi báo cáo cuối về đoạn `00`.
+## Kết luận bàn giao
+
+Các điều kiện kỹ thuật bắt buộc của Mốc 1 đã đạt:
+
+1. Nhánh chứa đầu `main` hiện hành.
+2. Thăm dò thật FPT, HPG, MBB thành công.
+3. Tải thật nhỏ FPT, HPG, MBB thành công và có đủ sản phẩm cục bộ.
+4. Python 3.12 đạt 30/30 kiểm thử.
+5. GitHub Actions đạt trên cả sự kiện push và pull request.
+6. PR không chứa thư mục `du_lieu/`.
+
+Đoạn `01` đề nghị đoạn `00` nghiệm thu Mốc 1 và quyết định có chuyển PR số `3` khỏi trạng thái nháp hay không. Đoạn `01` không tự gộp PR.
 
 ## Không được làm
 
-- Không gộp PR số `3`.
-- Không mở Mốc 2.
+- Không gộp PR số `3` trong đoạn `01`.
+- Không mở Mốc 2 trước quyết định của đoạn `00`.
 - Không đưa dữ liệu thật, nhật ký thật hoặc khóa lên GitHub.
 - Không thêm MA250, mô phỏng giao dịch, học máy hoặc chia vốn.
