@@ -44,24 +44,33 @@ Trạng thái: **đã hoàn thành, đã gộp qua PR số 5 và đã xác minh 
 
 ## Mốc 3 — Mô phỏng giao dịch và backtest
 
-Trạng thái: **đã có đặc tả đề xuất, chưa phê duyệt và chưa mở triển khai mã**.
+Trạng thái: **đã được phê duyệt và đã mở triển khai trên nhánh chuyên môn**.
 
-Đặc tả đề xuất nằm tại `tai_lieu/dac_ta_moc_3.md`.
+- Đặc tả chính thức: `tai_lieu/dac_ta_moc_3.md`.
+- PR điều phối số 6 đã gộp bằng merge commit `f52e06ffd4dde26e8af9d6451ec1e64f5a61b35d`.
+- CI sau gộp PR số 6: run số 86, Run ID `30123567224`, job `kiem_tra` ID `89581624420`, thành công trên `main`.
+- Nhánh chuyên môn: `m3-mo_phong-giao_dich`.
+- Nhánh được tạo trực tiếp từ merge commit nêu trên.
+- Đoạn chuyên môn phụ trách: `03 Mo phong giao dich va backtest`.
 
-Phạm vi dự kiến:
+Phạm vi đã phê duyệt:
 
-- Tín hiệu tại phiên `T` chỉ được khớp sớm nhất từ phiên kế tiếp.
+- Tín hiệu tại phiên `T` chỉ được khớp sớm nhất từ mở cửa phiên kế tiếp.
+- Lệnh `DAY`; thiếu bar ngày thực thi thì hết hạn, không tự dời sang phiên xa hơn.
 - Tiền mặt, vị thế, lệnh, khớp lệnh và sổ cái danh mục.
 - Phí mua/bán, thuế bán, trượt giá và lô giao dịch đều là cấu hình truy vết được.
 - Long-only, không short và không margin.
 - Xử lý chia tách/cổ phiếu thưởng và cổ tức tiền mặt bằng dữ liệu sự kiện rõ nguồn.
-- Báo cáo lợi nhuận, mức giảm vốn, Sharpe, chi phí và vòng quay.
-- Baseline mua-và-giữ, cân bằng đều và quy tắc MA250/động lượng để kiểm tra bộ máy.
-- Kiểm thử ngoại tuyến, kịch bản vàng có kết quả biết trước và CI Python 3.12.
+- Báo cáo NAV, lợi nhuận, drawdown, Sharpe, chi phí và turnover.
+- Baseline mua-và-giữ, cân bằng đều và quy tắc MA250/động lượng chỉ để kiểm tra engine.
+- Đầu ra bất biến, SHA-256, commit, cấu hình lần chạy và kiểm thử ngoại tuyến.
+- Không tích hợp SSI; hệ thống chỉ sinh kết quả nghiên cứu và lệnh đề xuất để người dùng giao dịch thủ công.
 
-Không được triển khai mã Mốc 3 cho đến khi đoạn `00 Điều phối trung tâm` phê duyệt đặc tả và chỉ định đoạn chuyên môn.
+Mốc 3 phải giữ PR dạng draft cho đến khi đoạn `00 Điều phối trung tâm` nghiệm thu.
 
 ## Mốc 4 — Đặc trưng và học máy
+
+Trạng thái: **chưa mở**.
 
 - Đặc trưng giá, động lượng, biến động, thanh khoản và thị trường.
 - Nhãn lợi nhuận vượt chỉ số và hàng rào ba mức.
@@ -70,12 +79,16 @@ Không được triển khai mã Mốc 3 cho đến khi đoạn `00 Điều ph�
 
 ## Mốc 5 — Chia vốn
 
+Trạng thái: **chưa mở**.
+
 - Chọn nhóm mã đứng đầu.
 - Chia vốn ngược theo độ biến động.
 - Tối đa 15% mỗi mã, 25% mỗi ngành.
 - Tiền mặt theo trạng thái thị trường.
 
 ## Mốc 6 — Kiểm toán và giao dịch giả lập
+
+Trạng thái: **chưa mở**.
 
 - Rà soát rò rỉ dữ liệu, thiên lệch sống sót và tối ưu quá mức.
 - Chạy danh mục giả lập hằng ngày.
