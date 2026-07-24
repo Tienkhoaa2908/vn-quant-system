@@ -2,79 +2,83 @@
 
 Cập nhật: 2026-07-24
 
-## Bối cảnh
+## Vai trò
 
-Người dùng xây `VN Quant System` trong Project ChatGPT `Tiến Khoa`.
+- Đoạn `00` là đầu mối điều phối trung tâm.
+- Đoạn `01` đến `06` phụ trách chuyên môn theo nhiệm vụ được giao.
+- GitHub là nguồn sự thật về nhánh, commit, yêu cầu gộp và kiểm tra tự động.
+- Không chuyển mốc khi mốc hiện tại chưa được gộp và xác minh.
 
-Kho mã nguồn: `Tienkhoaa2908/vn-quant-system`.
+## Trạng thái bền vững đã xác minh
 
-Mô hình làm việc:
+### Mốc 0
 
-- đoạn `00` điều phối trung tâm;
-- đoạn `01` đến `06` làm chuyên môn;
-- GitHub giữ trạng thái bền vững và là nguồn sự thật.
+- Yêu cầu gộp số `1`: đã gộp.
+- Commit triển khai chính: `3385e401532e51457b9e9360e17df7af0e021881`.
+- Commit đầu nhánh trước khi gộp: `1124e7a7786bffd01a4eea4c8d292c11413ac9f1`.
+- Đầu `main`: `b132578b763ead96ad172a1ace68acdff6e36007`.
+- Kiểm tra tự động Mốc 0: đạt.
 
-## Sở thích người dùng
-
-- Trả lời bằng tiếng Việt, hạn chế chêm tiếng Anh.
-- Tên tệp và mã tự đặt dùng tiếng Việt không dấu, viết thường và nối bằng dấu gạch dưới.
-- Hướng dẫn từng bước, rõ việc tiếp theo.
-- Không bịa hướng mới chỉ để tiếp tục.
-- Ưu tiên phương pháp có cơ sở, kiểm thử và tái lập.
-- Không tuyên bố thành công khi chưa có log thật.
-
-## Trạng thái đã xác minh
-
-- `main` hiện ở commit hợp nhất `b132578b763ead96ad172a1ace68acdff6e36007`.
-- Yêu cầu gộp số `1` của Mốc 0 đã được gộp.
-- Đầu nhánh Mốc 0 trước khi gộp là `1124e7a7786bffd01a4eea4c8d292c11413ac9f1`.
-- Commit triển khai chính của Mốc 0 là `3385e401532e51457b9e9360e17df7af0e021881`.
-- Mốc 0 có công cụ kiểm tra CSV và 12 kiểm thử.
-- Lần chạy `kiem_tra_tu_dong` số `3`, mã `30094062342`, đã đạt trên đầu nhánh Mốc 0.
-- Trước khi tạo nhánh điều phối, không có yêu cầu gộp đang mở.
-- `.gitignore` trên `main` chưa có quy tắc riêng cho dữ liệu thị trường thật.
-
-## Trạng thái nhánh điều phối
+### Bộ tài liệu điều phối
 
 - Nhánh: `bo_sung-dieu_phoi`.
-- Yêu cầu gộp: số `2`, đang mở vào `main`.
-- Commit thêm tài liệu ban đầu: `0b3022eacd9087bd60776c5e476e8e9bc9d6674a`.
-- Kiểm tra tự động lần `5`, mã `30098791806`, đã đạt trên commit ban đầu.
-- Sau cập nhật trạng thái này, phải xác minh lại kiểm tra tự động trên đầu nhánh cuối cùng trước khi đề nghị gộp.
+- Yêu cầu gộp số `2`: đang mở vào `main`, chưa gộp.
+- Commit trước kết quả rà soát Mốc 1: `838bd9b9f746771b8b9b3f0d763da6184fd2b060`.
+- Kiểm tra tự động lần `6`, mã `30099007729`: đạt trên commit đó.
+- Commit hiện tại cập nhật ba tệp trạng thái theo kết quả rà soát Mốc 1; phải chờ kiểm tra tự động mới trước khi gộp.
 
-## Phán quyết Mốc 1
+### Mốc 1
 
-Kế hoạch dùng Vnstock Community 4.0.4: **ĐẠT CÓ ĐIỀU KIỆN**.
+- Yêu cầu gộp số `3`: mở, nháp, chưa gộp.
+- Nhánh: `m1-du_lieu`.
+- Đầu nhánh: `e6dd3d8125e092cbee2d956269324a96a543e026`.
+- Hai commit đã báo cáo:
+  1. `0310e0667f569608676066dfe935fd3f9e782f4f` — lát cắt dữ liệu ngoại tuyến.
+  2. `e6dd3d8125e092cbee2d956269324a96a543e026` — nguồn Vnstock và lệnh tải thật nhỏ.
+- Báo cáo đoạn `01`: 30/30 kiểm thử đạt trên Python 3.13.
+- Không có GitHub Actions hoặc trạng thái commit cho đầu nhánh Mốc 1.
+- Chưa có thăm dò và tải thật FPT, HPG, MBB.
 
-Điều kiện đầy đủ nằm trong `cong_viec_hien_tai.md`. Các điểm không được bỏ qua:
+## Phán quyết điều phối hiện tại
 
-- thăm dò giao diện thật trước;
-- không giả định tham số chọn giá;
-- FPT, HPG, MBB là bắt buộc;
-- VNINDEX không chặn;
-- từng mã có trạng thái riêng;
-- không tạo tệp thô lỗi giả;
-- đầu ra đúng định dạng đã quy định;
-- kiểm tra tự động không dùng mạng;
-- dữ liệu thật và khóa không lên GitHub;
-- tối thiểu hai commit;
-- chưa làm MA250, mô phỏng giao dịch, học máy hoặc chia vốn.
+Yêu cầu gộp số `3`:
 
-## Quyết định tiếp tục
+**YÊU CẦU THAY ĐỔI — CHƯA ĐỦ ĐIỀU KIỆN GỘP.**
 
-1. Chỉ đề nghị gộp yêu cầu số `2` khi đầu nhánh cuối cùng kiểm tra tự động đạt.
-2. Sau khi tài liệu được gộp và xác minh trên `main`, giao Mốc 1 cho đoạn `01`.
-3. Đoạn `01` làm trên nhánh `m1-du_lieu`.
-4. Người dùng chạy lần tải thật nhỏ trên máy cá nhân.
-5. Kết quả quay về đoạn `00` để rà soát.
-6. Không mở Mốc 2 trước khi Mốc 1 được gộp và xác nhận đạt.
+Lý do chính:
 
-## Không được làm trong đoạn 00
+1. Bộ tài liệu điều phối chưa được gộp vào `main`, nhưng Mốc 1 đã được triển khai từ nền `main` cũ.
+2. Chưa có phản hồi chạy thật của Vnstock cho ba mã bắt buộc.
+3. Chưa có kiểm tra tự động GitHub cho đầu nhánh Mốc 1.
+4. Chưa chạy kiểm thử trên Python mục tiêu 3.12.
+5. Cách gọi giao diện Vnstock trong bộ chuyển đổi chưa được chứng minh bằng chạy thật và có khác biệt với ví dụ công khai của gói 4.0.4.
+6. Đơn vị giá và hợp đồng cột chưa được đối chiếu bằng dữ liệu trả về thực tế.
 
-- Không tự triển khai Mốc 1.
-- Không sửa trực tiếp `main`.
-- Không tải toàn bộ VN100.
+## Điểm kỹ thuật đã rà soát
+
+- Kiến trúc giao diện nguồn, nguồn giả, chuẩn hóa, lưu trữ bất biến và trạng thái từng mã phù hợp hướng đã giao.
+- Quy trình không tạo tệp thô giả khi nguồn thất bại.
+- Định dạng đầu ra phù hợp yêu cầu Mốc 1.
+- Kiểm thử bộ chuyển đổi hiện dựa trên đối tượng giả mô phỏng đúng giả định của chính bộ chuyển đổi; đây không phải bằng chứng giao diện Vnstock thật.
+- VNINDEX vẫn là phần mở rộng, không chặn FPT, HPG và MBB.
+
+## Trình tự bắt buộc tiếp theo
+
+1. Chờ kiểm tra tự động của commit tài liệu điều phối cuối cùng đạt.
+2. Gộp yêu cầu số `2` vào `main`.
+3. Xác minh đầu `main` có `tai_lieu_dieu_phoi/`.
+4. Cập nhật nhánh `m1-du_lieu` từ `main` mới.
+5. Chạy thăm dò thật Vnstock 4.0.4.
+6. Sửa bộ chuyển đổi nếu giao diện thật khác giả định.
+7. Chạy tải thật nhỏ cho FPT, HPG, MBB.
+8. Chạy kiểm thử Python 3.12 và GitHub Actions.
+9. Gửi kết quả mới về đoạn `00` để nghiệm thu.
+10. Chỉ chuyển PR số `3` khỏi trạng thái nháp khi đoạn `00` kết luận đủ điều kiện.
+
+## Không được làm
+
+- Không gộp PR số `3` ở trạng thái hiện tại.
+- Không mở Mốc 2.
+- Không đưa dữ liệu thật, nhật ký thật hoặc khóa lên GitHub.
+- Không tự điền ngày thiếu.
 - Không thêm MA250, mô phỏng giao dịch, học máy hoặc chia vốn.
-- Không đưa khóa Vnstock hoặc dữ liệu thật lên GitHub.
-- Không ép VNINDEX thành điều kiện chặn.
-- Không giả định giao diện nguồn trước bước thăm dò.
