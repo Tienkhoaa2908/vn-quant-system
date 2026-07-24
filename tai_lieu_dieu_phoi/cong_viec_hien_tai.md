@@ -46,24 +46,50 @@ Hợp đồng phản hồi thật:
 - chưa phát hiện khả năng hoặc tham số chọn giá điều chỉnh/chưa điều chỉnh;
 - không có lỗi nguồn trong báo cáo thăm dò.
 
+## Kết quả tải thật nhỏ đã xác minh
+
+Mã lần chạy: `20260724T153953222157Z_5383eaab`.
+
+| Mã | Trạng thái | Số dòng | Số lần thử | Cảnh báo | Lỗi |
+|---|---|---:|---:|---:|---|
+| FPT | thành công | 8 | 1 | 0 | không |
+| HPG | thành công | 8 | 1 | 0 | không |
+| MBB | thành công | 8 | 1 | 0 | không |
+
+Bản tổng hợp ghi nhận cho từng mã:
+
+- dữ liệu thô JSON;
+- dữ liệu chuẩn hóa CSV;
+- dữ liệu sẵn sàng CSV;
+- báo cáo chất lượng JSON;
+- nhật ký JSON;
+- mã SHA-256 của dữ liệu thô.
+
+Các sản phẩm nằm dưới `du_lieu/` trên máy người dùng và không được đưa vào GitHub.
+
+## Kết quả Python 3.12
+
+- Python: `CPython 3.12.13` Windows x86-64.
+- Đồng bộ môi trường: hoàn thành, log `Checked in 1ms`.
+- Biên dịch: không phát hiện lỗi trong log được cung cấp.
+- Unittest: `Ran 30 tests in 0.696s`.
+- Kết quả: `OK`.
+
 ## Việc đang hoạt động
 
 Theo đúng thứ tự:
 
-1. Chạy tải thật nhỏ cho FPT, HPG, MBB.
-2. Rà soát `du_lieu/nhat_ky/<ma_lan_chay>/tong_hop.json` theo từng mã.
-3. Chạy đồng bộ, biên dịch và toàn bộ kiểm thử trên Python 3.12.
-4. Kiểm tra GitHub Actions trên commit đầu nhánh cuối cùng.
-5. Nếu Actions không chạy, xác minh trạng thái kích hoạt Actions của kho; không tạo commit rỗng.
-6. Cập nhật ba tệp điều phối bằng kết quả tải thật, Python 3.12 và CI.
-7. Gửi báo cáo đầy đủ về đoạn `00`.
+1. Kiểm tra GitHub Actions trên commit đầu nhánh sau các cập nhật tài liệu này.
+2. Nếu có run, rà soát mã run, job và từng bước.
+3. Nếu không có run, xác minh trạng thái kích hoạt Actions của kho; không tạo commit rỗng.
+4. Cập nhật ba tệp điều phối bằng trạng thái CI cuối cùng.
+5. Gửi báo cáo đầy đủ về đoạn `00`.
 
 ## Điều kiện nghiệm thu còn lại
 
-- Tải thật phải tạo đúng dữ liệu thô, chuẩn hóa, sẵn sàng, báo cáo chất lượng và nhật ký cho từng mã.
+- GitHub Actions phải có mã lần chạy thật trên đầu nhánh cuối cùng.
+- Toàn bộ job và bước phải đạt.
 - Không được commit thư mục `du_lieu/`.
-- Python 3.12 phải chạy đủ bộ kiểm thử và báo số kiểm thử thực tế.
-- GitHub Actions phải có mã lần chạy và toàn bộ bước đạt.
 - PR số `3` tiếp tục ở trạng thái nháp cho đến khi đoạn `00` kết luận đủ điều kiện.
 
 ## Phạm vi bị khóa
