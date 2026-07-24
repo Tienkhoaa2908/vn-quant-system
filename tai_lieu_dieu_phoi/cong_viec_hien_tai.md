@@ -25,14 +25,31 @@ Cap nhat: 2026-07-25
 
 **DAT — MOC 1 DA DONG HOAN TOAN.**
 
-## Viec dang hoat dong cua Moc 2
+## Trang thai PR so 5
 
-1. Cap nhat tai lieu dieu phoi trong commit dau tien, khong kem ma chuyen mon.
-2. Chot quyet dinh kien truc trong `DECISIONS.md`.
-3. Xay tap co phieu theo tung thoi diem bang anh chup co ngay hieu luc.
-4. Them gia tri giao dich, bo loc thanh khoan, MA250 va dong luong khong nhin truoc.
-5. Them CLI, CSV/JSON dau ra, kiem thu ngoai tuyen va tai lieu van hanh.
-6. Mo draft PR `M2: tap co phieu va duong co so` vao `main` va giu draft cho den khi doan 00 phe duyet.
+- PR: `#5 — M2: tap co phieu va duong co so`.
+- Dau nhanh da duoc doan 00 ra soat: `eaca41cf2d894658e9af067aff1ec8135adf0118`.
+- Phan ma va CI ban dau dat; run so 49, ID `30113676673`, job `kiem_tra` ID `89549033754` ket luan `success`.
+- Phan quyet cua doan 00: **YEU CAU THAY DOI — GIU DRAFT**.
+- PR khong duoc gop, khong duoc chuyen khoi draft va khong mo Moc 3.
+
+## Loi toan ven san pham CLI
+
+- `_kiem_tra_dau_ra_trong()` truoc day bo qua `bao_cao_loi.json`.
+- Chay lai thu muc thanh cong co the tao them bao cao loi.
+- Bao cao loi cu co the ton tai canh san pham thanh cong moi.
+- Ghi CSV truoc JSON co the de lai thanh cong mot phan neu tep thu hai that bai.
+
+## Cong viec sua loi
+
+1. Da kiem tra ca ba san pham `duong_co_so.csv`, `bao_cao.json`, `bao_cao_loi.json` truoc khi bat dau.
+2. Da tu choi va khong sua thu muc da co bat ky san pham nao.
+3. Da chuan bi day du noi dung CSV va JSON truoc khi cong bo.
+4. Da cong bo khong ghi de, rollback san pham da cong bo neu tep thu hai that bai va don tep tam.
+5. Da ngan tao `bao_cao_loi.json` neu thu muc co san pham thanh cong; bao cao loi cu khong bi ghi de.
+6. Da bo sung hoi quy cho thu muc thanh cong, thu muc co bao cao loi cu va loi cong bo san pham thu hai.
+7. Commit sua ma: `c18557aef6bf9c7c0e5a5c750dc23cdb7ea9d55a`.
+8. Dang cho CI tren dau nhanh cuoi va van chua co xac minh that FPT, HPG, MBB voi it nhat 260 phien.
 
 ## Nguyen tac bat buoc
 
@@ -43,6 +60,7 @@ Cap nhat: 2026-07-25
 - Khong hard-code nguong thanh khoan hay cua so dong luong san xuat chua duoc phe duyet.
 - Khong ghi de im lang san pham da ton tai.
 - CI hoan toan ngoai tuyen; khong goi Vnstock hoac mang.
+- Giao dien chong nhin truoc da co, nhung nguon thanh vien lich su that chua duoc phe duyet va chua duoc coi la da loai bo thien lech song sot thuc te.
 
 ## Ngoai pham vi
 

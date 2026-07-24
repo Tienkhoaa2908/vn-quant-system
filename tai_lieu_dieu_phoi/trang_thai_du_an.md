@@ -53,13 +53,24 @@ Trang thai dieu phoi: **da dong hoan toan**.
 
 ## Moc 2 — Tap co phieu va duong co so
 
-Trang thai: **da mo**.
+Trang thai: **da mo; PR so 5 dang draft va dang xu ly yeu cau thay doi cua doan 00**.
 
 - Doan chuyen mon dang phu trach: `02 Tap co phieu va duong co so`.
 - Nhanh lam viec bat buoc: `m2-tap_co_phieu-duong_co_so`.
 - Pham vi: tap co phieu theo tung thoi diem, bo loc thanh khoan, MA250, dong luong va du lieu dau ra duong co so.
 - Tap co phieu lich su that chua duoc coi la da co; truoc mat chi xay giao dien, dinh dang va kiem thu bang du lieu gia lap.
 - Khong mo Moc 3.
+
+### Ra soat PR so 5 cua doan 00
+
+- Dau nhanh duoc ra soat ban dau: `eaca41cf2d894658e9af067aff1ec8135adf0118`.
+- Phan ma va CI ban dau da dat; GitHub Actions run so 49, ID `30113676673`, job `kiem_tra` ID `89549033754` ket luan `success`.
+- Phan quyet: **YEU CAU THAY DOI — GIU DRAFT**.
+- Loi phat hien: CLI chua coi `bao_cao_loi.json` la san pham can khoa, co the de bao cao loi cu canh san pham thanh cong, co the tao bao cao loi moi canh san pham thanh cong cu, va co the de lai san pham thanh cong mot phan khi ghi tep thu hai that bai.
+- Commit sua ma: `c18557aef6bf9c7c0e5a5c750dc23cdb7ea9d55a` (`sua tinh toan ven san pham CLI Moc 2`).
+- Ban sua kiem tra ca ba ten san pham, khong sua thu muc da co san pham, chuan bi hai noi dung truoc khi cong bo, rollback khi cong bo tep thu hai that bai va don tep tam.
+- PR tiep tuc giu draft. Dang cho CI tren dau nhanh cuoi va xac minh that FPT, HPG, MBB voi it nhat 260 phien.
+- Giao dien chong nhin truoc da co; nguon thanh vien lich su that chua duoc phe duyet; chua tuyen bo loai bo thien lech song sot trong thuc te.
 
 ## Pham vi bi khoa
 
