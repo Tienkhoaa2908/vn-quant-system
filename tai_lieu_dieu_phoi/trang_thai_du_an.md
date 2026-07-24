@@ -6,8 +6,8 @@ Cap nhat gan nhat: 2026-07-24
 
 - Kho: `Tienkhoaa2908/vn-quant-system`.
 - Nhanh chinh: `main`.
-- Dau `main` da xac minh: `4eba2a77d5864027c84d4350769d95fd4abd5fee`.
-- `main` da chua thu muc `tai_lieu_dieu_phoi/`.
+- Dau `main` da xac minh sau khi gop Moc 1: `e94d4a340ac734bfabc14f340626c408af33645f`.
+- Commit nay la merge commit cua PR so `3` tu `m1-du_lieu` vao `main`.
 - Python muc tieu: 3.12.
 - Cong cu moi truong: `uv`.
 
@@ -28,55 +28,49 @@ Trang thai: **da gop vao main**.
 
 ## Moc 1 — Du lieu
 
-Trang thai dieu phoi: **da duoc doan 00 nghiem thu ky thuat; du dieu kien chuyen PR sang san sang ra soat sau khi CI dat tren dau nhanh moi nhat**.
+Trang thai dieu phoi: **da nghiem thu ky thuat va da gop vao main**.
 
-PR so 3:
+### PR va commit
 
-- nhanh nguon: `m1-du_lieu`;
-- nhanh dich: `main`;
-- dau truoc quyet dinh nghiem thu: `9552e4641327ba93fa02f1fd0953d378f3f879f1`;
-- trang thai truoc quyet dinh: mo, nhap, chua gop;
-- mergeable: co;
-- nhanh chua dau `main`, cham hon `main` 0 commit;
-- 24 tep thay doi;
-- khong co tep nao trong `du_lieu/`.
+- PR so 3: da gop luc `2026-07-24T16:40:46Z`.
+- Nhanh nguon: `m1-du_lieu`.
+- Dau nhanh duoc phe duyet: `639afabb406bd839540be9acfbfcf1d6c44f5aa8`.
+- Merge commit tren `main`: `e94d4a340ac734bfabc14f340626c408af33645f`.
+- PR co 17 commit, 24 tep thay doi va khong chua tep nao duoi `du_lieu/`.
 
-### Tham do that Vnstock 4.0.4
+### Pham vi da co tren main
 
-- Ma lan chay: `20260724T152739494769Z_521d23ce`.
-- Khoang ngay: `2026-07-01` den `2026-07-10`.
-- Cach goi da hoat dong: `Market().equity(symbol=ma).ohlcv(start=..., end=..., interval="1D", source="kbs")`.
-- FPT, HPG, MBB: deu thanh cong, moi ma 8 dong.
-- Cot that: `time`, `open`, `high`, `low`, `close`, `volume`.
-- Kieu: `time=datetime64[ns]`, OHLC=`float64`, `volume=int64`.
-- Don vi gia do bo chuyen doi bao cao: `nghin_dong`.
-- Chua phat hien tham so chon gia dieu chinh/chua dieu chinh.
+- giao dien chung cho nguon du lieu;
+- nguon gia lap de kiem thu ngoai tuyen;
+- bo chuyen doi Vnstock Community `4.0.4`, nguon KBS;
+- luu JSON tho bat bien;
+- chuan hoa CSV UTF-8;
+- bao cao chat luong va nhat ky JSON;
+- du lieu san sang CSV;
+- trang thai doc lap tung ma va thu lai loi tam thoi;
+- CLI tham do va tai that nho;
+- kiem thu ngoai tuyen va workflow Python 3.12.
 
-### Tai that nho
+### Tham do va tai that
 
-- Ma lan chay: `20260724T153953222157Z_5383eaab`.
-- Nguon: `vnstock_kbs`, phien ban `4.0.4`.
-- FPT, HPG, MBB: deu thanh cong, 8 dong, 1 lan thu, khong canh bao, khong loi.
-- Moi ma co JSON tho, CSV chuan hoa, CSV san sang, JSON bao cao chat luong, JSON nhat ky va SHA-256.
-- Tat ca san pham that nam cuc bo duoi `du_lieu/` va khong duoc commit.
+- Tham do that: `20260724T152739494769Z_521d23ce`.
+- Tai that nho: `20260724T153953222157Z_5383eaab`.
+- FPT, HPG, MBB: deu thanh cong, moi ma 8 dong trong khoang `2026-07-01` den `2026-07-10`.
+- Du lieu that va nhat ky that chi nam cuc bo duoi `du_lieu/` va khong duoc commit.
 
-### Kiem thu
+### Kiem thu da xac minh truoc gop
 
 - Python: `CPython 3.12.13`, Windows x86-64.
-- Unittest: `Ran 30 tests in 0.696s`.
-- Ket qua: `OK`.
-- GitHub Actions run so 32, ID `30108253709`, da dat tren commit `9552e4641327ba93fa02f1fd0953d378f3f879f1`.
-- Job `kiem_tra`, ID `89530965041`: thanh cong; toan bo buoc dong bo, bien dich va kiem thu ngoai tuyen deu dat.
+- Unittest: `30/30` dat, `Ran 30 tests in 0.696s`, ket qua `OK`.
+- GitHub Actions run so 38, ID `30108780878`, da dat tren dau nhanh `639afabb406bd839540be9acfbfcf1d6c44f5aa8`.
+- Job `kiem_tra`, ID `89532709434`: thanh cong; tat ca buoc deu dat.
 
-### Phan quyet doan 00
+### Dieu kien nghiem thu sau gop
 
-**DAT — PHE DUYET KY THUAT MOC 1.**
-
-1. Cap nhat ba tep dieu phoi bang phan quyet nay.
-2. Chay lai GitHub Actions tren dau nhanh sau cap nhat.
-3. Neu CI dat, cap nhat PR body va chuyen PR so 3 khoi trang thai nhap.
-4. Chua gop PR tu dong; nguoi dung thuc hien buoc gop sau khi nhan bao cao dieu phoi.
-5. Khong mo Moc 2 truoc khi PR so 3 duoc gop va dau `main` duoc xac minh lai.
+- PR so 3 va commit hop nhat tren `main`: da xac minh.
+- Pham vi tep va su ton tai cua Moc 1 tren `main`: da xac minh.
+- GitHub Actions cua su kien `push` tren merge commit `e94d4a340ac734bfabc14f340626c408af33645f`: **chua co ma lan chay duoc xac minh trong doan 00**.
+- Khong mo Moc 2 cho den khi co ma run, trang thai `completed`, ket qua `success` va cac buoc job cua lan chay tren `main`.
 
 ## Pham vi bi khoa
 
