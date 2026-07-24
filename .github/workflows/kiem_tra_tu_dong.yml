@@ -1,0 +1,23 @@
+name: kiem_tra_tu_dong
+
+on:
+  push:
+    branches: [main, m0-khoi_tao]
+  pull_request:
+
+jobs:
+  kiem_tra:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Lay ma nguon
+        uses: actions/checkout@v4
+      - name: Cai dat uv
+        uses: astral-sh/setup-uv@v6
+      - name: Cai dat Python
+        run: uv python install 3.12
+      - name: Dong bo moi truong
+        run: uv sync --frozen --python 3.12
+      - name: Kiem tra cu phap
+        run: PYTHONPATH=src uv run --python 3.12 python -m compileall -q src tests
+      - name: Chay kiem thu
+        run: PYTHONPATH=src uv run --python 3.12 python -m unittest discover -s tests -p 'test_*.py' -v
