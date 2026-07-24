@@ -28,7 +28,7 @@ Trang thai: **da gop vao main**.
 
 ## Moc 1 — Du lieu
 
-Trang thai dieu phoi: **da nghiem thu ky thuat va da gop vao main**.
+Trang thai dieu phoi: **da nghiem thu ky thuat, da gop vao main va da nghiem thu sau gop**.
 
 ### PR va commit
 
@@ -58,23 +58,31 @@ Trang thai dieu phoi: **da nghiem thu ky thuat va da gop vao main**.
 - FPT, HPG, MBB: deu thanh cong, moi ma 8 dong trong khoang `2026-07-01` den `2026-07-10`.
 - Du lieu that va nhat ky that chi nam cuc bo duoi `du_lieu/` va khong duoc commit.
 
-### Kiem thu da xac minh truoc gop
+### Kiem thu truoc gop
 
 - Python: `CPython 3.12.13`, Windows x86-64.
 - Unittest: `30/30` dat, `Ran 30 tests in 0.696s`, ket qua `OK`.
-- GitHub Actions run so 38, ID `30108780878`, da dat tren dau nhanh `639afabb406bd839540be9acfbfcf1d6c44f5aa8`.
+- GitHub Actions run so 38, ID `30108780878`, dat tren dau nhanh `639afabb406bd839540be9acfbfcf1d6c44f5aa8`.
 - Job `kiem_tra`, ID `89532709434`: thanh cong; tat ca buoc deu dat.
 
-### Dieu kien nghiem thu sau gop
+### Kiem thu sau gop tren main
 
-- PR so 3 va commit hop nhat tren `main`: da xac minh.
-- Pham vi tep va su ton tai cua Moc 1 tren `main`: da xac minh.
-- GitHub Actions cua su kien `push` tren merge commit `e94d4a340ac734bfabc14f340626c408af33645f`: **chua co ma lan chay duoc xac minh trong doan 00**.
-- Khong mo Moc 2 cho den khi co ma run, trang thai `completed`, ket qua `success` va cac buoc job cua lan chay tren `main`.
+- Su kien: `push` tren nhanh `main`.
+- Commit: `e94d4a340ac734bfabc14f340626c408af33645f`.
+- GitHub Actions run so 39, ID `30110023878`: `completed`, `success`.
+- Job `kiem_tra`, ID `89536932151`: `completed`, `success`.
+- Tat ca buoc lay ma nguon, cai uv, cai Python, dong bo, kiem tra cu phap, kiem thu ngoai tuyen va don dep deu dat.
+- Canh bao Node.js 20 deprecated duoc GitHub chay tren Node.js 24; day la canh bao bao tri, khong chan nghiem thu.
+
+### Ket luan nghiem thu sau gop
+
+**DAT — MOC 1 DA HOAN TAT NGHIEM THU SAU GOP.**
+
+PR so 4 chi cap nhat ba tep dieu phoi de ghi ben vung ket qua nay. PR so 4 phai duoc gop va `main` phai duoc xac minh lan cuoi truoc khi giao viec Moc 2.
 
 ## Pham vi bi khoa
 
-- Chua mo Moc 2.
+- Chua mo hoac trien khai Moc 2 truoc khi PR so 4 duoc gop va `main` duoc xac minh lan cuoi.
 - Chua them MA250 hoac momentum.
 - Chua backtest.
 - Chua hoc may.
