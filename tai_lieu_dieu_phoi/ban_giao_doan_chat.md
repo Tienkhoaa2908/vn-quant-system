@@ -9,12 +9,19 @@ Cap nhat: 2026-07-25
 - Kho: `Tienkhoaa2908/vn-quant-system`.
 - Nhanh: `m2-tap_co_phieu-duong_co_so`.
 - Dau `main` khi mo Moc 2: `97399e291b0d3d237f247f58ffa03049826d40bd`.
-- Dau nhanh truoc sua truy vet: `d49f8d032998ef22095ac13be763a5d539ea0415`.
-- PR phai giu draft, khong gop va khong mo Moc 3.
+- PR phai giu draft, khong gop va khong mo Moc 3 cho den khi doan 00 ra phan quyet moi.
 
-## Xac minh that da hoan thanh
+## Cac sua doi da hoan thanh
 
-Lan chay Moc 1: `20260724T190515274806Z_6cd15c6d`; Python `3.12.10`.
+- Sua tinh toan ven dau ra CLI Moc 2: khoa ca ba san pham, khong ghi de, rollback thanh cong mot phan va khong de bao cao loi canh san pham thanh cong.
+- Them `--so_nen`, mac dinh cong khai 400, truyen thanh `count` cho Vnstock 4.0.4.
+- Them canh bao ro khi duoi 250 hoac duoi 260 phien.
+- Sua truy vet cau hinh: `ket_qua_lan_chay` tao noi dung tong hop duy nhat; quy trinh cong bo `tong_hop.json` mot lan; stdout dung cung noi dung.
+- Khong doc roi ghi de san pham da cong bo; tinh bat bien duoc giu nguyen.
+
+## Xac minh that chi bao
+
+Lan chay `20260724T190515274806Z_6cd15c6d`; Python `3.12.10`.
 
 | Ma | So phien | Khoang ngay | So dong MA250 | MA250 cuoi | Dong luong 20 cuoi |
 |---|---:|---|---:|---:|---:|
@@ -27,22 +34,37 @@ Lan chay Moc 1: `20260724T190515274806Z_6cd15c6d`; Python `3.12.10`.
 - Tong dau ra 861 dong.
 - Canh bao khoang trong 2026-02-13 den 2026-02-23 xuat hien dong thoi o ca ba ma, khong chan va khong bi tu dien.
 
-## Loi truy vet cau hinh
+## Xac minh truy vet cau hinh
 
-`tong_hop.json` cua lan chay tren khong luu `so_nen_yeu_cau`, do CLI chi chen gia tri vao doi tuong stdout sau khi `chay_quy_trinh()` hoan tat.
+Lan chay moi: `20260724T194007268318Z_1ade6129`.
 
-Ban sua bat buoc:
+San pham:
 
-- truyen cau hinh lan chay vao `chay_quy_trinh()`;
-- mo hinh `ket_qua_lan_chay` tao noi dung tong hop duy nhat;
-- dung noi dung do de cong bo `tong_hop.json` va tao stdout;
-- khong doc/ghi de san pham da cong bo;
-- hoi quy xac nhan `so_nen_yeu_cau == 400` tren dia va stdout, trang thai tung ma khong doi va tinh bat bien con nguyen.
+```text
+du_lieu/nhat_ky/20260724T194007268318Z_1ade6129/tong_hop.json
+```
 
-## Trang thai ban giao
+Ket qua:
 
-- Xac minh that FPT/HPG/MBB da dat.
+- stdout co `so_nen_yeu_cau == 400`;
+- `tong_hop.json` co `so_nen_yeu_cau == 400`;
+- `trang_thai_tung_ma` tren dia va stdout giong nhau;
+- FPT, HPG va MBB deu `thanh_cong`;
+- moi ma van co 287 phien;
+- canh bao khoang trong van duoc giu va khong co du lieu tu dien.
+
+## Ma va CI
+
+- Commit sua truy vet: `aee04c81067e51db36492ced7d891e184f10f8ef`.
+- Commit tai lieu truoc xac minh cuoi: `5e5a2c143805805b4af9b6b099ec5262d2c4006d`.
+- GitHub Actions run 75, ID `30120599648`, job `kiem_tra` ID `89571991558`: `success` tren merge ref `7b68c7a09d5ae2cdcdf7592224482ea485d71433`.
+- Commit ghi nhan xac minh cuoi phai duoc CI lai truoc khi bao cao chot ve doan 00.
+
+## Gioi han va phan quyet
+
+- Xac minh gia va chi bao that da dat.
 - Giao dien chong nhin truoc da co.
-- Nguon lich su thanh vien that van chua duoc phe duyet; khong tuyen bo da loai bo thien lech song sot bang du lieu that.
-- PR chi con cho ban sua truy vet cau hinh va CI cuoi tren dau nhanh/merge ref moi.
-- Sau CI, gui bao cao lai doan 00; khong tu gop PR.
+- Nguon lich su thanh vien that van chua duoc phe duyet; khong tuyen bo da loai bo thien lech song sot bang du lieu thanh vien thuc te.
+- PR tiep tuc giu draft.
+- Khong tu gop PR va khong mo Moc 3.
+- Sau CI tai lieu cuoi, gui bao cao lai doan 00 de xin phan quyet.

@@ -4,26 +4,29 @@ Cap nhat: 2026-07-25
 
 ## Doan phu trach
 
-`02 Tap co phieu va duong co so` dang phu trach chuyen mon Moc 2 duoi dieu phoi cua doan `00 Dieu phoi trung tam`.
+`02 Tap co phieu va duong co so` dang phu trach PR so 5 cua Moc 2 duoi dieu phoi cua doan `00 Dieu phoi trung tam`.
 
 ## Trang thai PR so 5
 
 - PR: `#5 — M2: tap co phieu va duong co so`.
 - Nhanh: `m2-tap_co_phieu-duong_co_so`.
-- Dau nhanh truoc sua truy vet: `d49f8d032998ef22095ac13be763a5d539ea0415`.
-- Phan quyet: **YEU CAU THAY DOI — GIU DRAFT**.
-- PR khong duoc gop, khong duoc chuyen ready va khong mo Moc 3.
+- Phan quyet hien tai: **YEU CAU THAY DOI — GIU DRAFT**.
+- Khong duoc gop, khong chuyen ready va khong mo Moc 3 neu chua co phan quyet moi cua doan 00.
 
 ## Phan da dat
 
-1. Tap co phieu theo thoi diem, thanh khoan, MA250 va dong luong khong nhin truoc da co.
-2. Tinh toan ven san pham CLI da duoc sua.
-3. Adapter va CLI da ho tro `--so_nen`, mac dinh ro rang 400, truyen dung `count` va van dung Vnstock 4.0.4.
-4. CI gan nhat truoc sua truy vet: run 71, ID `30118752282`, job `kiem_tra` ID `89565826727`, ket luan `success`.
+1. Tap co phieu theo thoi diem va quy tac ngan nhin truoc da co.
+2. Thanh khoan, MA250 va dong luong da co.
+3. Tinh toan ven san pham CLI da duoc sua.
+4. Adapter va CLI ho tro `--so_nen`, mac dinh ro rang 400, truyen dung `count` va van dung Vnstock 4.0.4.
+5. `so_nen_yeu_cau` duoc dua vao cau hinh lan chay truoc khi cong bo `tong_hop.json`.
+6. `tong_hop.json` va stdout dung cung mot mo hinh ket qua; khong doc lai va ghi de tep da cong bo.
+7. Hoi quy truy vet va tinh bat bien da dat.
+8. GitHub Actions run 75, ID `30120599648`, job `89571991558` da `success` tren merge ref `7b68c7a09d5ae2cdcdf7592224482ea485d71433`.
 
 ## Xac minh that da dat
 
-Lan chay `20260724T190515274806Z_6cd15c6d` tren Python `3.12.10`:
+Lan chay chi bao `20260724T190515274806Z_6cd15c6d` tren Python `3.12.10`:
 
 - FPT, HPG, MBB moi ma 287 phien, tu 2025-06-02 den 2026-07-23;
 - moi ma 38 dong MA250;
@@ -32,15 +35,21 @@ Lan chay `20260724T190515274806Z_6cd15c6d` tren Python `3.12.10`:
 - thanh khoan co gia tri, khong co loi, tong 861 dong dau ra;
 - canh bao khoang trong 2026-02-13 den 2026-02-23 xuat hien o ca ba ma, khong chan va khong duoc tu dien.
 
-## Cong viec con lai trong PR
+Lan chay truy vet `20260724T194007268318Z_1ade6129`:
 
-1. Dua `so_nen_yeu_cau` vao cau hinh lan chay tai lop quy trinh/mo hinh ket qua.
-2. Dung cung doi tuong ket qua de tao `tong_hop.json` bat bien va JSON in stdout.
-3. Khong doc lai va ghi de tep tong hop sau cong bo.
-4. Hoi quy voi `so_nen=400`: tren dia va stdout cung gia tri, trang thai tung ma khong doi, ghi lai bi tu choi.
-5. Cap nhat tai lieu va chay GitHub Actions tren dau nhanh cung merge ref moi.
+- stdout co `so_nen_yeu_cau == 400`;
+- `tong_hop.json` co `so_nen_yeu_cau == 400`;
+- `trang_thai_tung_ma` tren dia va stdout giong nhau;
+- ca ba ma deu thanh cong va moi ma co 287 phien.
 
-Sau cac buoc nay, PR van giu draft de bao cao lai doan 00. Khong con yeu cau tai them du lieu de nghiem thu ky thuat M2.
+## Cong viec con lai
+
+Khong con loi ma hoac buoc tai du lieu bat buoc trong pham vi PR so 5. Cong viec con lai la:
+
+1. ghi nhan ket qua xac minh truy vet trong tai lieu va mo ta PR;
+2. cho CI cua commit tai lieu cuoi;
+3. gui bao cao lai doan 00;
+4. cho phan quyet co chuyen PR khoi draft hay khong.
 
 ## Nguyen tac bat buoc
 
