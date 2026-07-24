@@ -36,7 +36,7 @@ Khi hai quan sat lien tiep cach nhau hon bay ngay lich, he thong ghi canh bao. H
 
 Bo chuyen doi khoa dung Vnstock Community `4.0.4`. Giao dien da duoc xac minh tu ma nguon tag `v4.0.4`: `Market().equity/index(symbol).ohlcv(start, end, interval="1D", source="kbs")` tra cac cot `time`, `open`, `high`, `low`, `close`, `volume`.
 
-Vnstock chuyen gia co phieu ve nghin dong, con chi so giu don vi diem. Giao dien cong khai nay khong co tham so chon gia dieu chinh hay chua dieu ching, vi vay du an khong truyen tham so suy doan.
+Vnstock chuyen gia co phieu ve nghin dong, con chi so giu don vi diem. Giao dien cong khai nay khong co tham so chon gia dieu chinh hay chua dieu chinh, vi vay du an khong truyen tham so suy doan.
 
 ## QD-0010: VNINDEX la phan mo rong
 
@@ -99,3 +99,7 @@ Moc 2 khong tao co du dieu kien dau tu tong hop, khong backtest, khong mo phong 
 Bo chuyen doi Vnstock nhan `so_nen` tu ben ngoai, xac thuc la so nguyen duong va truyen nguyen gia tri do thanh tham so `count` cua `ohlcv`. Bo chuyen doi khong hard-code `400`. Cac CLI Vnstock dung mac dinh duoc cong bo la `400`, ghi gia tri yeu cau trong bao cao va khong con am tham phu thuoc gioi han mac dinh 100 dong cua nguon.
 
 Bao cao Moc 2 canh bao rieng khi mot ma co duoi 250 phien, vi chua du de tinh MA250, va khi co duoi 260 phien, vi chua dat nguong xac minh du lieu that. Hai canh bao nay khong tu dong bien du lieu hop le thanh loi.
+
+## QD-0020: Cau hinh lan chay duoc cong bo cung ket qua quy trinh
+
+Cau hinh anh huong den viec lay du lieu, nhu `so_nen_yeu_cau`, phai duoc truyen vao `chay_quy_trinh` truoc khi tao san pham. `ket_qua_lan_chay` la nguon duy nhat tao noi dung `tong_hop.json`; stdout dung cung noi dung va chi bo sung duong dan tep tong hop. Khong duoc chen cau hinh bang cach doc va ghi de tep bat bien sau khi cong bo. Cac khoa cau hinh khong duoc trung voi khoa he thong cua tong hop.

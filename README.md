@@ -26,7 +26,6 @@ ma,ngay,gia_mo_cua,gia_cao_nhat,gia_thap_nhat,gia_dong_cua,khoi_luong
 
 Ngay dung `YYYY-MM-DD`. Cap `ma,ngay` phai duy nhat. Gia dong cua phai la so huu han duong; khoi luong phai la so nguyen khong am.
 
-
 ## Tai du lieu Moc 1 voi so nen ro rang
 
 CLI tai du lieu nhan `--so_nen`, la so nguyen duong duoc truyen truc tiep thanh `count` cho Vnstock 4.0.4. Mac dinh la `400`, duoc hien thi trong `--help`; bo chuyen doi khong tu gan cung 400 va khong con phu thuoc gioi han mac dinh 100 dong cua nguon.
@@ -42,7 +41,7 @@ PYTHONPATH=src uv run --with vnstock==4.0.4 \
   --thu_muc_du_lieu du_lieu
 ```
 
-Ket qua in ra ghi `so_nen_yeu_cau`. Du lieu that va nhat ky van nam duoi `du_lieu/` va khong duoc commit.
+CLI truyen `so_nen_yeu_cau` vao cau hinh lan chay truoc khi quy trinh cong bo san pham. `du_lieu/nhat_ky/<ma_lan_chay>/tong_hop.json` va JSON in ra terminal dung cung mot mo hinh ket qua, nen cung ghi gia tri nay. He thong khong doc roi ghi de tep tong hop da cong bo. Du lieu that va nhat ky van nam duoi `du_lieu/` va khong duoc commit.
 
 ## Dau vao tap co phieu theo thoi diem
 
@@ -148,6 +147,18 @@ CI khong goi mang, khong goi Vnstock va chi dung du lieu gia lap.
 ## Xac minh cuc bo FPT, HPG va MBB
 
 Huong dan day du nam trong `tai_lieu/xac_minh_cuc_bo_moc_2.md`. Buoc nay chi tai ba ma, yeu cau it nhat 260 phien hop le, khong tai toan bo VN100 va khong commit dau ra that.
+
+## Ket qua xac minh that FPT, HPG va MBB
+
+Lan chay `20260724T190515274806Z_6cd15c6d` tren Python `3.12.10` da dat nghiem thu ky thuat:
+
+- moi ma co 287 phien, tu 2025-06-02 den 2026-07-23;
+- moi ma co 38 dong MA250;
+- MA250 cuoi: FPT `87.70488`, HPG `24.16668`, MBB `24.61656`;
+- dong luong 20 phien cuoi: FPT `-0.08873239436619718`, HPG `-0.11111111111111105`, MBB `-0.07157894736842108`;
+- trang thai thanh khoan co gia tri, khong co loi, tong dau ra 861 dong.
+
+Canh bao khoang trong 2026-02-13 den 2026-02-23 xuat hien o ca ba ma. Quy trinh khong tu dien cac phien thieu; canh bao nay khong chan nghiem thu ky thuat. Lan chay cu chua co `so_nen_yeu_cau` trong `tong_hop.json`; sau ban sua truy vet, can chay mot ma lan chay moi de xac nhan san pham bat bien co khoa nay.
 
 ## Cau truc du lieu cuc bo
 

@@ -24,7 +24,21 @@ da tra:
 
 Gioi han 100 dong cua lan chay truoc den tu `count` mac dinh cua nguon. CLI cua du an nhan `--so_nen`, mac dinh ro rang la `400`, va truyen gia tri nay truc tiep cho Vnstock. `--so_nen` phai la so nguyen duong.
 
-## 2. Tham do lai neu can
+## 2. Ket qua xac minh that da dat
+
+Lan chay Moc 1: `20260724T190515274806Z_6cd15c6d`; Python `3.12.10`.
+
+- FPT, HPG, MBB moi ma 287 phien, tu 2025-06-02 den 2026-07-23;
+- moi ma co 38 dong MA250;
+- MA250 cuoi: FPT `87.70488`, HPG `24.16668`, MBB `24.61656`;
+- dong luong 20 phien cuoi: FPT `-0.08873239436619718`, HPG `-0.11111111111111105`, MBB `-0.07157894736842108`;
+- thanh khoan co gia tri, khong co loi, tong dau ra 861 dong.
+
+Canh bao khoang trong 2026-02-13 den 2026-02-23 xuat hien o ca ba ma va khong chan. Quy trinh khong tu dien du lieu.
+
+Lan chay nay duoc tao truoc ban sua truy vet cau hinh, nen `du_lieu/nhat_ky/20260724T190515274806Z_6cd15c6d/tong_hop.json` chua co `so_nen_yeu_cau`. Khong sua tep cu. Can chay lai bang ma lan chay moi de xac nhan san pham bat bien moi.
+
+## 3. Tham do lai neu can
 
 ```bash
 PYTHONPATH=src uv run --with vnstock==4.0.4 \
@@ -38,7 +52,7 @@ PYTHONPATH=src uv run --with vnstock==4.0.4 \
 
 Bao cao tham do ghi `so_nen_yeu_cau`. Khong commit bao cao nay.
 
-## 3. Tai lai du lieu Moc 1
+## 4. Tai lai du lieu Moc 1
 
 Dung mot ma lan chay moi; khong ghi de lan tai cu:
 
@@ -53,7 +67,7 @@ PYTHONPATH=src uv run --with vnstock==4.0.4 \
   --thu_muc_du_lieu du_lieu
 ```
 
-Khong them ma khac va khong tai toan bo VN100. Ghi lai `<ma_lan_chay_moi>` duoc tao trong `du_lieu/san_sang/`.
+Khong them ma khac va khong tai toan bo VN100. Ghi lai `<ma_lan_chay_moi>` duoc tao trong `du_lieu/san_sang/`. Mo `du_lieu/nhat_ky/<ma_lan_chay_moi>/tong_hop.json` va xac nhan co `"so_nen_yeu_cau": 400`; JSON in terminal phai co cung gia tri va cung `trang_thai_tung_ma`.
 
 Kiem tra rieng tung ma:
 
@@ -62,7 +76,7 @@ Kiem tra rieng tung ma:
 - neu nguon tra duoi 250 phien, MA250 khong the duoc tinh;
 - neu co tu 250 den 259 phien, MA250 co the tinh nhung chua dat nguong xac minh 260 phien.
 
-## 4. Tao anh chup chi de kiem tra ky thuat
+## 5. Tao anh chup chi de kiem tra ky thuat
 
 Tao tep cuc bo duoi `du_lieu/`, khong commit:
 
@@ -78,7 +92,7 @@ CSV
 
 Tep nay chi giup chay giao dien. No khong chung minh FPT, HPG va MBB la thanh vien cua mot chi so lich su trong toan bo khoang tren, va khong duoc dung de tuyen bo da loai bo thien lech song sot bang du lieu that.
 
-## 5. Chay Moc 2 tren lan tai moi
+## 6. Chay Moc 2 tren lan tai moi
 
 Dung thu muc dau ra moi de tranh ghi de san pham cu:
 
@@ -100,7 +114,7 @@ PYTHONPATH=src uv run --python 3.12 \
 
 CLI khong ghi de. Neu thu muc dau ra da co `duong_co_so.csv`, `bao_cao.json` hoac `bao_cao_loi.json`, dung mot thu muc moi.
 
-## 6. Doc bao cao
+## 7. Doc bao cao
 
 Mo:
 
@@ -121,7 +135,7 @@ Kiem tra rieng FPT, HPG va MBB:
 
 Bao cao can gui ve doan 00 gom ca lenh da chay, Python version, ma lan chay Moc 1, `so_nen_yeu_cau`, tham so Moc 2 va ket qua tung ma.
 
-## 7. Bao mat va pham vi
+## 8. Bao mat va pham vi
 
 - Khong commit `du_lieu/`, log that hay dau ra that.
 - Khong commit tep thanh vien neu nguon co han che ban quyen.

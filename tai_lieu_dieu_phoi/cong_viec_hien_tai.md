@@ -6,66 +6,46 @@ Cap nhat: 2026-07-25
 
 `02 Tap co phieu va duong co so` dang phu trach chuyen mon Moc 2 duoi dieu phoi cua doan `00 Dieu phoi trung tam`.
 
-## Trang thai nen da xac minh
-
-- PR so 3 da gop phan trien khai Moc 1.
-- PR so 4 da gop phan tai lieu dieu phoi sau nghiem thu.
-- Dau `main`: `97399e291b0d3d237f247f58ffa03049826d40bd`.
-- Nhanh `m2-tap_co_phieu-duong_co_so` ton tai va tai thoi diem mo moc trung khop hoan toan voi dau `main` neu tren.
-- Python muc tieu: 3.12.
-- Cong cu moi truong: `uv`.
-
-## Bang chung GitHub Actions cuoi cung cua Moc 1
-
-- Run so 44, ID `30111176831`: `completed`, `success`.
-- Job `kiem_tra`, ID `89540796877`: `completed`, `success`.
-- Tat ca buoc cua job deu dat.
-
-## Ket luan Moc 1
-
-**DAT — MOC 1 DA DONG HOAN TOAN.**
-
 ## Trang thai PR so 5
 
 - PR: `#5 — M2: tap co phieu va duong co so`.
-- Dau nhanh da duoc doan 00 ra soat: `eaca41cf2d894658e9af067aff1ec8135adf0118`.
-- Phan ma va CI ban dau dat; run so 49, ID `30113676673`, job `kiem_tra` ID `89549033754` ket luan `success`.
-- Phan quyet cua doan 00: **YEU CAU THAY DOI — GIU DRAFT**.
-- PR khong duoc gop, khong duoc chuyen khoi draft va khong mo Moc 3.
+- Nhanh: `m2-tap_co_phieu-duong_co_so`.
+- Dau nhanh truoc sua truy vet: `d49f8d032998ef22095ac13be763a5d539ea0415`.
+- Phan quyet: **YEU CAU THAY DOI — GIU DRAFT**.
+- PR khong duoc gop, khong duoc chuyen ready va khong mo Moc 3.
 
-## Loi toan ven san pham CLI
+## Phan da dat
 
-- `_kiem_tra_dau_ra_trong()` truoc day bo qua `bao_cao_loi.json`.
-- Chay lai thu muc thanh cong co the tao them bao cao loi.
-- Bao cao loi cu co the ton tai canh san pham thanh cong moi.
-- Ghi CSV truoc JSON co the de lai thanh cong mot phan neu tep thu hai that bai.
+1. Tap co phieu theo thoi diem, thanh khoan, MA250 va dong luong khong nhin truoc da co.
+2. Tinh toan ven san pham CLI da duoc sua.
+3. Adapter va CLI da ho tro `--so_nen`, mac dinh ro rang 400, truyen dung `count` va van dung Vnstock 4.0.4.
+4. CI gan nhat truoc sua truy vet: run 71, ID `30118752282`, job `kiem_tra` ID `89565826727`, ket luan `success`.
 
-## Cong viec sua loi
+## Xac minh that da dat
 
-1. Da kiem tra ca ba san pham `duong_co_so.csv`, `bao_cao.json`, `bao_cao_loi.json` truoc khi bat dau.
-2. Da tu choi va khong sua thu muc da co bat ky san pham nao.
-3. Da chuan bi day du noi dung CSV va JSON truoc khi cong bo.
-4. Da cong bo khong ghi de, rollback san pham da cong bo neu tep thu hai that bai va don tep tam.
-5. Da ngan tao `bao_cao_loi.json` neu thu muc co san pham thanh cong; bao cao loi cu khong bi ghi de.
-6. Da bo sung hoi quy cho thu muc thanh cong, thu muc co bao cao loi cu va loi cong bo san pham thu hai.
-7. Commit sua ma: `c18557aef6bf9c7c0e5a5c750dc23cdb7ea9d55a`.
-8. Dang cho CI tren dau nhanh cuoi va van chua co xac minh that FPT, HPG, MBB voi it nhat 260 phien.
+Lan chay `20260724T190515274806Z_6cd15c6d` tren Python `3.12.10`:
+
+- FPT, HPG, MBB moi ma 287 phien, tu 2025-06-02 den 2026-07-23;
+- moi ma 38 dong MA250;
+- MA250 cuoi: FPT `87.70488`, HPG `24.16668`, MBB `24.61656`;
+- dong luong 20 phien cuoi: FPT `-0.08873239436619718`, HPG `-0.11111111111111105`, MBB `-0.07157894736842108`;
+- thanh khoan co gia tri, khong co loi, tong 861 dong dau ra;
+- canh bao khoang trong 2026-02-13 den 2026-02-23 xuat hien o ca ba ma, khong chan va khong duoc tu dien.
+
+## Cong viec con lai trong PR
+
+1. Dua `so_nen_yeu_cau` vao cau hinh lan chay tai lop quy trinh/mo hinh ket qua.
+2. Dung cung doi tuong ket qua de tao `tong_hop.json` bat bien va JSON in stdout.
+3. Khong doc lai va ghi de tep tong hop sau cong bo.
+4. Hoi quy voi `so_nen=400`: tren dia va stdout cung gia tri, trang thai tung ma khong doi, ghi lai bi tu choi.
+5. Cap nhat tai lieu va chay GitHub Actions tren dau nhanh cung merge ref moi.
+
+Sau cac buoc nay, PR van giu draft de bao cao lai doan 00. Khong con yeu cau tai them du lieu de nghiem thu ky thuat M2.
 
 ## Nguyen tac bat buoc
 
-- Khong dung danh sach co phieu hien tai cho toan bo lich su.
-- Khong lay anh chup tap co phieu co ngay hieu luc sau ngay danh gia.
-- Khong gia mao du lieu thanh vien lich su va khong tu suy doan thanh vien thieu.
-- Khong dung quan sat tuong lai cho thanh khoan, MA250 hoac dong luong.
-- Khong hard-code nguong thanh khoan hay cua so dong luong san xuat chua duoc phe duyet.
-- Khong ghi de im lang san pham da ton tai.
-- CI hoan toan ngoai tuyen; khong goi Vnstock hoac mang.
-- Giao dien chong nhin truoc da co, nhung nguon thanh vien lich su that chua duoc phe duyet va chua duoc coi la da loai bo thien lech song sot thuc te.
-
-## Ngoai pham vi
-
-- Moc 3 va mo phong giao dich.
-- Backtest, phi, thue, truot gia va lot size.
-- Hoc may, LightGBM va nhan.
-- Chia von, toi uu danh muc va gioi han ty trong.
-- Tai toan bo VN100.
+- Khong commit `du_lieu/` hoac log that.
+- Khong dung danh sach thanh vien hien tai cho toan bo lich su.
+- Khong tu dien quan sat thieu.
+- Nguon lich su thanh vien that chua duoc phe duyet; khong tuyen bo da loai bo thien lech song sot thuc te.
+- Khong force-push, khong tu gop va khong mo Moc 3.
