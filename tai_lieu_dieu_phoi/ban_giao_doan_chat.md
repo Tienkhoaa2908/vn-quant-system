@@ -30,9 +30,17 @@ Mô hình làm việc:
 - Đầu nhánh Mốc 0 trước khi gộp là `1124e7a7786bffd01a4eea4c8d292c11413ac9f1`.
 - Commit triển khai chính của Mốc 0 là `3385e401532e51457b9e9360e17df7af0e021881`.
 - Mốc 0 có công cụ kiểm tra CSV và 12 kiểm thử.
-- Lần chạy `kiem_tra_tu_dong` số `3`, mã `30094062342`, đã hoàn tất với kết quả đạt trên đầu nhánh Mốc 0.
+- Lần chạy `kiem_tra_tu_dong` số `3`, mã `30094062342`, đã đạt trên đầu nhánh Mốc 0.
 - Trước khi tạo nhánh điều phối, không có yêu cầu gộp đang mở.
 - `.gitignore` trên `main` chưa có quy tắc riêng cho dữ liệu thị trường thật.
+
+## Trạng thái nhánh điều phối
+
+- Nhánh: `bo_sung-dieu_phoi`.
+- Yêu cầu gộp: số `2`, đang mở vào `main`.
+- Commit thêm tài liệu ban đầu: `0b3022eacd9087bd60776c5e476e8e9bc9d6674a`.
+- Kiểm tra tự động lần `5`, mã `30098791806`, đã đạt trên commit ban đầu.
+- Sau cập nhật trạng thái này, phải xác minh lại kiểm tra tự động trên đầu nhánh cuối cùng trước khi đề nghị gộp.
 
 ## Phán quyết Mốc 1
 
@@ -54,14 +62,12 @@ Kế hoạch dùng Vnstock Community 4.0.4: **ĐẠT CÓ ĐIỀU KIỆN**.
 
 ## Quyết định tiếp tục
 
-1. Đoạn `00` đưa bộ tài liệu điều phối vào nhánh `bo_sung-dieu_phoi`.
-2. Mở yêu cầu gộp vào `main`.
-3. Chỉ đề nghị gộp khi kiểm tra tự động đạt.
-4. Sau khi tài liệu được gộp và xác minh trên `main`, giao Mốc 1 cho đoạn `01`.
-5. Đoạn `01` làm trên nhánh `m1-du_lieu`.
-6. Người dùng chạy lần tải thật nhỏ trên máy cá nhân.
-7. Kết quả quay về đoạn `00` để rà soát.
-8. Không mở Mốc 2 trước khi Mốc 1 được gộp và xác nhận đạt.
+1. Chỉ đề nghị gộp yêu cầu số `2` khi đầu nhánh cuối cùng kiểm tra tự động đạt.
+2. Sau khi tài liệu được gộp và xác minh trên `main`, giao Mốc 1 cho đoạn `01`.
+3. Đoạn `01` làm trên nhánh `m1-du_lieu`.
+4. Người dùng chạy lần tải thật nhỏ trên máy cá nhân.
+5. Kết quả quay về đoạn `00` để rà soát.
+6. Không mở Mốc 2 trước khi Mốc 1 được gộp và xác nhận đạt.
 
 ## Không được làm trong đoạn 00
 

@@ -4,18 +4,20 @@
 
 Đoạn phụ trách: `00 Điều phối trung tâm`.
 
-1. Đưa thư mục `tai_lieu_dieu_phoi/` vào nhánh `bo_sung-dieu_phoi`.
-2. Chỉ thay đổi tài liệu điều phối; không sửa mã Python hoặc logic kiểm tra dữ liệu.
-3. Mở yêu cầu gộp vào `main`.
-4. Xác minh kiểm tra tự động của yêu cầu gộp.
-5. Chỉ đề nghị gộp khi kiểm tra tự động đạt.
-6. Sau khi gộp, xác minh lại `main` và cập nhật ba tệp trạng thái theo quy trình.
+- Nhánh `bo_sung-dieu_phoi` đã được tạo từ `main`.
+- Yêu cầu gộp số `2` đang mở vào `main`.
+- Commit thêm bộ tài liệu ban đầu: `0b3022eacd9087bd60776c5e476e8e9bc9d6674a`.
+- Lần kiểm tra tự động số `5`, mã `30098791806`, đã đạt trên commit ban đầu.
+- Commit cập nhật trạng thái này phải được kiểm tra lại trước khi đề nghị gộp.
+- Không sửa mã Python hoặc logic kiểm tra dữ liệu.
+- Không triển khai Mốc 1 trong đoạn `00`.
+- Sau khi yêu cầu gộp số `2` được gộp, phải xác minh lại `main` và cập nhật trạng thái trước khi Mốc 1 bắt đầu.
 
 ## Phán quyết kế hoạch Mốc 1
 
 **ĐẠT CÓ ĐIỀU KIỆN.**
 
-Đoạn `01 Dữ liệu` chỉ được triển khai sau khi nhận lời giao việc từ đoạn `00`.
+Đoạn `01 Dữ liệu` chỉ được triển khai sau khi bộ tài liệu điều phối đã được gộp vào `main` và nhận lời giao việc từ đoạn `00`.
 
 ## Điều chỉnh bắt buộc cho Mốc 1
 

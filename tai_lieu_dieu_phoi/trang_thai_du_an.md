@@ -21,6 +21,15 @@ Cập nhật gần nhất: 2026-07-24
 - Kiểm tra tự động `kiem_tra_tu_dong`, lần chạy `3`, mã lần chạy `30094062342`: hoàn tất và đạt trên commit đầu nhánh Mốc 0.
 - Không có yêu cầu gộp đang mở trước khi tạo nhánh `bo_sung-dieu_phoi`.
 
+## Nhánh điều phối
+
+- Nhánh: `bo_sung-dieu_phoi`.
+- Commit thêm bộ tài liệu ban đầu: `0b3022eacd9087bd60776c5e476e8e9bc9d6674a`.
+- Yêu cầu gộp: số `2`, đang mở vào `main`.
+- Lần chạy `kiem_tra_tu_dong` số `5`, mã `30098791806`, đã đạt trên commit thêm bộ tài liệu ban đầu.
+- Chênh lệch ban đầu chỉ gồm tám tệp trong `tai_lieu_dieu_phoi/`; không sửa mã Python hoặc kiểm thử.
+- Mọi commit bổ sung trên yêu cầu gộp số `2` phải được kiểm tra lại trước khi gộp.
+
 ## Mốc 0
 
 Trạng thái: **đã hoàn thành, đã kiểm tra và đã gộp vào `main`**.
@@ -58,7 +67,7 @@ VNINDEX là phần mở rộng; thất bại hoặc khác biệt cấu trúc c�
 ## Đoạn chat
 
 - `00`: đầu mối điều phối trung tâm.
-- `01`: được phép triển khai Mốc 1 sau khi nhận lời giao việc có điều kiện.
+- `01`: chỉ bắt đầu triển khai sau khi tài liệu điều phối được gộp và nhận lời giao việc có điều kiện.
 - `02` đến `06`: chưa được phép triển khai.
 
 ## Rủi ro và việc phải xử lý ở Mốc 1
