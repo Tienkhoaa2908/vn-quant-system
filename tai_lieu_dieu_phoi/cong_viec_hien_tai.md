@@ -4,71 +4,72 @@ Cap nhat: 2026-07-24
 
 ## Doan phu trach
 
-`00 Dieu phoi trung tam` dang thuc hien nghiem thu cuoi cho PR so 3 cua `01 Du lieu`.
+`00 Dieu phoi trung tam` dang hoan tat cap nhat tai lieu sau khi Moc 1 da duoc nghiem thu sau gop.
 
-## Trang thai nen
+## Trang thai da xac minh
 
-- PR so 2 da duoc gop vao `main`.
-- Dau `main` da xac minh: `4eba2a77d5864027c84d4350769d95fd4abd5fee`.
-- Nhanh `m1-du_lieu` da dong bo `main` va cham hon 0 commit.
-- PR so 3 mo, mergeable va chua gop.
-- Dau nhanh truoc cap nhat nghiem thu: `9552e4641327ba93fa02f1fd0953d378f3f879f1`.
-- PR co 24 tep thay doi va khong chua thu muc `du_lieu/`.
+- PR so 3 da duoc gop vao `main` bang merge commit.
+- Thoi diem gop: `2026-07-24T16:40:46Z`.
+- Dau nhanh Moc 1 da gop: `639afabb406bd839540be9acfbfcf1d6c44f5aa8`.
+- Dau `main` sau gop: `e94d4a340ac734bfabc14f340626c408af33645f`.
+- PR co 24 tep thay doi va khong chua tep duoi `du_lieu/`.
 
-## Ket qua ky thuat da nghiem thu
+## Moc 1 tren main
 
-### Tham do that
+Da xac minh `main` co:
 
-- Vnstock Community `4.0.4`.
-- Ma lan chay: `20260724T152739494769Z_521d23ce`.
-- FPT, HPG, MBB deu thanh cong, moi ma 8 dong.
-- Khoang ngay that: `2026-07-01` den `2026-07-10`.
-- Cot that: `time`, `open`, `high`, `low`, `close`, `volume`.
-- Kieu that: `datetime64[ns]`, `float64`, `int64`.
-- Cach goi da hoat dong: `Market().equity(symbol=ma).ohlcv(...)`.
-- Khong can sua giao dien bo chuyen doi sau tham do.
+- workflow `kiem_tra_tu_dong` dung Python 3.12;
+- giao dien va cac nguon du lieu;
+- nguon Vnstock Community 4.0.4;
+- luu tru, chuan hoa, kiem tra chat luong va quy trinh xu ly;
+- CLI tham do va tai that nho;
+- kiem thu du lieu thi truong va nguon Vnstock;
+- quy tac `.gitignore` bo qua `/du_lieu/` va tep nhay cam;
+- tai lieu kien truc va huong dan van hanh.
 
-### Tai that nho
+## Bang chung ky thuat
 
-- Ma lan chay: `20260724T153953222157Z_5383eaab`.
-- FPT, HPG, MBB deu thanh cong, 8 dong, 1 lan thu, 0 canh bao, khong loi.
-- Moi ma co du lieu tho JSON, CSV chuan hoa, CSV san sang, JSON bao cao chat luong, JSON nhat ky va SHA-256.
-- San pham that chi nam cuc bo duoi `du_lieu/`.
+### Truoc gop
 
-### Python va CI
+- Tham do that FPT, HPG, MBB: dat.
+- Tai that nho FPT, HPG, MBB: dat.
+- Python 3.12: 30/30 kiem thu dat.
+- GitHub Actions run so 38, ID `30108780878`: success tren commit `639afabb406bd839540be9acfbfcf1d6c44f5aa8`.
 
-- Python `3.12.13`.
-- `30/30` kiem thu dat; `Ran 30 tests in 0.696s`; `OK`.
-- GitHub Actions run so 32, ID `30108253709`: `success` tren commit `9552e4641327ba93fa02f1fd0953d378f3f879f1`.
-- Job `kiem_tra`, ID `89530965041`: `success`.
+### Sau gop tren main
 
-## Phan quyet
+- Su kien: `push`.
+- Nhanh: `main`.
+- Commit: `e94d4a340ac734bfabc14f340626c408af33645f`.
+- Run so 39, ID `30110023878`: `completed`, `success`.
+- Job `kiem_tra`, ID `89536932151`: `completed`, `success`.
+- Tat ca buoc cua job deu dat.
+- Canh bao Node.js 20 deprecated la canh bao bao tri khong chan.
 
-**DAT — PHE DUYET KY THUAT MOC 1.**
+## Ket luan Moc 1
 
-Cac dieu kien ky thuat bat buoc da duoc dap ung:
+**DAT — MOC 1 DA HOAN TAT NGHIEM THU SAU GOP.**
 
-1. Nhanh chua dau `main` hien hanh.
-2. Tham do that FPT, HPG, MBB dat.
-3. Tai that nho FPT, HPG, MBB dat.
-4. Python 3.12 dat 30/30 kiem thu.
-5. GitHub Actions dat tren dau nhanh da bao cao.
-6. Khong commit du lieu that.
-7. Khong vuot pham vi sang Moc 2.
+Tat ca dieu kien bat buoc da dat:
+
+1. PR so 3 da merged.
+2. Merge commit tren `main` da xac minh.
+3. Pham vi Moc 1 ton tai day du tren `main`.
+4. Khong co du lieu that trong Git.
+5. CI truoc gop dat.
+6. CI sau gop tren `main` dat.
 
 ## Viec dang hoat dong
 
-1. Cap nhat ba tep dieu phoi bang phan quyet doan 00.
-2. Cho GitHub Actions chay lai tren dau nhanh moi nhat sau cap nhat tai lieu.
-3. Neu CI dat, cap nhat PR body bang ket qua that.
-4. Chuyen PR so 3 khoi trang thai nhap sang san sang ra soat.
-5. Nguoi dung gop PR so 3 vao `main`.
-6. Sau khi gop, doan 00 phai xac minh commit hop nhat va CI tren `main`.
-7. Chi sau xac minh sau gop moi duoc tao loi giao viec Moc 2.
+1. Hoan tat PR so 4 chi cap nhat ba tep dieu phoi.
+2. Cho CI chay tren dau nhanh moi nhat cua PR so 4.
+3. Neu CI dat, nguoi dung gop PR so 4 bang merge commit.
+4. Sau khi gop, doan `00` xac minh dau `main` va CI lan cuoi.
+5. Chi sau buoc 4 moi duoc giao ke hoach Moc 2.
 
 ## Pham vi bi khoa
 
-- Khong tu dong gop PR trong buoc cap nhat tai lieu nay.
-- Khong mo Moc 2 truoc khi gop va xac minh PR so 3.
+- Khong mo hoac trien khai Moc 2 truoc khi PR so 4 duoc gop va xac minh.
 - Khong them MA250, momentum, backtest, hoc may hoac chia von.
 - Khong tai toan bo VN100.
+- Chua xoa nhanh `m1-du_lieu` truoc khi cap nhat dieu phoi sau gop hoan tat.
