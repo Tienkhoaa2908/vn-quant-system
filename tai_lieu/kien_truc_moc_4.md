@@ -118,7 +118,7 @@ Feature raw duoc tinh rieng theo ma, chi tu cac quan sat co ngay khong sau T. Fe
 | Regime | `vnindex_momentum_60` | `close_t/close_t-60-1` | 61 | ty le |
 | Regime | `vnindex_bien_dong_20/60` | do lech chuan mau daily return | N+1 | ty le/phien |
 
-Feature bat buoc duoc khai bao bang danh sach co thu tu trong cau hinh. Dòng thieu bat ky feature bat buoc nao bi loai; khong impute ngam.
+Feature bat buoc duoc khai bao bang danh sach co thu tu trong cau hinh. Dong thieu bat ky feature bat buoc nao bi loai; khong impute ngam.
 
 ## 5. Eligibility va bao cao do phu
 
@@ -203,7 +203,7 @@ Metadata model bat buoc:
 - scaler mean/scale;
 - C, solver, max_iter;
 - coefficients va intercept;
-- convergence status/canh bao;
+- convergence status/canh_bao;
 - fold, train interval, validation interval;
 - thoi gian huan luyen.
 
@@ -220,7 +220,7 @@ Tai ngay tin hieu cuoi thang T:
 5. tinh `P(nhan=1)`;
 6. sap xep giam dan theo xac suat, hoa diem theo ma tang dan;
 7. chon `top_k`;
-8. chia deu `1 / so_ma_duoc_chon`, phan con lai la tien mat;
+8. moi ma duoc chon nhan ty trong `1 / top_k`; neu khong du `top_k`, phan ty trong thieu duoc giu bang tien mat;
 9. ghi canh bao neu so ma nho hon `top_k`;
 10. chuyen thanh hop dong `ngay_tin_hieu,ma,ty_trong_muc_tieu,ten_chien_luoc`;
 11. goi engine Moc 3 de khop tai open dung phien ke tiep.
