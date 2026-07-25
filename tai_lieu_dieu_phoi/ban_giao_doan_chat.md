@@ -9,6 +9,7 @@ Cap nhat: 2026-07-25
 - Kho: `Tienkhoaa2908/vn-quant-system`.
 - Nhanh chuyen mon: `m3-mo_phong-giao_dich`.
 - Base da phe duyet: `f52e06ffd4dde26e8af9d6451ec1e64f5a61b35d`.
+- Head sau vong sua: `662f9fdffc16cf7443896b483fb7b6ff6da75a6b`.
 - PR trien khai: so 7, `M3: mo phong giao dich va backtest`.
 - PR phai giu draft; khong Ready, khong auto-merge, khong gop, khong force-push.
 
@@ -52,19 +53,20 @@ Mo/tang vi the chi khi membership va liquidity deu `True`; `False` va `None` deu
 - `mo_hinh.py`: validation, don vi va cac truong audit.
 - `bao_cao.py`: cot audit, so cai, don vi va quy uoc ke toan.
 
-## Kiem thu
+## Kiem thu va CI
 
-Bo Moc 3 co 60 test, gom 17 test hoi quy cu va 43 test moi tach theo:
+Bo Moc 3 co 60 test, gom 17 test hoi quy cu va 43 test moi tach theo quyen co tuc, suc mua, so cai/P&L, eligibility, bien chi phi, lam sach loi va don vi.
 
-- quyen co tuc;
-- suc mua;
-- so cai/P&L;
-- eligibility;
-- bien chi phi;
-- lam sach loi;
-- don vi.
+Toan repository co 121 test: 60 Moc 3 va 61 hoi quy Moc 0–2.
 
-CI run 154, Run ID `30148946003`, da thanh cong tren head ma/test, tong 121 test (60 Moc 3 + 61 Moc 0–2). Final head, final CI va merge ref sau commit tai lieu duoc ghi trong mo ta PR so 7.
+- Workflow: `kiem_tra_tu_dong`.
+- Run number: `166`.
+- Run ID: `30149083823`.
+- Job `kiem_tra` ID: `89656247323`.
+- Ket qua: `completed/success`.
+- Merge ref: `refs/pull/7/merge`.
+- Merge commit tam: `cf461351a0efc22f144d55889ab2da3a45c3756a`.
+- Compile, Python 3.12, sync va unittest ngoai tuyen deu thanh cong.
 
 ## Du lieu that va cua kiem soat
 
