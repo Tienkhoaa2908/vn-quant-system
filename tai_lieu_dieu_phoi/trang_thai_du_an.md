@@ -6,8 +6,6 @@ Cap nhat gan nhat: 2026-07-25
 
 - Kho: `Tienkhoaa2908/vn-quant-system`.
 - Nhanh chinh: `main`.
-- Base Moc 3: `f52e06ffd4dde26e8af9d6451ec1e64f5a61b35d`.
-- Nhanh chuyen mon: `m3-mo_phong-giao_dich`.
 - Python muc tieu: 3.12; cong cu moi truong: `uv`.
 - GitHub la nguon su that ve nhanh, commit, PR va CI.
 
@@ -15,24 +13,49 @@ Cap nhat gan nhat: 2026-07-25
 
 Trang thai: **da dong hoan toan**.
 
-- PR Moc 2 so 5 gop bang merge commit `6e8d2ed49c2ef57e43c9f0f2249361b26b838b33`.
+- Moc 0 gop qua PR so 1.
+- Moc 1 dong sau PR so 4.
+- Moc 2 gop qua PR so 5, merge commit `6e8d2ed49c2ef57e43c9f0f2249361b26b838b33`.
 - FPT, HPG, MBB da duoc xac minh Moc 2: moi ma 287 phien va 38 dong MA250.
-- Nguon lich su thanh vien that van chua duoc phe duyet.
+- Nguon lich su thanh vien VN100 that van chua duoc phe duyet.
 
 ## Moc 3 — Mo phong giao dich va backtest
 
-Trang thai: **PR so 7 dang Draft; ma, kiem thu va xac minh ky thuat tren du lieu that da hoan tat; chua duoc Ready hoac gop**.
+Trang thai: **da dong hoan toan, da gop vao `main` va CI sau gop dat**.
+
+Git va PR:
+
+- PR: so 7, `M3: mo phong giao dich va backtest`.
+- Head duoc phe duyet: `305da62ac54b735a129ab4dc2c66b0826b8953c3`.
+- Merge commit: `79a044d75f3a66e5c636f0a83613fc9af0cac3fc`.
+- PR da dong va `merged=true` luc `2026-07-25T08:20:18Z`.
+- `main` trung khop hoan toan voi merge commit tren.
+
+CI sau gop:
+
+- Workflow: `kiem_tra_tu_dong`.
+- Run number: `183`.
+- Run ID: `30150924124`.
+- Job `kiem_tra` ID: `89661073156`.
+- Trigger: `push`.
+- Branch: `main`.
+- Commit checkout: `79a044d75f3a66e5c636f0a83613fc9af0cac3fc`.
+- Ket qua: `completed/success`.
+- Tat ca buoc cai Python, dong bo moi truong, compile va unittest ngoai tuyen deu dat.
+- Canh bao Node.js 20 deprecated la canh bao cua action runtime, khong lam CI that bai.
 
 Da hoan thanh:
 
-- sua quyen co tuc tien mat theo ngay chot quyen va ngay thanh toan;
-- dinh co suc mua sau ban, tinh gia khop, phi, slippage va lot;
-- hoan thien realized/unrealized P&L, chi phi va doi soat NAV;
-- eligibility fail closed cho mo/tang vi the;
-- validation bien chi phi, so nguyen, don vi va lam sach credential;
+- tin hieu sau close T va khop som nhat tai open phien ke tiep;
+- lenh DAY, khong tu doi phien khi thieu bar/open;
+- lenh, khop lenh, vi the, tien mat, so cai va NAV;
+- phi mua/ban, thue ban, truot gia, lot size va dinh co suc mua;
+- long-only, khong short, khong margin, khong tien mat am, khong ban vuot vi the;
+- corporate actions MVP: chia tach, co phieu thuong va co tuc tien mat;
+- realized/unrealized P&L, doi soat NAV va truy vet don vi;
 - 121 test: 60 test Moc 3 va 61 test hoi quy Moc 0–2;
-- tai lieu kien truc, README va ban giao;
-- xac minh ky thuat engine tren FPT, HPG va MBB.
+- 9 san pham bat bien, manifest SHA-256, cong bo nguyen tu va rollback;
+- xac minh ky thuat engine tren du lieu that FPT, HPG va MBB.
 
 ## Xac minh ky thuat tren du lieu that
 
@@ -41,28 +64,28 @@ Da hoan thanh:
 - 287 phien moi ma; 861 dong sau khi ghep gia Moc 1 voi trang thai Moc 2.
 - Moi truong: Python `3.12.10`, uv `0.11.32`.
 - Kich ban: FPT/HPG/MBB moi ma 30%, giu 10% tien mat; mua 2025-06-30 va dong het 2026-07-23.
-- Engine tao 287 dong NAV, 287 dong so cai, 6/6 lenh khop, khong het han/tu choi.
-- Tien mat khong am; ba vi the duoc dong het; chenh lech doi soat `0.0000000`.
-- Tao dung 9 san pham, xac minh SHA-256 manifest va khong co canh bao.
+- 287 dong NAV, 287 dong so cai, 6/6 lenh khop, 0 het han, 0 tu choi.
+- Tien mat khong am; dong het ba vi the; chenh lech doi soat `0.0000000`.
+- Tao dung 9 san pham, SHA-256 manifest dat va khong co canh bao.
 
-Chi tiet so lieu va phuong phap: `tai_lieu/ket_qua_xac_minh_that_moc_3.md`.
+Chi tiet: `tai_lieu/ket_qua_xac_minh_that_moc_3.md`.
 
-## Gioi han nghiem thu
+## Gioi han da ghi nhan
 
-- Ket qua chi xac minh ky thuat engine, khong phai bang chung hieu qua dau tu.
-- Ty trong 30% moi ma la kich ban kiem tra; khong su dung baseline MA250-dong-luong.
-- Snapshot membership chua phai lich su thanh vien that.
+- Ket qua tren chi xac minh ky thuat engine, khong phai bang chung hieu qua dau tu.
+- Ty trong 30% moi ma la kich ban kiem tra, khong phai phan bo san xuat.
+- Snapshot membership chua phai lich su thanh vien VN100 point-in-time that.
 - Nguong thanh khoan chua phai cau hinh san xuat.
 - Co so gia `khong_dieu_chinh` chua duoc nguon xac nhan doc lap.
-- Khong truyen corporate actions that.
-- Chi co ba ma va mot khoang thoi gian; khong dien giai loi nhuan nhu danh gia chien luoc.
+- Khong co corporate actions that trong lan chay.
+- Chi co ba ma va mot khoang thoi gian.
 - Chua co ML, walk-forward, inverse volatility hoac gioi han nganh.
 
-## Cua kiem soat
+## Cua kiem soat tiep theo
 
-- Doan 00 xac minh diff, 121 test va CI tren head moi.
-- PR so 7 tiep tuc Draft; khong Ready, khong gop va khong force-push.
-- Khong commit du lieu, san pham backtest hay log that; diff khong duoc co tep duoi `du_lieu/`.
-- Khong mo Moc 4.
+- Nhanh dieu phoi sau gop: `cap_nhat-sau-gop-m3`.
+- Chi cap nhat tai lieu; khong chua ma Moc 4.
+- Moc 4 van **chua mo**.
+- Truoc khi viet ma Moc 4, phai co dac ta duoc phe duyet.
+- Dac ta tiep theo phai lam ro dieu kien du lieu nghien cuu: universe VN100 point-in-time hoac universe thanh khoan cao point-in-time, lich su nhieu nam va kiem soat survivorship bias.
 - Khong tich hop SSI, khong doc tai khoan va khong gui lenh.
-- Head, Run ID, Job ID va merge commit tam moi nhat duoc ghi trong mo ta PR so 7.
