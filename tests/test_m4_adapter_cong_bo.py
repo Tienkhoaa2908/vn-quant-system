@@ -1,10 +1,11 @@
 from __future__ import annotations
 import hashlib
 import json
+import os
 from pathlib import Path
 import sys
 import tempfile
-from types import ModuleType
+from types import ModuleType, SimpleNamespace
 import unittest
 from datetime import date
 
@@ -22,6 +23,8 @@ def rank(symbol="AAA", weight=.5):
 class TestAdapterM4(unittest.TestCase):
     def setUp(self):
         self.calls = []
+        self._old_pkg = sys.modules.get("he_thong_dinh_luong.mo_phong")
+        self._old_model = sys.modules.get("he_thong_dinh_luong.mo_phong.mo_hinh")
         pkg = ModuleType("he_thong_dinh_luong.mo_phong")
         model = ModuleType("he_thong_dinh_luong.mo_phong.mo_hinh")
         class Target:
@@ -31,6 +34,16 @@ class TestAdapterM4(unittest.TestCase):
         pkg.chay_mo_phong = engine
         sys.modules["he_thong_dinh_luong.mo_phong"] = pkg
         sys.modules["he_thong_dinh_luong.mo_phong.mo_hinh"] = model
+
+    def tearDown(self):
+        if self._old_pkg is None:
+            sys.modules.pop("he_thong_dinh_luong.mo_phong", None)
+        else:
+            sys.modules["he_thong_dinh_luong.mo_phong"] = self._old_pkg
+        if self._old_model is None:
+            sys.modules.pop("he_thong_dinh_luong.mo_phong.mo_hinh", None)
+        else:
+            sys.modules["he_thong_dinh_luong.mo_phong.mo_hinh"] = self._old_model
 
     def test_chuyen_target_weight_co_thu_tu(self):
         targets = chuyen_ty_trong_test([rank("BBB"), rank("AAA")])
@@ -79,7 +92,7 @@ class TestCongBoM4(unittest.TestCase):
                 cong_bo_san_pham(Path(tmp)/"run", payload, metadata={})
 
     def test_rollback_khi_loi(self):
-        payload = self.payload(); payload["du_doan.csv"] = object()
+        payload = self.payload(); payload["du_doan.csv"] = object()  # type: ignore[assignment]
         with tempfile.TemporaryDirectory() as tmp:
             dest = Path(tmp)/"run"
             with self.assertRaises(Exception):
