@@ -28,10 +28,9 @@ Doan `03 Mo phong giao dich va backtest` phu trach Moc 3 duoi dieu phoi cua doan
 
 ## Kiem thu
 
-- Lenh compile va unittest day du duoc chay tren CI Python 3.12.
-- Run 154, Run ID `30148946003`, da thanh cong tren head ma/test truoc commit tai lieu cuoi.
-- Tong test tai trang thai do: 121, gom 60 Moc 3 va 61 hoi quy Moc 0–2.
-- Sau commit tai lieu cuoi phai xac minh lai head va `refs/pull/7/merge`; thong tin chinh xac duoc cap nhat trong PR.
+- Tong 121 test: 60 Moc 3 va 61 hoi quy Moc 0–2.
+- CI Python 3.12 chay compile va unittest ngoai tuyen tren head va `refs/pull/7/merge`.
+- Head, Run ID, Job ID va merge commit tam la du lieu dong, duoc ghi trong mo ta PR so 7.
 
 ## Cua kiem soat tiep theo
 
