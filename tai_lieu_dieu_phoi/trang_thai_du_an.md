@@ -37,11 +37,13 @@ Da hoan thanh vong sua:
 - hop dong `don_vi_gia`/`don_vi_tien` bat buoc va truy vet trong ba san pham JSON;
 - bo test Moc 3 tang tu 17 len 60 test tach rieng theo loi nghiep vu.
 
-Bang chung tam thoi truoc commit tai lieu cuoi:
+Bang chung CI cuoi:
 
-- CI run 154, Run ID `30148946003`: `completed/success`.
-- Tong bo test tai trang thai ma/test: 121 test, gom 60 test Moc 3 va 61 test hoi quy Moc 0–2.
-- Final head va merge-ref CI duoc ghi trong mo ta PR so 7 sau khi toan bo tai lieu duoc push.
+- Head: `9d95a0119d738920a4dedf9a20f2dcddf5b7f335`.
+- Workflow run number `170`, Run ID `30149143604`.
+- Job `kiem_tra` ID `89656399333`, `completed/success`.
+- Merge ref `refs/pull/7/merge`, merge commit tam `c2f6ff72f410eabb904c3eebb66c7a669d7f6842`.
+- Tong 121 test: 60 Moc 3 va 61 hoi quy Moc 0–2.
 
 ## Chua hoan thanh
 
