@@ -8,6 +8,7 @@ from typing import Iterable, Mapping
 
 SO_KHONG = Decimal("0")
 MOT = Decimal("1")
+DON_VI_HOP_LE = {"dong", "nghin_dong"}
 
 
 def so_thap_phan(gia_tri: object, ten: str, *, cho_phep_rong: bool = False) -> Decimal | None:
@@ -21,6 +22,21 @@ def so_thap_phan(gia_tri: object, ten: str, *, cho_phep_rong: bool = False) -> D
         raise ValueError(f"{ten} khong phai so hop le.") from exc
     if not ket_qua.is_finite():
         raise ValueError(f"{ten} phai la so huu han.")
+    return ket_qua
+
+
+def so_nguyen_duong(gia_tri: object, ten: str) -> int:
+    """Doc so nguyen ma khong am tham ep float ve int."""
+    if isinstance(gia_tri, bool):
+        raise ValueError(f"{ten} phai la so nguyen thuc su.")
+    if isinstance(gia_tri, int):
+        ket_qua = gia_tri
+    elif isinstance(gia_tri, str) and gia_tri.strip().isdigit():
+        ket_qua = int(gia_tri.strip())
+    else:
+        raise ValueError(f"{ten} phai la so nguyen thuc su.")
+    if ket_qua <= 0:
+        raise ValueError(f"{ten} phai la so nguyen duong.")
     return ket_qua
 
 
@@ -52,6 +68,8 @@ class cau_hinh_mo_phong:
     che_do_ma_khong_xuat_hien: str
     cho_phep_ban_le_khi_dong_vi_the: bool
     co_so_gia: str
+    don_vi_gia: str
+    don_vi_tien: str
 
     def __post_init__(self) -> None:
         if self.von_ban_dau <= 0:
@@ -59,6 +77,14 @@ class cau_hinh_mo_phong:
         for ten in ("phi_mua_bps", "phi_ban_bps", "thue_ban_bps", "truot_gia_bps"):
             if getattr(self, ten) < 0:
                 raise ValueError(f"{ten} khong duoc am.")
+        if self.truot_gia_bps >= Decimal("10000"):
+            raise ValueError("truot_gia_bps phai nho hon 10000.")
+        if self.phi_ban_bps + self.thue_ban_bps > Decimal("10000"):
+            raise ValueError("Tong phi_ban_bps va thue_ban_bps khong duoc lam tien ban rong am.")
+        if not isinstance(self.kich_thuoc_lo, int) or isinstance(self.kich_thuoc_lo, bool):
+            raise ValueError("kich_thuoc_lo phai la so nguyen thuc su.")
+        if not isinstance(self.so_phien_moi_nam, int) or isinstance(self.so_phien_moi_nam, bool):
+            raise ValueError("so_phien_moi_nam phai la so nguyen thuc su.")
         if self.kich_thuoc_lo <= 0 or self.so_phien_moi_nam <= 0:
             raise ValueError("kich_thuoc_lo va so_phien_moi_nam phai la so nguyen duong.")
         if self.lai_suat_phi_rui_ro <= -1:
@@ -67,6 +93,10 @@ class cau_hinh_mo_phong:
             raise ValueError("che_do_ma_khong_xuat_hien khong hop le.")
         if self.co_so_gia not in {"dieu_chinh", "khong_dieu_chinh"}:
             raise ValueError("co_so_gia khong hop le.")
+        if self.don_vi_gia not in DON_VI_HOP_LE or self.don_vi_tien not in DON_VI_HOP_LE:
+            raise ValueError("don_vi_gia va don_vi_tien khong hop le.")
+        if self.don_vi_gia != self.don_vi_tien:
+            raise ValueError("don_vi_gia va don_vi_tien phai thong nhat; khong duoc tron don vi.")
 
     @classmethod
     def tu_mapping(cls, du_lieu: Mapping[str, object]) -> "cau_hinh_mo_phong":
@@ -75,39 +105,42 @@ class cau_hinh_mo_phong:
             "truot_gia_bps", "kich_thuoc_lo", "so_phien_moi_nam",
             "lai_suat_phi_rui_ro", "che_do_ma_khong_xuat_hien",
             "cho_phep_ban_le_khi_dong_vi_the", "co_so_gia",
+            "don_vi_gia", "don_vi_tien",
         )
         thieu = [ten for ten in khoa if ten not in du_lieu]
         if thieu:
             raise ValueError(f"Thieu cau hinh bat buoc: {', '.join(thieu)}.")
-        try:
-            lo = int(du_lieu["kich_thuoc_lo"])
-            so_phien = int(du_lieu["so_phien_moi_nam"])
-        except (TypeError, ValueError) as exc:
-            raise ValueError("kich_thuoc_lo va so_phien_moi_nam phai la so nguyen.") from exc
         return cls(
             so_thap_phan(du_lieu["von_ban_dau"], "von_ban_dau"),
             so_thap_phan(du_lieu["phi_mua_bps"], "phi_mua_bps"),
             so_thap_phan(du_lieu["phi_ban_bps"], "phi_ban_bps"),
             so_thap_phan(du_lieu["thue_ban_bps"], "thue_ban_bps"),
             so_thap_phan(du_lieu["truot_gia_bps"], "truot_gia_bps"),
-            lo,
-            so_phien,
+            so_nguyen_duong(du_lieu["kich_thuoc_lo"], "kich_thuoc_lo"),
+            so_nguyen_duong(du_lieu["so_phien_moi_nam"], "so_phien_moi_nam"),
             so_thap_phan(du_lieu["lai_suat_phi_rui_ro"], "lai_suat_phi_rui_ro"),
             str(du_lieu["che_do_ma_khong_xuat_hien"]).strip(),
             bool(doc_bool(du_lieu["cho_phep_ban_le_khi_dong_vi_the"], "cho_phep_ban_le_khi_dong_vi_the", cho_phep_rong=False)),
             str(du_lieu["co_so_gia"]).strip(),
+            str(du_lieu["don_vi_gia"]).strip(),
+            str(du_lieu["don_vi_tien"]).strip(),
         )
 
     def thanh_tu_dien(self) -> dict[str, object]:
         return {
-            "von_ban_dau": str(self.von_ban_dau), "phi_mua_bps": str(self.phi_mua_bps),
-            "phi_ban_bps": str(self.phi_ban_bps), "thue_ban_bps": str(self.thue_ban_bps),
-            "truot_gia_bps": str(self.truot_gia_bps), "kich_thuoc_lo": self.kich_thuoc_lo,
+            "von_ban_dau": str(self.von_ban_dau),
+            "phi_mua_bps": str(self.phi_mua_bps),
+            "phi_ban_bps": str(self.phi_ban_bps),
+            "thue_ban_bps": str(self.thue_ban_bps),
+            "truot_gia_bps": str(self.truot_gia_bps),
+            "kich_thuoc_lo": self.kich_thuoc_lo,
             "so_phien_moi_nam": self.so_phien_moi_nam,
             "lai_suat_phi_rui_ro": str(self.lai_suat_phi_rui_ro),
             "che_do_ma_khong_xuat_hien": self.che_do_ma_khong_xuat_hien,
             "cho_phep_ban_le_khi_dong_vi_the": self.cho_phep_ban_le_khi_dong_vi_the,
             "co_so_gia": self.co_so_gia,
+            "don_vi_gia": self.don_vi_gia,
+            "don_vi_tien": self.don_vi_tien,
         }
 
 
@@ -143,6 +176,13 @@ class su_kien_doanh_nghiep:
     nguon: str
     phien_ban: str | None = None
 
+    def khoa(self) -> tuple[object, ...]:
+        return (
+            self.ma, self.loai_su_kien, self.ngay_hieu_luc,
+            self.ngay_thanh_toan, self.ty_le, self.gia_tri_tien_mat,
+            self.nguon, self.phien_ban,
+        )
+
 
 @dataclass
 class lenh:
@@ -155,6 +195,13 @@ class lenh:
     loai_lenh: str = "DAY"
     trang_thai: str = "cho_khop"
     ly_do_tu_choi_hoac_het_han: str | None = None
+    so_luong_yeu_cau: Decimal | None = None
+    so_luong_bi_giam: Decimal = SO_KHONG
+    ly_do_giam: str | None = None
+
+    def __post_init__(self) -> None:
+        if self.so_luong_yeu_cau is None:
+            self.so_luong_yeu_cau = self.so_luong
 
 
 @dataclass(frozen=True)
@@ -170,6 +217,9 @@ class khop_lenh:
     phi: Decimal
     thue: Decimal
     chi_phi_truot_gia: Decimal
+    so_luong_yeu_cau: Decimal
+    so_luong_bi_giam: Decimal
+    ly_do_giam: str | None
 
 
 @dataclass
@@ -208,6 +258,19 @@ class dong_so_cai:
     tien_mat_cuoi_ngay: Decimal
     gia_tri_vi_the: Decimal
     nav: Decimal
+    lai_lo_da_thuc_hien: Decimal = SO_KHONG
+    lai_lo_da_thuc_hien_luy_ke: Decimal = SO_KHONG
+    lai_lo_chua_thuc_hien: Decimal = SO_KHONG
+    co_tuc_tien_mat: Decimal = SO_KHONG
+    co_tuc_tien_mat_luy_ke: Decimal = SO_KHONG
+    chi_phi_truot_gia: Decimal = SO_KHONG
+    phi_mua: Decimal = SO_KHONG
+    phi_ban: Decimal = SO_KHONG
+    thue_ban: Decimal = SO_KHONG
+    phi_mua_luy_ke: Decimal = SO_KHONG
+    phi_ban_luy_ke: Decimal = SO_KHONG
+    thue_ban_luy_ke: Decimal = SO_KHONG
+    chenh_lech_doi_soat: Decimal = SO_KHONG
 
 
 @dataclass(frozen=True)
@@ -248,16 +311,11 @@ def chuan_hoa_gia(cac_dong: Iterable[Mapping[str, object]]) -> list[thanh_gia]:
         da_gap.add((ma, ngay))
         gia_mo = so_thap_phan(dong.get("gia_mo_cua"), "gia_mo_cua", cho_phep_rong=True)
         gia_dong = so_thap_phan(dong.get("gia_dong_cua"), "gia_dong_cua")
-        if gia_mo is not None and gia_mo <= 0 or gia_dong <= 0:
+        if (gia_mo is not None and gia_mo <= 0) or gia_dong <= 0:
             raise ValueError(f"Gia phai duong tai {ma}, {ngay}.")
         khoi_luong = None
         if dong.get("khoi_luong") not in (None, ""):
-            try:
-                khoi_luong = int(str(dong["khoi_luong"]).strip())
-            except (TypeError, ValueError) as exc:
-                raise ValueError(f"Khoi luong khong hop le tai {ma}, {ngay}.") from exc
-            if khoi_luong < 0:
-                raise ValueError(f"Khoi luong khong duoc am tai {ma}, {ngay}.")
+            khoi_luong = so_nguyen_duong(dong["khoi_luong"], "khoi_luong") if str(dong["khoi_luong"]) != "0" else 0
         ket_qua.append(thanh_gia(
             ma, ngay, gia_mo, gia_dong, khoi_luong,
             doc_bool(dong.get("thuoc_tap_co_phieu"), "thuoc_tap_co_phieu"),
@@ -317,16 +375,19 @@ def chuan_hoa_su_kien(cac_dong: Iterable[Mapping[str, object]], *, co_so_gia: st
             if hieu_luc is None or ty_le is None or ty_le <= 0:
                 raise ValueError("Chia tach/co phieu thuong can ngay_hieu_luc va ty_le > 0.")
         elif loai == "co_tuc_tien_mat":
-            if thanh_toan is None or tien is None or tien < 0:
-                raise ValueError("Co tuc tien mat can ngay_thanh_toan va gia_tri_tien_mat >= 0.")
+            if hieu_luc is None or thanh_toan is None or tien is None or tien < 0:
+                raise ValueError("Co tuc tien mat can ngay_hieu_luc, ngay_thanh_toan va gia_tri_tien_mat >= 0.")
+            if thanh_toan < hieu_luc:
+                raise ValueError("ngay_thanh_toan co tuc khong duoc truoc ngay_hieu_luc.")
         else:
             raise ValueError(f"Loai su kien chua duoc ho tro: {loai}.")
         phien_ban = str(dong.get("phien_ban", "")).strip() or None
-        khoa = (ma, loai, hieu_luc, thanh_toan, ty_le, tien, nguon, phien_ban)
+        su_kien = su_kien_doanh_nghiep(ma, loai, hieu_luc, thanh_toan, ty_le, tien, nguon, phien_ban)
+        khoa = su_kien.khoa()
         if khoa in da_gap:
             raise ValueError("Trung su kien doanh nghiep.")
         da_gap.add(khoa)
-        ket_qua.append(su_kien_doanh_nghiep(ma, loai, hieu_luc, thanh_toan, ty_le, tien, nguon, phien_ban))
+        ket_qua.append(su_kien)
     if ket_qua and co_so_gia == "dieu_chinh":
         raise ValueError("Du lieu gia dieu_chinh kem corporate actions co nguy co tinh hai lan.")
     return sorted(ket_qua, key=lambda muc: (muc.ngay_hieu_luc or muc.ngay_thanh_toan or date.min, muc.ma, muc.loai_su_kien))
