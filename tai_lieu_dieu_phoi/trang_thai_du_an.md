@@ -6,88 +6,63 @@ Cap nhat gan nhat: 2026-07-25
 
 - Kho: `Tienkhoaa2908/vn-quant-system`.
 - Nhanh chinh: `main`.
-- Dau `main` hien tai: `6e8d2ed49c2ef57e43c9f0f2249361b26b838b33`.
+- Base Moc 3: `f52e06ffd4dde26e8af9d6451ec1e64f5a61b35d`.
+- Nhanh chuyen mon: `m3-mo_phong-giao_dich`.
 - Python muc tieu: 3.12; cong cu moi truong: `uv`.
 - GitHub la nguon su that ve nhanh, commit, PR va CI.
 
-## Moc 0 va Moc 1
-
-- Moc 0 da hoan thanh va da gop.
-- Bo tai lieu dieu phoi da gop.
-- Moc 1 da dong hoan toan.
-- Dau `main` khi mo Moc 2 la `97399e291b0d3d237f247f58ffa03049826d40bd`.
-
-## Moc 2 — Tap co phieu va duong co so
+## Moc 0–Moc 2
 
 Trang thai: **da dong hoan toan**.
 
-- PR so 5 da duoc chuyen khoi draft sau nghiem thu.
-- PR so 5 da gop bang merge commit, khong squash va khong rebase.
-- Merge commit: `6e8d2ed49c2ef57e43c9f0f2249361b26b838b33`.
-- PR da `closed`, `merged=true`.
-- `main` trung khop merge commit tren.
-
-Da hoan thanh:
-
-- tap co phieu theo tung thoi diem va quy tac ngan nhin truoc;
-- thanh khoan, MA250 va dong luong;
-- sua tinh toan ven san pham CLI;
-- ho tro `--so_nen`, mac dinh cong khai 400, truyen thanh `count` cho Vnstock 4.0.4;
-- luu ben vung `so_nen_yeu_cau` trong `tong_hop.json` va dung cung noi dung cho stdout;
-- giu tinh bat bien, khong doc roi ghi de san pham da cong bo;
-- cap nhat tai lieu xac minh va dieu phoi.
-
-## Xac minh that FPT, HPG va MBB
-
-Lan chay chi bao: `20260724T190515274806Z_6cd15c6d`; Python `3.12.10`.
-
-- Moi ma co 287 phien, tu 2025-06-02 den 2026-07-23.
-- Moi ma co 38 dong MA250.
-- MA250 cuoi: FPT `87.70488`, HPG `24.16668`, MBB `24.61656`.
-- Dong luong 20 phien cuoi: FPT `-0.08873239436619718`, HPG `-0.11111111111111105`, MBB `-0.07157894736842108`.
-- Thanh khoan co gia tri, khong co loi, tong dau ra 861 dong.
-- Canh bao khoang trong 2026-02-13 den 2026-02-23 xuat hien o ca ba ma; quy trinh khong tu dien du lieu va canh bao khong chan nghiem thu ky thuat.
-
-Lan chay xac minh truy vet: `20260724T194007268318Z_1ade6129`.
-
-- stdout co `so_nen_yeu_cau == 400`;
-- `du_lieu/nhat_ky/20260724T194007268318Z_1ade6129/tong_hop.json` co cung gia tri;
-- `trang_thai_tung_ma` tren dia va stdout giong nhau;
-- FPT, HPG va MBB deu `thanh_cong`, moi ma 287 phien.
-
-## CI sau gop
-
-- Workflow: `kiem_tra_tu_dong`.
-- Run number: `84`.
-- Kich hoat: `push` vao `main`.
-- Commit: `6e8d2ed49c2ef57e43c9f0f2249361b26b838b33`.
-- Trang thai: `Success`.
-- Job `kiem_tra`: thanh cong.
-- Tong thoi gian hien tren giao dien: 17 giay; job 13 giay.
-- Giao dien co canh bao Node.js 20 da bi ngung ho tro; day la canh bao khong chan, CI van thanh cong.
-- Run ID va job ID khong hien trong anh xac minh va connector hien tai khong liet ke run `push` theo commit, nen khong tu suy doan hai gia tri nay.
+- PR Moc 2 so 5 gop bang merge commit `6e8d2ed49c2ef57e43c9f0f2249361b26b838b33`.
+- FPT, HPG, MBB da duoc xac minh Moc 2: moi ma 287 phien va 38 dong MA250.
+- Nguon lich su thanh vien that van chua duoc phe duyet.
 
 ## Moc 3 — Mo phong giao dich va backtest
 
-Trang thai: **da co dac ta de nghi, chua phe duyet, chua trien khai ma**.
+Trang thai: **PR so 7 dang Draft; ma, kiem thu va xac minh ky thuat tren du lieu that da hoan tat; chua duoc Ready hoac gop**.
 
-- Dac ta: `tai_lieu/dac_ta_moc_3.md`.
-- Nhanh dieu phoi: `cap_nhat-sau-gop-m2-va-dac-ta-m3`.
-- Nhanh chuyen mon Moc 3 chua duoc tao.
-- Chua co PR ma Moc 3.
-- Chi duoc mo trien khai sau khi doan 00 phe duyet dac ta va chi dinh doan chuyen mon.
+Da hoan thanh:
 
-## Gioi han du lieu thanh vien
+- sua quyen co tuc tien mat theo ngay chot quyen va ngay thanh toan;
+- dinh co suc mua sau ban, tinh gia khop, phi, slippage va lot;
+- hoan thien realized/unrealized P&L, chi phi va doi soat NAV;
+- eligibility fail closed cho mo/tang vi the;
+- validation bien chi phi, so nguyen, don vi va lam sach credential;
+- 121 test: 60 test Moc 3 va 61 test hoi quy Moc 0–2;
+- tai lieu kien truc, README va ban giao;
+- xac minh ky thuat engine tren FPT, HPG va MBB.
 
-- Giao dien chong nhin truoc da co.
-- Xac minh gia va chi bao that da dat.
-- Nguon lich su thanh vien that van chua duoc phe duyet.
-- Khong tuyen bo da loai bo thien lech song sot bang du lieu thanh vien thuc te.
+## Xac minh ky thuat tren du lieu that
 
-## Pham vi van bi khoa
+- Ma lan chay: `xac_minh_fpt_hpg_mbb_20260725T074736Z`.
+- Nguon Moc 1: `20260724T190515274806Z_6cd15c6d`.
+- 287 phien moi ma; 861 dong sau khi ghep gia Moc 1 voi trang thai Moc 2.
+- Moi truong: Python `3.12.10`, uv `0.11.32`.
+- Kich ban: FPT/HPG/MBB moi ma 30%, giu 10% tien mat; mua 2025-06-30 va dong het 2026-07-23.
+- Engine tao 287 dong NAV, 287 dong so cai, 6/6 lenh khop, khong het han/tu choi.
+- Tien mat khong am; ba vi the duoc dong het; chenh lech doi soat `0.0000000`.
+- Tao dung 9 san pham, xac minh SHA-256 manifest va khong co canh bao.
 
-- Chua trien khai backtest hoac mo phong giao dich cho den khi dac ta Moc 3 duoc phe duyet.
-- Chua hoc may, LightGBM, nhan, chia von, toi uu danh muc hoac gioi han ty trong.
-- Chua tai toan bo VN100.
-- Khong commit du lieu thi truong that, nhat ky that, danh sach thanh vien bi han che hoac khoa.
-- Khong tich hop tai khoan SSI hay API dat lenh; nguoi dung tu giao dich thu cong.
+Chi tiet so lieu va phuong phap: `tai_lieu/ket_qua_xac_minh_that_moc_3.md`.
+
+## Gioi han nghiem thu
+
+- Ket qua chi xac minh ky thuat engine, khong phai bang chung hieu qua dau tu.
+- Ty trong 30% moi ma la kich ban kiem tra; khong su dung baseline MA250-dong-luong.
+- Snapshot membership chua phai lich su thanh vien that.
+- Nguong thanh khoan chua phai cau hinh san xuat.
+- Co so gia `khong_dieu_chinh` chua duoc nguon xac nhan doc lap.
+- Khong truyen corporate actions that.
+- Chi co ba ma va mot khoang thoi gian; khong dien giai loi nhuan nhu danh gia chien luoc.
+- Chua co ML, walk-forward, inverse volatility hoac gioi han nganh.
+
+## Cua kiem soat
+
+- Doan 00 xac minh diff, 121 test va CI tren head moi.
+- PR so 7 tiep tuc Draft; khong Ready, khong gop va khong force-push.
+- Khong commit du lieu, san pham backtest hay log that; diff khong duoc co tep duoi `du_lieu/`.
+- Khong mo Moc 4.
+- Khong tich hop SSI, khong doc tai khoan va khong gui lenh.
+- Head, Run ID, Job ID va merge commit tam moi nhat duoc ghi trong mo ta PR so 7.

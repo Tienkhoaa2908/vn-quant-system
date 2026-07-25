@@ -103,3 +103,75 @@ Bao cao Moc 2 canh bao rieng khi mot ma co duoi 250 phien, vi chua du de tinh MA
 ## QD-0020: Cau hinh lan chay duoc cong bo cung ket qua quy trinh
 
 Cau hinh anh huong den viec lay du lieu, nhu `so_nen_yeu_cau`, phai duoc truyen vao `chay_quy_trinh` truoc khi tao san pham. `ket_qua_lan_chay` la nguon duy nhat tao noi dung `tong_hop.json`; stdout dung cung noi dung va chi bo sung duong dan tep tong hop. Khong duoc chen cau hinh bang cach doc va ghi de tep bat bien sau khi cong bo. Cac khoa cau hinh khong duoc trung voi khoa he thong cua tong hop.
+
+## QD-0021: Dong ho giao dich va lenh DAY Moc 3
+
+Tin hieu ngay T chi duoc tao sau khi close T da biet. Lenh chi duoc khop tai open cua dung phien thi truong ke tiep. Neu ma thieu bar hoac thieu open tai ngay do, lenh DAY het han; khong tim phien xa hon va khong thay open bang gia khac.
+
+## QD-0022: Gia khop, phi, thue va partial fill
+
+Mua dung `open * (1 + truot_gia_bps/10000)`; ban dung `open * (1 - truot_gia_bps/10000)`. Phi tinh theo tung chieu; thue chi ap dung phia ban. MVP khong partial fill va khong participation rate: lenh khop toan bo khoi luong hop le hoac bi tu choi.
+
+## QD-0023: Thu tu xu ly tien mat xac dinh
+
+Trong mot ngay, lenh ban duoc xu ly truoc lenh mua; trong moi chieu sap xep ma tang dan. Lenh mua canh tranh tien mat duoc xu ly theo thu tu nay. Khong duoc lam tien mat am, ban vuot vi the hoac tao vi the am.
+
+## QD-0024: Corporate actions MVP va co so gia
+
+Chia tach/co phieu thuong ap dung truoc giao dich va dinh gia trong ngay hieu luc; so luong va lenh cho nhan he so, gia von chia cho cung he so. Co tuc tien mat chi tang tien vao ngay thanh toan. Neu gia da dieu chinh ma van cung cap corporate actions, lan chay bi tu choi de tranh tinh hai lan.
+
+## QD-0025: Chi so Moc 3
+
+Loi nhuan phien la `NAV_t/NAV_(t-1)-1`; maximum drawdown la `min(NAV_t/peak_t-1)`; Sharpe dung do lech chuan mau va lai phi rui ro quy doi theo phien; turnover la `(tong_mua+tong_ban)/(2*NAV_trung_binh)`. Sharpe tra null khi khong du quan sat hoac phuong sai bang 0.
+
+## QD-0026: Cong bo thu muc ket qua nguyen tu
+
+Chin san pham Moc 3 duoc tao trong thu muc tam, fsync va rename nguyen tu sang thu muc lan chay moi. Khong ghi de. Neu cong bo loi, thu muc tam bi xoa. Thu muc thanh cong va that bai khong duoc tron; manifest ghi Git commit, co so gia, dau vao va SHA-256 san pham.
+
+## QD-0027: Baseline khong phai chien luoc san xuat
+
+Mua-va-giu, can-bang-deu va MA250-dong-luong chi la baseline kiem tra engine. Moc 3 khong ket noi SSI, khong hoc may va khong chia von san xuat.
+
+## QD-0028: Co tuc tien mat chot quyen tai ngay hieu luc
+
+Voi `co_tuc_tien_mat`, `ngay_hieu_luc`, `ngay_thanh_toan`, `gia_tri_tien_mat` va `nguon` deu bat buoc. Engine chot so luong duoc huong tai `ngay_hieu_luc`, luu nghia vu theo khoa su kien va chi thanh toan nghia vu do tai `ngay_thanh_toan`. Mua, ban hoac thay doi vi the sau ngay hieu luc khong thay doi quyen. Cung mot su kien khong duoc chot hoac thanh toan hai lan.
+
+## QD-0029: Dinh co lenh mua truoc khop khong phai partial fill
+
+`so_luong_yeu_cau` duoc tao tu NAV, ty trong va close T. Sau khi ban truoc, engine tinh `so_luong_toi_da` tu tien mat kha dung, gia khop open T+1, phi mua, slippage va lot size. `so_luong_chap_nhan` co the nho hon nhu cau va duoc ghi cung `so_luong_bi_giam`/`ly_do_giam`. Day la pre-trade sizing; engine van khong mo phong market partial fill hay participation rate.
+
+## QD-0030: Quy uoc gia von va P&L
+
+Gia von binh quan gom gia khop da co slippage nhung khong gom phi mua. Realized P&L khi ban mot phan hoac toan bo la `(gia_khop_ban - gia_von_binh_quan) * so_luong_ban`, truoc phi ban va thue. Unrealized P&L la `(close - gia_von_binh_quan) * so_luong_con_lai`. Phan vi the con lai giu nguyen gia von; khi dong het, gia von ve 0.
+
+## QD-0031: Phuong trinh doi soat NAV
+
+Cuoi moi phien, engine doi soat:
+
+```text
+NAV = von_ban_dau
+    + lai_lo_da_thuc_hien_luy_ke
+    + lai_lo_chua_thuc_hien
+    + co_tuc_tien_mat_luy_ke
+    - phi_mua_luy_ke
+    - phi_ban_luy_ke
+    - thue_ban_luy_ke
+```
+
+Slippage duoc cong bo rieng nhung khong tru lan hai vi da nam trong gia khop va gia von/realized P&L. Chenh lech doi soat ngoai sai so tien mat la loi bat bien.
+
+## QD-0032: Eligibility fail closed
+
+Mo hoac tang vi the chi duoc phep khi `thuoc_tap_co_phieu is True` va `dat_thanh_khoan is True`. `False` va `None` deu khong dat. Giam hoac dong vi the van duoc phep, nhung phai ghi canh bao voi hai trang thai eligibility.
+
+## QD-0033: Bien chi phi va so nguyen nghiem ngat
+
+Bat buoc `0 <= truot_gia_bps < 10000`; gia khop va gia tri giao dich phai duong; `phi_ban_bps + thue_ban_bps <= 10000`; tien ban rong khong am. `kich_thuoc_lo` va `so_phien_moi_nam` phai la so nguyen thuc su va duong; float va bool bi tu choi, khong ep ngam ve int.
+
+## QD-0034: Don vi gia va tien phai thong nhat
+
+Cau hinh bat buoc khai bao `don_vi_gia` va `don_vi_tien`, chi ho tro `dong/dong` hoac `nghin_dong/nghin_dong`. Quan he la `gia_tri = gia * so_luong`. Khong cho tron gia nghin dong voi von bang dong. Hai don vi duoc luu trong `cau_hinh.json`, `bao_cao.json` va `manifest.json`.
+
+## QD-0035: Lam sach loi dung chung
+
+`lam_sach_loi` la ham duy nhat cho `bao_cao_loi.json`, stdout va moi log loi do CLI kiem soat. Token, secret, password, API key va Bearer credential bi thay bang `[DA_AN]` truoc khi cong bo.
