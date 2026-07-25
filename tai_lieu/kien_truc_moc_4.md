@@ -4,7 +4,7 @@
 
 Moc 4 xay pipeline nghien cuu ngoai mau tren OHLCV ngay, fail closed, tai lap va kiem toan duoc. Tai su dung engine Moc 3; khong sao chep logic T/T+1, lenh DAY, chi phi hoac cong bo. Khong co LightGBM, chia von san xuat, SSI hay Moc 5.
 
-Vong nay chi khoa kien truc. Chua them ma nghiep vu, fixture, test, `scikit-learn`, hoac sua `pyproject.toml`/`uv.lock`.
+Kien truc da duoc khoa va duoc phep trien khai bang fixture ngoai tuyen. Du lieu that chi duoc chay sau phe duyet rieng cua doan 00.
 
 Module du kien:
 
@@ -243,6 +243,18 @@ cutoff_nhan <= thoi_diem_huan_luyen
 thoi_diem_huan_luyen <= thoi_diem_tao_tin_hieu
 ```
 
+## 7A. Tan suat mau va ghep OOS
+
+MVP khoa:
+
+```text
+tan_suat_mau_mo_hinh = cuoi_thang
+```
+
+Moi mau train, validation va test chi nam tai phien benchmark cuoi cung cua thang. Khong sinh mau ngay thuong trong MVP.
+
+Cac khoang test cua fold khong duoc chong lan. Moi khoa `(ngay,ma)` chi co mot prediction `test`; trung khoa bi tu choi. Target weights test duoc ghep theo thu tu thoi gian thanh mot chuoi OOS lien tuc. Backtest chi khoi tao von mot lan; khong cong, noi bang trung binh, hoac trung binh NAV cua cac fold rieng.
+
 ## 8. Logistic Regression
 
 Cau hinh khoa:
@@ -273,6 +285,15 @@ Bat `ConvergenceWarning`:
 - khong an warning, tu tang `max_iter` hay doi solver.
 
 Luu scaler mean/scale, coefficients, intercept, `n_iter_`, convergence, warning, feature order, version va thoi gian fit.
+
+Fold mot lop:
+
+- train mot lop: fold fail closed;
+- refit train+validation mot lop: fold fail closed;
+- fold fail khong tao prediction test;
+- validation mot lop van tinh log loss voi `labels=[0,1]`;
+- AUC validation la `null`;
+- fold loi va ly do phai xuat hien trong coverage va report.
 
 ## 9. Ranking va T+1
 
@@ -335,7 +356,7 @@ muc_dich_lan_chay = kiem_tra_ky_thuat | nghien_cuu
 - metric/backtest ghi `chi_de_xac_minh_ky_thuat=true`;
 - cam ket khong ket luan hieu qua, sinh loi hay chat luong chien luoc.
 
-`nghien_cuu` tu choi neu co so gia stock/benchmark chua xac nhan, khong nhat quan, gia khong dieu chinh thieu corporate actions point-in-time, gia dieu chinh kem corporate actions, hoac metadata khong dat cutoff. Khong tu ha muc dich.
+`nghien_cuu` tu choi neu co_so_gia stock/benchmark chua xac nhan, khong nhat quan, gia khong dieu chinh thieu corporate actions point-in-time, gia dieu chinh kem corporate actions, hoac metadata khong dat cutoff. Khong tu ha muc dich.
 
 ## 12. Metric model va calibration
 
@@ -369,6 +390,13 @@ turnover_t = 1 - |S_t giao S_t-1| / max(|S_t|,|S_t-1|)
 
 Ky dau null; ca hai rong=0; mot rong=1.
 
+```text
+loi_nhuan_tuong_doi_trung_binh_top_k_t
+= mean(relative_return_H cua S_t)
+```
+
+Chi so la `null` neu `S_t` rong hoac bat ky ma nao trong `S_t` thieu nhan/relative return. Tong the la trung binh khong trong so tren cac ngay test non-null; khong dung mean-of-fold-means.
+
 Spearman rank IC:
 
 - average rank cho ties;
@@ -395,7 +423,7 @@ Aggregation ranking:
 
 ## 14. Backtest ngoai mau
 
-Chi target weight sinh tu prediction `test` vao engine M3. Ke thua NAV, total return, CAGR, drawdown, Sharpe, turnover, phi, thue, slippage; bo sung cash weight, so ma trung binh, so lan tai can bang, ngay thieu top_k, muc dich va canh bao gia.
+Chi target weight sinh tu prediction `test` vao engine M3. Ke thua NAV, total return, CAGR, drawdown, Sharpe, turnover, phi, thue, slippage; bo sung cash weight, so ma trung binh, so lan tai can bang, ngay thieu top_k, muc dich va canh_bao gia.
 
 Tin hieu close T khop open T+1. Thieu bar/open thi DAY het han.
 
@@ -414,7 +442,7 @@ Bat buoc bao phu:
 - convergence warning;
 - fold product roles;
 - metric tinh tay va aggregation;
-- muc dich lan chay;
+- muc dich lan_chay;
 - T+1 M3;
 - publication/rollback/SHA-256/reproducibility;
 - toan bo 121 test Moc 0–3.
@@ -425,6 +453,6 @@ CI ngoai tuyen, khong goi Vnstock trong test.
 
 Sau khi doan 00 xac minh kien truc, duoc them `scikit-learn==1.9.0` bang commit dependency rieng. Khong pandas neu chua co ly do moi; khong LightGBM.
 
-Truoc du lieu that, doan 00 xac nhan universe/proxy, VNINDEX va lich benchmark, co so gia, corporate actions neu can.
+Truoc du lieu that, doan 00 xac nhan universe/proxy, VNINDEX va lich benchmark, co_so_gia, corporate actions neu can.
 
 PR #10 giu Draft. Khong force-push, khong merge, khong du lieu that, khong Moc 5.
