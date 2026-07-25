@@ -6,7 +6,7 @@ Cập nhật gần nhất: 2026-07-25
 
 - Kho: `Tienkhoaa2908/vn-quant-system`.
 - Nhánh chính: `main`.
-- Đầu `main`: `bb25ff16761b7c79e701fbd4f3a5af02f1644e07`.
+- Đầu `main`: `24bf02a7cf0f18d5a0fe342356b8ea0e045b1ed6`.
 - Python mục tiêu: 3.12; công cụ môi trường: `uv`.
 - GitHub là nguồn sự thật về nhánh, commit, PR và CI.
 
@@ -40,26 +40,35 @@ Mốc 3:
 
 ## Mốc 4
 
-Trạng thái: **đang chuẩn bị đặc tả; chưa mở triển khai**.
+Trạng thái: **đặc tả đã phê duyệt và gộp; nhánh chuyên môn đã mở; chưa triển khai mã**.
 
-- Nhánh điều phối: `dac_ta-moc-4`.
-- Base: `bb25ff16761b7c79e701fbd4f3a5af02f1644e07`.
-- Tài liệu dự thảo: `tai_lieu/dac_ta_moc_4.md`.
-- Nhánh chỉ được chứa tài liệu.
-- Chưa tạo nhánh `m4-dac_trung-xep_hang-hoc_may`.
-- Chưa viết mã Mốc 4.
+- PR đặc tả số 9 đã gộp bằng merge commit `24bf02a7cf0f18d5a0fe342356b8ea0e045b1ed6`.
+- CI sau gộp PR số 9:
+  - workflow `kiem_tra_tu_dong`;
+  - run number `187`;
+  - Run ID `30162993192`;
+  - Job ID `89691237408`;
+  - trigger `push`;
+  - branch `main`;
+  - checkout `24bf02a7cf0f18d5a0fe342356b8ea0e045b1ed6`;
+  - `completed/success`.
+- Tài liệu chính thức: `tai_lieu/dac_ta_moc_4.md`.
+- Nhánh chuyên môn: `m4-dac_trung-xep_hang-hoc_may`.
+- Base đã duyệt: `24bf02a7cf0f18d5a0fe342356b8ea0e045b1ed6`.
+- Chưa mở PR triển khai.
+- Chưa viết mã nghiên cứu hoặc học máy.
 
-Các cửa phải phê duyệt:
+Các quyết định đã phê duyệt:
 
-1. nguồn VN100 point-in-time hoặc universe proxy;
-2. mục tiêu lịch sử tối thiểu 5 năm, ưu tiên 7–10 năm khi chất lượng cho phép;
-3. warm-up và coverage;
-4. cơ sở giá và corporate actions;
-5. bộ feature MVP;
-6. nhãn lợi nhuận tương đối 20 phiên;
-7. walk-forward có purge/embargo;
-8. Logistic Regression trước LightGBM;
-9. ranking và lịch tái cân bằng;
-10. chỉ số đánh giá ngoài mẫu;
-11. sản phẩm và truy vết;
-12. tiêu chí xác minh universe mở rộng.
+1. VN100 point-in-time là universe ưu tiên; universe thanh khoản cao point-in-time là proxy có kiểm soát.
+2. Mục tiêu lịch sử tối thiểu 5 năm, ưu tiên 7–10 năm khi chất lượng cho phép.
+3. Warm-up theo cửa sổ dài nhất, tối thiểu MA250.
+4. Cơ sở giá và corporate actions phải nhất quán.
+5. Feature MVP gồm xu hướng, động lượng, biến động, thanh khoản và market regime.
+6. Tiền xử lý chỉ fit trên train.
+7. Nhãn lợi nhuận tương đối 20 phiên.
+8. Walk-forward expanding window có purge và embargo.
+9. Momentum baseline và Logistic Regression trước LightGBM.
+10. Ranking theo xác suất, `top_k`, tái cân bằng tháng và tỷ trọng đều để kiểm tra.
+11. Đánh giá model, ranking và backtest hoàn toàn ngoài mẫu.
+12. Sản phẩm bất biến, SHA-256 và truy vết đầy đủ.
