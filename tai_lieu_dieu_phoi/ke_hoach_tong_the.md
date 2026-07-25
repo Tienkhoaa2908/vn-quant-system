@@ -26,44 +26,61 @@ Trạng thái: **đã hoàn thành, đã gộp qua PR số 5 và đã xác minh 
 
 ## Mốc 3 — Mô phỏng giao dịch và backtest
 
-Trạng thái: **đã triển khai kỹ thuật trên nhánh chuyên môn; PR số 7 đang ở trạng thái draft để đoạn 00 nghiệm thu**.
+Trạng thái: **đã hoàn thành, đã gộp qua PR số 7 và CI sau gộp trên `main` đã đạt**.
 
-Nền và điều phối:
+Git và CI:
 
-- Đặc tả: `tai_lieu/dac_ta_moc_3.md`.
-- Base đã duyệt: `f52e06ffd4dde26e8af9d6451ec1e64f5a61b35d`.
-- Nhánh: `m3-mo_phong-giao_dich`.
-- PR draft: số 7, tiêu đề `M3: mo phong giao dich va backtest`.
+- Head được phê duyệt: `305da62ac54b735a129ab4dc2c66b0826b8953c3`.
+- Merge commit: `79a044d75f3a66e5c636f0a83613fc9af0cac3fc`.
+- CI sau gộp: run `#183`, Run ID `30150924124`, Job ID `89661073156`, `completed/success`.
 
 Đã triển khai:
 
 - tín hiệu sau close T, khớp sớm nhất tại open phiên kế tiếp;
 - lệnh DAY, không tự dời khi thiếu bar/open;
 - mô hình lệnh, khớp lệnh, vị thế, tiền mặt, sổ cái và NAV;
-- phí mua/bán, thuế bán, trượt giá, lot size và chế độ mã vắng mặt bằng cấu hình;
+- phí mua/bán, thuế bán, trượt giá, lot size và định cỡ sức mua;
 - long-only, không short, không margin, không tiền mặt âm, không bán vượt vị thế;
 - corporate actions MVP: chia tách, cổ phiếu thưởng, cổ tức tiền mặt và chống tính hai lần;
+- realized/unrealized P&L, đối soát NAV và truy vết đơn vị;
 - baseline mua-và-giữ, cân-bằng-đều, MA250/động lượng chỉ để kiểm tra engine;
 - CAGR, drawdown, Sharpe, turnover, chi phí và tỷ trọng tiền mặt;
 - chín sản phẩm bất biến, manifest SHA-256, công bố nguyên tử và rollback;
-- kiểm thử ngoại tuyến, hồi quy Mốc 0–2 và kịch bản vàng.
+- 121 kiểm thử ngoại tuyến;
+- xác minh kỹ thuật trên FPT, HPG, MBB bằng dữ liệu thật ngoài repository.
 
-Cửa nghiệm thu còn lại:
+Giới hạn:
 
-- giữ PR draft;
-- xác minh CI trên head cuối và merge ref;
-- chạy cục bộ dữ liệu thật FPT, HPG, MBB khi có môi trường/dữ liệu phù hợp;
-- đoạn 00 rà soát, yêu cầu sửa hoặc phê duyệt.
+- bộ ba mã chỉ dùng xác minh kỹ thuật;
+- chưa có lịch sử thành viên VN100 point-in-time thật;
+- chưa có corporate actions thật được phê duyệt đầy đủ;
+- chưa có nghiên cứu nhiều năm trên toàn universe;
+- không tích hợp SSI, không đọc tài khoản và không gửi lệnh.
 
-Không tích hợp SSI, không học máy và không triển khai lớp chia vốn sản xuất.
+## Điều kiện dữ liệu trước nghiên cứu chiến lược
+
+Trước khi đánh giá chiến lược hoặc huấn luyện mô hình, đặc tả tiếp theo phải chốt:
+
+- universe VN100 point-in-time hoặc universe thanh khoản cao point-in-time;
+- không dùng danh sách VN100 hiện tại áp ngược cho toàn bộ lịch sử;
+- lịch sử nhiều năm, mục tiêu 5–10 năm nếu chất lượng dữ liệu cho phép;
+- warm-up tối thiểu cho MA250;
+- kiểm soát survivorship bias, look-ahead và mã mới niêm yết;
+- cơ sở giá và corporate actions nhất quán;
+- báo cáo độ phủ dữ liệu, mã lỗi, mã thiếu lịch sử và mã bị loại.
 
 ## Mốc 4 — Đặc trưng và học máy
 
-Trạng thái: **chưa mở**.
+Trạng thái: **chưa mở; chưa có nhánh triển khai và chưa được phép viết mã**.
 
-- Đặc trưng giá, động lượng, biến động, thanh khoản và thị trường.
-- Nhãn và walk-forward validation.
-- Logistic Regression trước, LightGBM sau.
+Phạm vi dự kiến, phải được đặc tả và phê duyệt trước:
+
+- đặc trưng giá, động lượng, biến động, thanh khoản và thị trường;
+- nhãn không nhìn trước;
+- walk-forward validation;
+- Logistic Regression trước;
+- LightGBM chỉ sau khi baseline tuyến tính và pipeline đánh giá đạt;
+- ranking trên universe point-in-time nhiều năm.
 
 ## Mốc 5 — Chia vốn
 
