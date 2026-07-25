@@ -1,6 +1,6 @@
 # vn-quant-system
 
-He thong dinh luong co phieu Viet Nam. Moc 0–2 da hoan thanh; Moc 3 dang duoc sua va ra soat tren PR so 7 o trang thai draft.
+He thong dinh luong co phieu Viet Nam. Moc 0–2 da hoan thanh; Moc 3 dang duoc ra soat tren PR so 7 o trang thai draft.
 
 ## Pham vi hien tai
 
@@ -90,7 +90,7 @@ Voi co tuc tien mat, `ngay_hieu_luc`, `ngay_thanh_toan`, `gia_tri_tien_mat` va `
 - Gia von binh quan gom gia khop da co slippage, khong gom phi mua.
 - Realized P&L: `(gia_khop_ban - gia_von_binh_quan) * so_luong_ban`, truoc phi ban va thue.
 - Unrealized P&L: `(close - gia_von_binh_quan) * so_luong_con_lai`.
-- Sổ cái tách `phi_mua`, `phi_ban`, `thue_ban`, `chi_phi_truot_gia`, `co_tuc_tien_mat`, realized và unrealized P&L.
+- So cai tach `phi_mua`, `phi_ban`, `thue_ban`, `chi_phi_truot_gia`, `co_tuc_tien_mat`, realized va unrealized P&L.
 - Slippage da nam trong gia khop, nen khong bi tru lan hai trong doi soat.
 
 Doi soat cuoi moi phien:
@@ -155,13 +155,21 @@ PYTHONPATH=src uv run --python 3.12 \
 
 Bo kiem thu Moc 3 tach rieng cac ca co tuc, suc mua, so cai, eligibility, bien chi phi, bao mat va don vi, dong thoi giu dong ho T/T+1, corporate actions, chi so, cong bo/rollback, tai lap va kich ban vang. CI khong goi mang va khong goi Vnstock.
 
-## Du lieu that va cua kiem soat
+## Xac minh ky thuat tren du lieu that
 
-FPT, HPG va MBB da duoc xac minh o Moc 2, moi ma 287 phien va 38 dong MA250. Chua chay backtest Moc 3 that sau vong sua PR so 7. Chi sau khi doan 00 xac minh ma va CI moi, nguoi dung moi duoc chay xac minh that; khong commit san pham.
+Lan chay `xac_minh_fpt_hpg_mbb_20260725T074736Z` da xac minh engine tren FPT, HPG va MBB voi 287 phien moi ma, tong 861 dong sau khi ghep gia Moc 1 voi trang thai Moc 2. Engine tao 287 dong NAV, 287 dong so cai, 6/6 lenh khop, khong co lenh het han/tu choi, dong het ba vi the, tien mat khong am, doi soat bang `0.0000000`, tao dung 9 san pham va xac minh SHA-256 manifest.
+
+Ket qua chi la xac minh ky thuat. Ty trong 30% moi ma la kich ban kiem tra; lan chay khong dung baseline MA250-dong-luong, khong co corporate actions that, va khong duoc dien giai loi nhuan am hay duong nhu danh gia chien luoc.
+
+So lieu, phuong phap va gioi han: `tai_lieu/ket_qua_xac_minh_that_moc_3.md`.
+
+## Nguyen tac va cua kiem soat
 
 - GitHub la nguon su that ve nhanh, commit, PR va CI.
 - Khong dung du lieu tuong lai va khong tu dien gia/phien/thanh vien thieu.
-- Khong commit du lieu thi truong that, log that, khoa hay token.
-- Nguon lich su thanh vien that chua duoc phe duyet.
+- Khong commit du lieu thi truong that, san pham backtest, log that, khoa hay token.
+- Snapshot membership chua phai lich su thanh vien that; nguong thanh khoan chua phai cau hinh san xuat.
+- Co so gia `khong_dieu_chinh` chua duoc nguon xac nhan doc lap.
 - Baseline chi kiem tra engine, khong phai chien luoc san xuat.
+- Chua co ML, walk-forward, inverse volatility hoac gioi han nganh.
 - PR so 7 phai giu draft; khong Ready, khong gop va khong mo Moc 4 khi chua co phan quyet cua doan 00.

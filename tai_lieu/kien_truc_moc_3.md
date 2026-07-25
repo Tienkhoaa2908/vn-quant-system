@@ -118,8 +118,30 @@ Lan chay thanh cong tao dung chin tep: `cau_hinh.json`, `lenh.csv`, `khop_lenh.c
 
 San pham duoc tao trong thu muc tam, fsync va rename nguyen tu. Khong ghi de; rollback khi loi; thu muc thanh cong va that bai khong tron.
 
-## Kiem thu va gioi han
+## Xac minh ky thuat tren du lieu that
+
+Lan chay `xac_minh_fpt_hpg_mbb_20260725T074736Z` su dung FPT, HPG va MBB, 287 phien moi ma va 861 dong sau khi ghep gia Moc 1 voi trang thai Moc 2. Cau hinh dung don vi `nghin_dong/nghin_dong`, co so gia `khong_dieu_chinh`, phi/thue/slippage va lot size da khai bao; khong truyen corporate actions.
+
+Kich ban dat 30% cho moi ma, giu 10% tien mat, mua tu tin hieu 2025-06-27 tai open 2025-06-30 va dong het vi the tu tin hieu 2026-07-22 tai open 2026-07-23. Day la kich ban kiem tra, khong su dung baseline MA250-dong-luong.
+
+Engine tao 287 dong NAV, 287 dong so cai, 6 lenh va 6 khop lenh; khong co lenh het han hoac bi tu choi. Tien mat khong am, ba vi the duoc dong het, chenh lech doi soat bang `0.0000000`, 9 san pham dung dac ta, SHA-256 manifest duoc xac minh va khong co canh bao.
+
+So lieu day du va phuong phap: `tai_lieu/ket_qua_xac_minh_that_moc_3.md`.
+
+## Gioi han cua lan xac minh that
+
+- Chi xac minh ky thuat engine, khong phai bang chung hieu qua dau tu.
+- Ty trong 30% moi ma khong phai phan bo san xuat.
+- Snapshot membership chua phai lich su thanh vien that.
+- Nguong thanh khoan chua phai cau hinh san xuat.
+- Co so gia `khong_dieu_chinh` chua duoc nguon xac nhan doc lap.
+- Khong co corporate actions that.
+- Chi co ba ma va mot khoang thoi gian.
+- Khong dien giai loi nhuan am hoac duong nhu danh gia chien luoc.
+- Chua co ML, walk-forward, inverse volatility hoac gioi han nganh.
+
+## Kiem thu va cua kiem soat
 
 Bo kiem thu Moc 3 tach rieng cac loi ve co tuc, suc mua, so cai, eligibility, bien chi phi, bao mat va don vi; dong thoi giu kich ban vang va hoi quy cu. CI hoan toan ngoai tuyen.
 
-Chua chay backtest FPT, HPG, MBB that sau vong sua nay. Khong partial fill theo thanh khoan thi truong, participation rate, quyen mua, sap nhap, hoan doi hoac huy niem yet cuong buc. PR so 7 phai giu draft cho den khi doan 00 nghiem thu.
+Khong partial fill theo thanh khoan thi truong, participation rate, quyen mua, sap nhap, hoan doi hoac huy niem yet cuong buc. PR so 7 phai giu draft cho den khi doan 00 nghiem thu; khong gop va khong mo Moc 4.
