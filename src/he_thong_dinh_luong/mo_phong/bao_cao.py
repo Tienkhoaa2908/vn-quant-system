@@ -19,20 +19,26 @@ from .chi_so import tinh_chi_so
 from .mo_hinh import ket_qua_mo_phong
 
 CAC_COT_LENH = (
-    "ma_lenh", "ngay_tin_hieu", "ngay_thuc_thi", "ma", "chieu", "so_luong",
+    "ma_lenh", "ngay_tin_hieu", "ngay_thuc_thi", "ma", "chieu",
+    "so_luong_yeu_cau", "so_luong", "so_luong_bi_giam", "ly_do_giam",
     "loai_lenh", "trang_thai", "ly_do_tu_choi_hoac_het_han",
 )
 CAC_COT_KHOP_LENH = (
-    "ma_lenh", "ma", "ngay_khop", "chieu", "so_luong", "gia_mo_cua",
-    "gia_khop", "gia_tri_giao_dich", "phi", "thue", "chi_phi_truot_gia",
+    "ma_lenh", "ma", "ngay_khop", "chieu", "so_luong_yeu_cau", "so_luong",
+    "so_luong_bi_giam", "ly_do_giam", "gia_mo_cua", "gia_khop",
+    "gia_tri_giao_dich", "phi", "thue", "chi_phi_truot_gia",
 )
 CAC_COT_VI_THE = (
     "ngay", "ma", "so_luong", "gia_von", "gia_dong_cua",
     "gia_tri_thi_truong", "lai_lo_chua_thuc_hien",
 )
 CAC_COT_SO_CAI = (
-    "ngay", "tien_mat_dau_ngay", "dong_tien_su_kien", "tien_mua", "tien_ban",
-    "phi", "thue", "tien_mat_cuoi_ngay", "gia_tri_vi_the", "nav",
+    "ngay", "tien_mat_dau_ngay", "dong_tien_su_kien", "co_tuc_tien_mat",
+    "co_tuc_tien_mat_luy_ke", "tien_mua", "tien_ban", "phi", "phi_mua",
+    "phi_ban", "phi_mua_luy_ke", "phi_ban_luy_ke", "thue", "thue_ban",
+    "thue_ban_luy_ke", "chi_phi_truot_gia", "lai_lo_da_thuc_hien",
+    "lai_lo_da_thuc_hien_luy_ke", "lai_lo_chua_thuc_hien",
+    "tien_mat_cuoi_ngay", "gia_tri_vi_the", "nav", "chenh_lech_doi_soat",
 )
 CAC_COT_NAV = ("ngay", "nav", "loi_nhuan_phien", "tien_mat", "ty_trong_tien_mat")
 TEN_TEP_THANH_CONG = (
@@ -67,10 +73,7 @@ def _chuyen(gia_tri: Any) -> Any:
 
 
 def _noi_dung_json(du_lieu: object) -> bytes:
-    return (
-        json.dumps(_chuyen(du_lieu), ensure_ascii=False, indent=2, sort_keys=True)
-        + "\n"
-    ).encode("utf-8")
+    return (json.dumps(_chuyen(du_lieu), ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode("utf-8")
 
 
 def _noi_dung_csv(cac_dong: Iterable[object], cac_cot: tuple[str, ...]) -> bytes:
@@ -79,12 +82,7 @@ def _noi_dung_csv(cac_dong: Iterable[object], cac_cot: tuple[str, ...]) -> bytes
     bo_ghi.writeheader()
     for muc in cac_dong:
         dong = asdict(muc) if is_dataclass(muc) else dict(muc)  # type: ignore[arg-type]
-        bo_ghi.writerow(
-            {
-                cot: _chuyen(dong.get(cot)) if dong.get(cot) is not None else ""
-                for cot in cac_cot
-            }
-        )
+        bo_ghi.writerow({cot: _chuyen(dong.get(cot)) if dong.get(cot) is not None else "" for cot in cac_cot})
     return bo_nho.getvalue().encode("utf-8")
 
 
@@ -116,6 +114,18 @@ def tao_noi_dung_san_pham(
     gioi_han: Iterable[str],
 ) -> dict[str, bytes]:
     chi_so = tinh_chi_so(ket_qua)
+    don_vi = {
+        "don_vi_gia": ket_qua.cau_hinh.don_vi_gia,
+        "don_vi_tien": ket_qua.cau_hinh.don_vi_tien,
+        "quan_he": "gia va tien dung cung don vi; gia_tri = gia * so_luong",
+    }
+    quy_uoc_ke_toan = {
+        "gia_von": "gia khop binh quan, da gom truot gia, khong gom phi mua",
+        "realized_pnl": "(gia_khop_ban - gia_von_binh_quan) * so_luong_ban, truoc phi ban va thue",
+        "unrealized_pnl": "(gia_dong_cua - gia_von_binh_quan) * so_luong_con_lai",
+        "doi_soat": "NAV = von_dau + realized + unrealized + co_tuc - phi_mua - phi_ban - thue_ban",
+        "truot_gia": "da nam trong gia_khop, chi cong bo rieng va khong tru lan hai",
+    }
     bao_cao = {
         "trang_thai": "thanh_cong",
         "ma_lan_chay": ma_lan_chay,
@@ -124,6 +134,8 @@ def tao_noi_dung_san_pham(
         "python_version": python_version,
         "uv_version": uv_version,
         "cau_hinh": ket_qua.cau_hinh.thanh_tu_dien(),
+        "don_vi": don_vi,
+        "quy_uoc_ke_toan": quy_uoc_ke_toan,
         "nguon_du_lieu": dict(nguon_du_lieu),
         "sha256_dau_vao": dict(sorted(sha256_dau_vao.items())),
         "co_so_gia": ket_qua.cau_hinh.co_so_gia,
@@ -150,15 +162,13 @@ def tao_noi_dung_san_pham(
         "chi_so.json": _noi_dung_json(chi_so),
         "bao_cao.json": _noi_dung_json(bao_cao),
     }
-    bam = {
-        ten: hashlib.sha256(du_lieu).hexdigest()
-        for ten, du_lieu in sorted(noi_dung.items())
-    }
+    bam = {ten: hashlib.sha256(du_lieu).hexdigest() for ten, du_lieu in sorted(noi_dung.items())}
     manifest = {
         "ma_lan_chay": ma_lan_chay,
         "thoi_diem_chay_utc": thoi_diem_chay_utc,
         "git_commit": git_commit,
         "co_so_gia": ket_qua.cau_hinh.co_so_gia,
+        "don_vi": don_vi,
         "sha256_san_pham": bam,
         "sha256_dau_vao": dict(sorted(sha256_dau_vao.items())),
         "san_pham": list(TEN_TEP_THANH_CONG),
@@ -167,9 +177,7 @@ def tao_noi_dung_san_pham(
     return noi_dung
 
 
-def cong_bo_san_pham(
-    thu_muc_dau_ra: str | Path, noi_dung: Mapping[str, bytes]
-) -> Path:
+def cong_bo_san_pham(thu_muc_dau_ra: str | Path, noi_dung: Mapping[str, bytes]) -> Path:
     dich = Path(thu_muc_dau_ra)
     if dich.exists():
         raise FileExistsError(f"Thu muc dau ra da ton tai: {dich}")
@@ -188,12 +196,7 @@ def cong_bo_san_pham(
     return dich
 
 
-def cong_bo_bao_cao_loi(
-    thu_muc_dau_ra: str | Path,
-    loi: BaseException,
-    *,
-    thoi_diem_chay_utc: str | None = None,
-) -> Path | None:
+def cong_bo_bao_cao_loi(thu_muc_dau_ra: str | Path, loi: BaseException, *, thoi_diem_chay_utc: str | None = None) -> Path | None:
     dich = Path(thu_muc_dau_ra)
     if dich.exists():
         return None
@@ -201,14 +204,11 @@ def cong_bo_bao_cao_loi(
     tam = dich.parent / f".{dich.name}.{uuid4().hex}.loi.tmp"
     tam.mkdir()
     try:
-        noi_dung = _noi_dung_json(
-            {
-                "trang_thai": "that_bai",
-                "thoi_diem_chay_utc": thoi_diem_chay_utc
-                or datetime.now(timezone.utc).isoformat(),
-                "loi": lam_sach_loi(loi),
-            }
-        )
+        noi_dung = _noi_dung_json({
+            "trang_thai": "that_bai",
+            "thoi_diem_chay_utc": thoi_diem_chay_utc or datetime.now(timezone.utc).isoformat(),
+            "loi": lam_sach_loi(loi),
+        })
         _ghi_va_fsync(tam / "bao_cao_loi.json", noi_dung)
         os.rename(tam, dich)
     except BaseException:
