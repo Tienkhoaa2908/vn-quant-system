@@ -1,30 +1,26 @@
 # vn-quant-system
 
-He thong dinh luong co phieu Viet Nam. Mốc 0–2 da hoan thanh; Mốc 3 dang duoc trien khai va ra soat tren PR draft.
+He thong dinh luong co phieu Viet Nam. Moc 0–2 da hoan thanh; Moc 3 dang duoc sua va ra soat tren PR so 7 o trang thai draft.
 
 ## Pham vi hien tai
 
-- Mốc 1: thu thap OHLCV ngay qua Vnstock Community 4.0.4/KBS, du lieu tho bat bien, chuan hoa, chat luong va SHA-256.
-- Mốc 2: tap co phieu point-in-time, thanh khoan, MA250 va dong luong khong nhin truoc.
-- Mốc 3: mo phong giao dich long-only, lenh DAY, tien mat, vi the, corporate actions MVP, NAV, chi so va dau ra bat bien.
+- Moc 1: thu thap OHLCV ngay qua Vnstock Community 4.0.4/KBS, du lieu tho bat bien, chuan hoa, chat luong va SHA-256.
+- Moc 2: tap co phieu point-in-time, thanh khoan, MA250 va dong luong khong nhin truoc.
+- Moc 3: mo phong giao dich long-only, lenh DAY, tien mat, vi the, corporate actions MVP, so cai, NAV, chi so va dau ra bat bien.
 
-Khong thuoc Mốc 3: Logistic Regression, LightGBM, walk-forward cho ML, inverse volatility san xuat, tran 15% moi ma/25% moi nganh, ket noi SSI, doc tai khoan hay gui lenh.
+Khong thuoc Moc 3: Logistic Regression, LightGBM, walk-forward ML, inverse volatility san xuat, tran 15% moi ma/25% moi nganh, ket noi SSI, doc tai khoan hay gui lenh.
 
-## Dau vao Mốc 3
+## Dau vao Moc 3
 
 ### Duong co so va gia
 
 CSV toi thieu:
 
 ```text
-ma,ngay,gia_mo_cua,gia_dong_cua
+ma,ngay,gia_mo_cua,gia_dong_cua,thuoc_tap_co_phieu,dat_thanh_khoan
 ```
 
-De mo vi the moi va chay baseline, tep nen kem cac cot Mốc 2:
-
-```text
-thuoc_tap_co_phieu,dat_thanh_khoan,tren_ma250,dong_luong
-```
+`thuoc_tap_co_phieu` va `dat_thanh_khoan` fail closed: chi `true/true` moi cho phep mo hoac tang vi the. `false` hoac rong deu khong dat. Giam va dong vi the van duoc phep, kem canh bao.
 
 ### Ty trong muc tieu
 
@@ -32,7 +28,7 @@ thuoc_tap_co_phieu,dat_thanh_khoan,tren_ma250,dong_luong
 ngay_tin_hieu,ma,ty_trong_muc_tieu,ten_chien_luoc
 ```
 
-Ty trong moi ma nam trong `[0,1]`; tong tai mot ngay khong vuot `1`. Phan con lai la tien mat. Che do ma khong xuat hien phai duoc khai bao la `giu_nguyen` hoac `muc_tieu_bang_0`.
+Ty trong moi ma nam trong `[0,1]`; tong tai mot ngay khong vuot `1`. Phan con lai la tien mat. Che do ma khong xuat hien phai khai bao la `giu_nguyen` hoac `muc_tieu_bang_0`.
 
 ### Cau hinh
 
@@ -48,11 +44,21 @@ Ty trong moi ma nam trong `[0,1]`; tong tai mot ngay khong vuot `1`. Phan con la
   "lai_suat_phi_rui_ro": "0",
   "che_do_ma_khong_xuat_hien": "muc_tieu_bang_0",
   "cho_phep_ban_le_khi_dong_vi_the": false,
-  "co_so_gia": "khong_dieu_chinh"
+  "co_so_gia": "khong_dieu_chinh",
+  "don_vi_gia": "dong",
+  "don_vi_tien": "dong"
 }
 ```
 
-Cac gia tri tren chi minh hoa giao dien, khong phai cau hinh san xuat.
+Cac gia tri tren chi minh hoa giao dien, khong phai cau hinh san xuat. `don_vi_gia` va `don_vi_tien` phai cung la `dong` hoac cung la `nghin_dong`; khong duoc tron gia nghin dong voi von bang dong.
+
+Validation chinh:
+
+- `0 <= truot_gia_bps < 10000`;
+- `phi_ban_bps + thue_ban_bps <= 10000`;
+- `kich_thuoc_lo` va `so_phien_moi_nam` la so nguyen thuc su va duong, khong ep float thanh int;
+- gia khop va gia tri giao dich phai duong;
+- tien ban rong khong am.
 
 ### Corporate actions
 
@@ -62,21 +68,45 @@ CSV:
 ma,loai_su_kien,ngay_hieu_luc,ngay_thanh_toan,ty_le,gia_tri_tien_mat,nguon,phien_ban
 ```
 
-MVP ho tro `chia_tach`, `co_phieu_thuong`, `chia_tach_hoac_thuong_co_phieu` va `co_tuc_tien_mat`. Gia da dieu chinh kem corporate actions bi tu choi de tranh tinh hai lan.
+MVP ho tro `chia_tach`, `co_phieu_thuong`, `chia_tach_hoac_thuong_co_phieu` va `co_tuc_tien_mat`.
 
-## Quy tac giao dich Mốc 3
+Voi co tuc tien mat, `ngay_hieu_luc`, `ngay_thanh_toan`, `gia_tri_tien_mat` va `nguon` deu bat buoc. Engine chot so luong duoc huong tai ngay hieu luc, luu nghia vu, va chi cong tien tai ngay thanh toan. Mua hoac ban sau ngay chot quyen khong thay doi quyen. Su kien trung lap va gia da dieu chinh kem corporate actions bi tu choi.
 
-- Tin hieu chi duoc tao sau close ngay `T` va khop som nhat tai open cua phien thi truong ke tiep.
+## Quy tac giao dich
+
+- Tin hieu duoc tao sau close `T`; lenh chi khop tai open cua dung phien thi truong ke tiep.
 - Mua: `gia_khop = open * (1 + truot_gia_bps/10000)`.
 - Ban: `gia_khop = open * (1 - truot_gia_bps/10000)`.
-- Lenh la DAY. Thieu bar hoac thieu open tai ngay thuc thi thi het han; khong tim phien xa hon va khong thay open bang close.
-- Khong partial fill, short, margin, tien mat am, ban vuot vi the hay vi the am.
-- Ban duoc xu ly truoc mua; trong moi chieu sap xep ma tang dan de ket qua xac dinh.
-- Mua lam tron xuong theo kich thuoc lo. Ban le khi dong vi the chi duoc phep theo cau hinh.
+- Lenh DAY het han neu thieu bar/open tai ngay thuc thi; khong tim phien xa hon va khong thay open bang close.
+- Ban chay truoc mua; trong moi chieu sap xep ma tang dan.
+- Nhu cau muc tieu va khoi luong co the thuc thi duoc ghi rieng.
+- Sau ban, engine tinh tien mat kha dung, gia khop, phi, slippage va lot size de giam khoi luong mua toi muc toi da hop le.
+- Viec giam khoi luong truoc khi gui khop la pre-trade sizing, khong phai market partial fill.
+- `lenh.csv` va `khop_lenh.csv` ghi khoi luong yeu cau, chap nhan, bi giam va ly do.
+- Khong short, margin, tien mat am, ban vuot vi the hoac vi the am.
 
-Chi tiet kien truc va cong thuc: `tai_lieu/kien_truc_moc_3.md`.
+## Quy uoc so cai
 
-## Chay CLI Mốc 3
+- Gia von binh quan gom gia khop da co slippage, khong gom phi mua.
+- Realized P&L: `(gia_khop_ban - gia_von_binh_quan) * so_luong_ban`, truoc phi ban va thue.
+- Unrealized P&L: `(close - gia_von_binh_quan) * so_luong_con_lai`.
+- Sổ cái tách `phi_mua`, `phi_ban`, `thue_ban`, `chi_phi_truot_gia`, `co_tuc_tien_mat`, realized và unrealized P&L.
+- Slippage da nam trong gia khop, nen khong bi tru lan hai trong doi soat.
+
+Doi soat cuoi moi phien:
+
+```text
+NAV
+= von_ban_dau
++ realized_P&L_luy_ke
++ unrealized_P&L
++ co_tuc_luy_ke
+- phi_mua_luy_ke
+- phi_ban_luy_ke
+- thue_ban_luy_ke
+```
+
+## Chay CLI Moc 3
 
 ```bash
 PYTHONPATH=src uv run --python 3.12 \
@@ -88,9 +118,9 @@ PYTHONPATH=src uv run --python 3.12 \
   --thu_muc_dau_ra du_lieu/backtest/<ma_lan_chay_moi>
 ```
 
-`--su_kien_doanh_nghiep` la tuy chon. Thu muc dau ra khong duoc ton tai truoc lan chay.
+`--su_kien_doanh_nghiep` la tuy chon. Thu muc dau ra khong duoc ton tai truoc lan chay. Loi do CLI kiem soat duoc lam sach dong nhat trong stdout va `bao_cao_loi.json`; token, secret, password, API key va Bearer credential khong duoc lo.
 
-## San pham Mốc 3
+## San pham Moc 3
 
 Mot lan chay thanh cong tao dung chin tep:
 
@@ -106,18 +136,13 @@ bao_cao.json
 manifest.json
 ```
 
-San pham duoc chuan bi trong thu muc tam, fsync va rename nguyen tu. Khong ghi de. Neu that bai, thu muc ket qua chi chua `bao_cao_loi.json`; khong tron san pham thanh cong va that bai.
+`don_vi_gia` va `don_vi_tien` xuat hien trong `cau_hinh.json`, `bao_cao.json` va `manifest.json`. San pham duoc chuan bi trong thu muc tam, fsync va rename nguyen tu. Khong ghi de; thu muc thanh cong va that bai khong tron.
 
 ## Chi so
 
-- Tong loi nhuan va chuoi loi nhuan theo phien.
-- CAGR khi du quan sat.
-- Maximum drawdown.
-- Sharpe voi lai suat phi rui ro va so phien nam tu cau hinh.
-- Turnover, tong mua/ban, phi mua/ban, thue ban, truot gia.
-- So lenh tao/khop/het han/tu choi, so lan tai can bang va ty trong tien mat trung binh.
+Bao gom tong loi nhuan, CAGR khi du dieu kien, maximum drawdown, Sharpe, turnover, tong mua/ban, phi mua/ban, thue ban, slippage, realized/unrealized P&L, co tuc va chenh lech doi soat. Sharpe tra `null` khi thieu quan sat hoac phuong sai loi nhuan bang 0.
 
-Sharpe tra `null` neu khong du quan sat hoac phuong sai loi nhuan bang 0.
+Chi tiet: `tai_lieu/kien_truc_moc_3.md`.
 
 ## Kiem thu ngoai tuyen
 
@@ -128,19 +153,15 @@ PYTHONPATH=src uv run --python 3.12 \
   python -m unittest discover -s tests -p 'test_*.py' -v
 ```
 
-CI khong goi mang, khong goi Vnstock va chi dung du lieu gia lap. Bo kiem thu Mốc 3 bao gom dong ho T/T+1, phi/thue/truot gia, lot size, bat bien tien mat/vi the, lenh DAY, corporate actions, NAV, drawdown, Sharpe, turnover, cong bo/rollback, tai lap va kich ban vang tinh tay.
+Bo kiem thu Moc 3 tach rieng cac ca co tuc, suc mua, so cai, eligibility, bien chi phi, bao mat va don vi, dong thoi giu dong ho T/T+1, corporate actions, chi so, cong bo/rollback, tai lap va kich ban vang. CI khong goi mang va khong goi Vnstock.
 
-## Ket qua Mốc 2 da xac minh
+## Du lieu that va cua kiem soat
 
-FPT, HPG va MBB da duoc xac minh cuc bo o Mốc 2: moi ma 287 phien va 38 dong MA250. Ket qua nay khong phai bang chung hieu qua dau tu va khong thay the xac minh backtest Mốc 3.
-
-Chi tiet: `tai_lieu/xac_minh_cuc_bo_moc_2.md` va `tai_lieu/ket_qua_xac_minh_truy_vet_moc_2.md`.
-
-## Nguyen tac du an
+FPT, HPG va MBB da duoc xac minh o Moc 2, moi ma 287 phien va 38 dong MA250. Chua chay backtest Moc 3 that sau vong sua PR so 7. Chi sau khi doan 00 xac minh ma va CI moi, nguoi dung moi duoc chay xac minh that; khong commit san pham.
 
 - GitHub la nguon su that ve nhanh, commit, PR va CI.
 - Khong dung du lieu tuong lai va khong tu dien gia/phien/thanh vien thieu.
-- Khong commit du lieu thi truong that, nhat ky that, khoa hay token.
-- Nguon lich su thanh vien that chua duoc phe duyet; khong tuyen bo da loai bo thien lech song sot thuc te.
-- Baseline Mốc 3 chi kiem tra engine, khong phai chien luoc san xuat.
-- PR Mốc 3 phai giu draft cho den khi doan 00 phe duyet.
+- Khong commit du lieu thi truong that, log that, khoa hay token.
+- Nguon lich su thanh vien that chua duoc phe duyet.
+- Baseline chi kiem tra engine, khong phai chien luoc san xuat.
+- PR so 7 phai giu draft; khong Ready, khong gop va khong mo Moc 4 khi chua co phan quyet cua doan 00.
