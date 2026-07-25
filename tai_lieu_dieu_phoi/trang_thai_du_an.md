@@ -6,69 +6,43 @@ Cập nhật gần nhất: 2026-07-25
 
 - Kho: `Tienkhoaa2908/vn-quant-system`.
 - Nhánh chính: `main`.
-- Đầu `main`: `24bf02a7cf0f18d5a0fe342356b8ea0e045b1ed6`.
-- Python mục tiêu: 3.12; công cụ môi trường: `uv`.
+- Đầu `main`/base Mốc 4: `24bf02a7cf0f18d5a0fe342356b8ea0e045b1ed6`.
+- Python mục tiêu: 3.12; môi trường: `uv`.
 - GitHub là nguồn sự thật về nhánh, commit, PR và CI.
 
 ## Mốc 0–Mốc 3
 
-Trạng thái: **đã đóng hoàn toàn**.
-
-Mốc 3:
-
-- PR triển khai số 7 đã gộp bằng merge commit `79a044d75f3a66e5c636f0a83613fc9af0cac3fc`.
-- PR điều phối số 8 đã gộp bằng merge commit `bb25ff16761b7c79e701fbd4f3a5af02f1644e07`.
-- CI sau gộp PR số 8:
-  - workflow `kiem_tra_tu_dong`;
-  - run number `185`;
-  - Run ID `30151712433`;
-  - Job ID `89663090052`;
-  - trigger `push`;
-  - branch `main`;
-  - checkout `bb25ff16761b7c79e701fbd4f3a5af02f1644e07`;
-  - `completed/success`.
-- 121 kiểm thử ngoại tuyến và xác minh kỹ thuật engine trên FPT, HPG, MBB đã đạt.
-
-## Giới hạn dữ liệu hiện tại
-
-- Bộ ba mã chỉ là xác minh kỹ thuật.
-- Chưa có lịch sử thành viên VN100 point-in-time thật được phê duyệt.
-- Chưa có universe nhiều năm được kiểm toán.
-- Cơ sở giá và corporate actions thật chưa được xác nhận đầy đủ.
-- Chưa có feature set sản xuất, nhãn, walk-forward hoặc mô hình học máy.
-- Không tích hợp SSI, không đọc tài khoản và không gửi lệnh.
+Trạng thái: **đã đóng hoàn toàn**. Engine Mốc 3 và 121 kiểm thử ngoại tuyến tiếp tục là nền hồi quy bắt buộc.
 
 ## Mốc 4
 
-Trạng thái: **đặc tả đã phê duyệt và gộp; nhánh chuyên môn đã mở; chưa triển khai mã**.
+Trạng thái: **đã triển khai bằng fixture ngoại tuyến; PR #10 đang Draft và chờ đoạn 00 rà soát**.
 
-- PR đặc tả số 9 đã gộp bằng merge commit `24bf02a7cf0f18d5a0fe342356b8ea0e045b1ed6`.
-- CI sau gộp PR số 9:
-  - workflow `kiem_tra_tu_dong`;
-  - run number `187`;
-  - Run ID `30162993192`;
-  - Job ID `89691237408`;
-  - trigger `push`;
-  - branch `main`;
-  - checkout `24bf02a7cf0f18d5a0fe342356b8ea0e045b1ed6`;
-  - `completed/success`.
-- Tài liệu chính thức: `tai_lieu/dac_ta_moc_4.md`.
-- Nhánh chuyên môn: `m4-dac_trung-xep_hang-hoc_may`.
-- Base đã duyệt: `24bf02a7cf0f18d5a0fe342356b8ea0e045b1ed6`.
-- Chưa mở PR triển khai.
-- Chưa viết mã nghiên cứu hoặc học máy.
+- PR đặc tả #9 đã gộp tại `24bf02a7cf0f18d5a0fe342356b8ea0e045b1ed6`.
+- Nhánh: `m4-dac_trung-xep_hang-hoc_may`.
+- PR triển khai: #10 — `M4: du lieu nhieu nam, dac trung, xep hang va Logistic Regression`.
+- Dependency: `scikit-learn==1.9.0`; không pandas, không LightGBM.
+- Đã tạo 16 module Mốc 4 và 97 test mới.
+- CI mã/test đầu tiên: run #204, Run ID `30166974542`, Job ID `89701563209`, merge ref `4fcf21d296b739f9f7884339773be0df57a86cac`, `completed/success`.
+- Compileall và toàn bộ unittest Python 3.12 đạt; 121 test Mốc 0–3 vẫn chạy cùng suite.
 
-Các quyết định đã phê duyệt:
+## Phạm vi đã triển khai
 
-1. VN100 point-in-time là universe ưu tiên; universe thanh khoản cao point-in-time là proxy có kiểm soát.
-2. Mục tiêu lịch sử tối thiểu 5 năm, ưu tiên 7–10 năm khi chất lượng cho phép.
-3. Warm-up theo cửa sổ dài nhất, tối thiểu MA250.
-4. Cơ sở giá và corporate actions phải nhất quán.
-5. Feature MVP gồm xu hướng, động lượng, biến động, thanh khoản và market regime.
-6. Tiền xử lý chỉ fit trên train.
-7. Nhãn lợi nhuận tương đối 20 phiên.
-8. Walk-forward expanding window có purge và embargo.
-9. Momentum baseline và Logistic Regression trước LightGBM.
-10. Ranking theo xác suất, `top_k`, tái cân bằng tháng và tỷ trọng đều để kiểm tra.
-11. Đánh giá model, ranking và backtest hoàn toàn ngoài mẫu.
-12. Sản phẩm bất biến, SHA-256 và truy vết đầy đủ.
+- cutoff PIT theo timestamp có múi giờ;
+- universe/coverage fail closed và survivorship fixture;
+- toàn bộ feature MVP tại phiên benchmark cuối tháng;
+- nhãn T+20 theo lịch benchmark;
+- expanding monthly walk-forward, purge/embargo và test không chồng lấn;
+- StandardScaler + Logistic Regression, C selection, refit, convergence/one-class fail closed;
+- ranking/top-K, model/ranking metric và OOS stitching;
+- adapter tái sử dụng engine Mốc 3;
+- công bố 17 tep bằng staging, fsync, atomic rename, rollback và SHA-256.
+
+## Giới hạn và cửa kiểm soát
+
+- Chưa chạy Tier A hoặc Tier B.
+- Chưa có lịch sử VN100 point-in-time thật được phê duyệt.
+- Chưa xác nhận nguồn/lịch VNINDEX và cơ sở giá/corporate actions thật.
+- Không có dữ liệu, sản phẩm hoặc log thị trường thật được commit.
+- Không tích hợp SSI, không đọc tài khoản và không gửi lệnh.
+- PR #10 phải giữ Draft; không Ready, không tự gộp và không mở Mốc 5.

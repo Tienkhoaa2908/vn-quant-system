@@ -4,7 +4,7 @@
 
 Moc 4 xay pipeline nghien cuu ngoai mau tren OHLCV ngay, fail closed, tai lap va kiem toan duoc. Tai su dung engine Moc 3; khong sao chep logic T/T+1, lenh DAY, chi phi hoac cong bo. Khong co LightGBM, chia von san xuat, SSI hay Moc 5.
 
-Kien truc da duoc khoa va duoc phep trien khai bang fixture ngoai tuyen. Du lieu that chi duoc chay sau phe duyet rieng cua doan 00.
+Kien truc da duoc khoa va da trien khai bang fixture ngoai tuyen tren PR #10. Du lieu that chi duoc chay sau phe duyet rieng cua doan 00.
 
 Module du kien:
 
@@ -137,7 +137,7 @@ khong_nhat_quan_co_so_gia
 thieu_open_t1
 ```
 
-Coverage bao theo ngay, ma, ly do, gap, warm-up, khoang yeu cau/thuc te va ngay thieu `top_k`.
+Coverage bao theo ngay, ma, ly do, gap, warm-up, khoang yeu cau/thuc_te va ngay thieu `top_k`.
 
 ## 6. Lich T+H va nhan
 
@@ -275,7 +275,7 @@ C_grid = [0.1, 1.0, 10.0]
 seed = 20260725
 ```
 
-Khong impute. Feature order on dinh. Duoc phep `scikit-learn==1.9.0`; chua sua dependency trong vong nay. Khong LightGBM.
+Khong impute. Feature order on dinh. Dependency da khoa `scikit-learn==1.9.0` trong `pyproject.toml` va `uv.lock`. Khong pandas, khong LightGBM.
 
 Bat `ConvergenceWarning`:
 
@@ -442,7 +442,7 @@ Bat buoc bao phu:
 - convergence warning;
 - fold product roles;
 - metric tinh tay va aggregation;
-- muc dich lan_chay;
+- muc dich lan chay;
 - T+1 M3;
 - publication/rollback/SHA-256/reproducibility;
 - toan bo 121 test Moc 0–3.
@@ -451,8 +451,12 @@ CI ngoai tuyen, khong goi Vnstock trong test.
 
 ## 16. Phu thuoc va cua kiem soat
 
-Sau khi doan 00 xac minh kien truc, duoc them `scikit-learn==1.9.0` bang commit dependency rieng. Khong pandas neu chua co ly do moi; khong LightGBM.
+`scikit-learn==1.9.0` da duoc them bang commit dependency rieng; lock gom day du dependency bac duoi cho Python 3.12. Khong pandas; khong LightGBM.
 
-Truoc du lieu that, doan 00 xac nhan universe/proxy, VNINDEX va lich benchmark, co_so_gia, corporate actions neu can.
+Truoc du lieu that, doan 00 xac nhan universe/proxy, VNINDEX va lich benchmark, co so gia, corporate actions neu can.
 
 PR #10 giu Draft. Khong force-push, khong merge, khong du lieu that, khong Moc 5.
+
+## 17. Trang thai trien khai fixture
+
+Da trien khai 16 module theo so do, 97 kiem thu Moc 4 va dependency `scikit-learn==1.9.0`. CI Python 3.12 chay compileall va toan bo unittest ngoai tuyen. Moi du lieu trong test la fixture; chua chay Tier A/Tier B, chua tai VN100/VNINDEX that va chua cong bo ket qua hieu qua.

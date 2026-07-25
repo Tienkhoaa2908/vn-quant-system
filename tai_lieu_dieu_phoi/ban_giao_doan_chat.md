@@ -4,59 +4,32 @@ Cập nhật: 2026-07-25
 
 ## Vai trò và nền
 
-- Đoạn `00` là đầu mối điều phối trung tâm.
-- Đoạn `04` là đoạn chuyên môn triển khai Mốc 4.
+- Đoạn `00`: điều phối và nghiệm thu.
+- Đoạn `04`: triển khai Mốc 4.
 - Kho: `Tienkhoaa2908/vn-quant-system`.
-- `main`: `24bf02a7cf0f18d5a0fe342356b8ea0e045b1ed6`.
-- Nhánh chuyên môn: `m4-dac_trung-xep_hang-hoc_may`.
-- Base đã duyệt: `24bf02a7cf0f18d5a0fe342356b8ea0e045b1ed6`.
-- Không force-push, không commit `du_lieu/`, không tự gộp PR.
+- Base: `24bf02a7cf0f18d5a0fe342356b8ea0e045b1ed6`.
+- Nhánh: `m4-dac_trung-xep_hang-hoc_may`.
+- PR: #10, Draft, không force-push và không tự gộp.
 
-## Cửa mở Mốc 4
+## Trạng thái bàn giao
 
-- PR đặc tả số 9 đã gộp bằng merge commit `24bf02a7cf0f18d5a0fe342356b8ea0e045b1ed6`.
-- CI sau gộp:
-  - workflow `kiem_tra_tu_dong`;
-  - run `#187`;
-  - Run ID `30162993192`;
-  - Job ID `89691237408`;
-  - checkout đúng `24bf02a7cf0f18d5a0fe342356b8ea0e045b1ed6` trên `main`;
-  - `completed/success`.
-- Nhánh chuyên môn đã được tạo từ đúng merge commit.
-- Chưa có mã Mốc 4 tại thời điểm bàn giao.
+- Kiến trúc đã được đoạn 00 phê duyệt tại head `391ef1e99e0e1dd4a20931c1762090530ada2304`.
+- Đã bổ sung hợp đồng monthly sample/OOS/top-K/one-class.
+- Đã thêm `scikit-learn==1.9.0`, không pandas và không LightGBM.
+- Đã triển khai 16 module và 97 test Mốc 4 bằng fixture ngoại tuyến.
+- CI mã/test run #204, Run ID `30166974542`, Job ID `89701563209`, merge ref `4fcf21d296b739f9f7884339773be0df57a86cac`, thành công.
 
-## Đặc tả Mốc 4
+## Hợp đồng chính đã triển khai
 
-Tệp chính thức:
+1. PIT cutoff bằng timestamp có múi giờ.
+2. Mẫu train/validation/test tại phiên benchmark cuối tháng.
+3. T+H theo lịch benchmark, không forward-fill hoặc tìm endpoint khác.
+4. Expanding monthly walk-forward, purge/embargo, test không chồng lấn và model clock.
+5. StandardScaler + Logistic Regression L2/lbfgs; C chọn bằng validation; one-class/convergence fail closed.
+6. Chỉ prediction test vào metric/ranking/target weights/backtest.
+7. OOS stitching liên tục và gọi engine Mốc 3 một lần.
+8. 17 sản phẩm bất biến với staging, fsync, rollback và SHA-256.
 
-```text
-tai_lieu/dac_ta_moc_4.md
-```
+## Cửa tiếp theo
 
-Các quyết định đã phê duyệt:
-
-1. VN100 point-in-time là universe ưu tiên.
-2. Universe thanh khoản cao point-in-time là proxy khi chưa có lịch sử VN100 tin cậy.
-3. Mục tiêu ít nhất 5 năm dữ liệu hữu dụng; ưu tiên 7–10 năm khi chất lượng cho phép.
-4. Warm-up theo cửa sổ dài nhất, tối thiểu MA250.
-5. Giá điều chỉnh hoặc giá không điều chỉnh cộng corporate actions; không trộn hai chế độ.
-6. Feature MVP gồm xu hướng, động lượng, biến động, thanh khoản và regime.
-7. Tiền xử lý chỉ fit trên train.
-8. Nhãn nhị phân dựa trên lợi nhuận tương đối 20 phiên.
-9. Walk-forward expanding window, purge/embargo và tái huấn luyện hằng tháng.
-10. Momentum baseline và Logistic Regression trước LightGBM.
-11. Ranking xác suất, `top_k`, tái cân bằng tháng và tỷ trọng đều để kiểm tra.
-12. Đánh giá ngoài mẫu, sản phẩm bất biến, SHA-256 và báo cáo coverage.
-
-## Yêu cầu với đoạn 04
-
-- Đọc toàn bộ đặc tả trước khi viết mã.
-- Báo kế hoạch kiến trúc trước khi triển khai phần lớn hệ thống.
-- Tách module universe, coverage, feature, label, walk-forward, preprocessing, model, ranking, backtest adapter, metrics, publication và CLI.
-- CI hoàn toàn ngoại tuyến.
-- Không gọi Vnstock trong GitHub Actions.
-- Không thêm LightGBM.
-- Mở PR Draft và giữ Draft.
-- Không chạy universe thật mở rộng trước khi đoạn 00 mở cửa.
-- Không mở Mốc 5.
-- Không kết nối SSI, không đọc tài khoản và không gửi lệnh.
+Đoạn `00` rà soát PR #10. Chưa được chạy Tier A/Tier B, chưa tải VN100/VNINDEX thật, chưa chuyển Ready, chưa gộp và chưa mở Mốc 5. Không kết nối SSI, không đọc tài khoản và không gửi lệnh.
