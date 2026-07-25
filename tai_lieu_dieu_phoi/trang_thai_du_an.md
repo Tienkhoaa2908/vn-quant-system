@@ -21,37 +21,48 @@ Trang thai: **da dong hoan toan**.
 
 ## Moc 3 — Mo phong giao dich va backtest
 
-Trang thai: **PR so 7 dang draft; da sua theo vong ra soat cua doan 00; chua duoc Ready hoac gop**.
+Trang thai: **PR so 7 dang Draft; ma, kiem thu va xac minh ky thuat tren du lieu that da hoan tat; chua duoc Ready hoac gop**.
 
-Da hoan thanh vong sua:
+Da hoan thanh:
 
-- co tuc tien mat chot quyen tai `ngay_hieu_luc`, luu nghia vu va tra tai `ngay_thanh_toan`;
-- giao dich sau ngay chot quyen khong thay doi so luong duoc huong;
-- ban truoc, sau do dinh co lenh mua theo tien mat sau ban, gia khop, phi, slippage va lot;
-- lenh va khop lenh ghi khoi luong yeu cau, chap nhan, bi giam va ly do;
-- so cai ghi realized/unrealized P&L, co tuc, slippage, phi mua/ban va thue ban;
-- doi soat NAV theo quy uoc gia von da chot trong `DECISIONS.md`;
-- eligibility fail closed cho mo/tang vi the; giam/dong duoc phep kem canh bao;
-- validation nghiem ngat cho slippage, phi/thue, gia tri giao dich va tham so nguyen;
-- stdout va bao cao loi dung chung co che lam sach credential;
-- hop dong `don_vi_gia`/`don_vi_tien` bat buoc va truy vet trong ba san pham JSON;
-- bo test Moc 3 tang tu 17 len 60 test tach rieng theo loi nghiep vu.
+- sua quyen co tuc tien mat theo ngay chot quyen va ngay thanh toan;
+- dinh co suc mua sau ban, tinh gia khop, phi, slippage va lot;
+- hoan thien realized/unrealized P&L, chi phi va doi soat NAV;
+- eligibility fail closed cho mo/tang vi the;
+- validation bien chi phi, so nguyen, don vi va lam sach credential;
+- 121 test: 60 test Moc 3 va 61 test hoi quy Moc 0–2;
+- tai lieu kien truc, README va ban giao;
+- xac minh ky thuat engine tren FPT, HPG va MBB.
 
-Bang chung kiem thu:
+## Xac minh ky thuat tren du lieu that
 
-- Tong 121 test: 60 Moc 3 va 61 hoi quy Moc 0–2.
-- CI Python 3.12 chay compile va unittest ngoai tuyen tren head va `refs/pull/7/merge`.
-- Head, Run ID, Job ID va merge commit tam moi nhat la du lieu dong, duoc ghi trong mo ta PR so 7 de khong tao commit tai lieu lam cu bang chung.
+- Ma lan chay: `xac_minh_fpt_hpg_mbb_20260725T074736Z`.
+- Nguon Moc 1: `20260724T190515274806Z_6cd15c6d`.
+- 287 phien moi ma; 861 dong sau khi ghep gia Moc 1 voi trang thai Moc 2.
+- Moi truong: Python `3.12.10`, uv `0.11.32`.
+- Kich ban: FPT/HPG/MBB moi ma 30%, giu 10% tien mat; mua 2025-06-30 va dong het 2026-07-23.
+- Engine tao 287 dong NAV, 287 dong so cai, 6/6 lenh khop, khong het han/tu choi.
+- Tien mat khong am; ba vi the duoc dong het; chenh lech doi soat `0.0000000`.
+- Tao dung 9 san pham, xac minh SHA-256 manifest va khong co canh bao.
 
-## Chua hoan thanh
+Chi tiet so lieu va phuong phap: `tai_lieu/ket_qua_xac_minh_that_moc_3.md`.
 
-- Chua chay backtest FPT, HPG, MBB that sau vong sua nay.
-- Chua co phan quyet nghiem thu moi cua doan 00.
-- Chua chuyen PR Ready va chua gop.
+## Gioi han nghiem thu
 
-## Pham vi van bi khoa
+- Ket qua chi xac minh ky thuat engine, khong phai bang chung hieu qua dau tu.
+- Ty trong 30% moi ma la kich ban kiem tra; khong su dung baseline MA250-dong-luong.
+- Snapshot membership chua phai lich su thanh vien that.
+- Nguong thanh khoan chua phai cau hinh san xuat.
+- Co so gia `khong_dieu_chinh` chua duoc nguon xac nhan doc lap.
+- Khong truyen corporate actions that.
+- Chi co ba ma va mot khoang thoi gian; khong dien giai loi nhuan nhu danh gia chien luoc.
+- Chua co ML, walk-forward, inverse volatility hoac gioi han nganh.
 
+## Cua kiem soat
+
+- Doan 00 xac minh diff, 121 test va CI tren head moi.
+- PR so 7 tiep tuc Draft; khong Ready, khong gop va khong force-push.
+- Khong commit du lieu, san pham backtest hay log that; diff khong duoc co tep duoi `du_lieu/`.
 - Khong mo Moc 4.
-- Khong Logistic Regression, LightGBM, walk-forward ML, inverse volatility san xuat, tran 15% moi ma hay 25% moi nganh.
-- Khong commit du lieu thi truong that, log that, danh sach thanh vien bi han che, khoa hoac token.
 - Khong tich hop SSI, khong doc tai khoan va khong gui lenh.
+- Head, Run ID, Job ID va merge commit tam moi nhat duoc ghi trong mo ta PR so 7.
