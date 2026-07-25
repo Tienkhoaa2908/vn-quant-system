@@ -134,7 +134,7 @@ Mua-va-giu, can-bang-deu va MA250-dong-luong chi la baseline kiem tra engine. Mo
 
 ## QD-0028: Co tuc tien mat chot quyen tai ngay hieu luc
 
-Voi `co_tuc_tien_mat`, `ngay_hieu_luc`, `ngay_thanh_toan`, `gia_tri_tien_mat` va `nguon` deu bat buoc. Engine chot so luong duoc huong tai `ngay_hieu_luc`, luu nghia vu theo khoa su kien va chi thanh toan nghia vu do tai `ngay_thanh_toan`. Mua, ban hoac thay doi vi the sau ngay hieu_luc khong thay doi quyen. Cung mot su kien khong duoc chot hoac thanh toan hai lan.
+Voi `co_tuc_tien_mat`, `ngay_hieu_luc`, `ngay_thanh_toan`, `gia_tri_tien_mat` va `nguon` deu bat buoc. Engine chot so luong duoc huong tai `ngay_hieu_luc`, luu nghia vu theo khoa su kien va chi thanh toan nghia vu do tai `ngay_thanh_toan`. Mua, ban hoac thay doi vi the sau ngay hieu luc khong thay doi quyen. Cung mot su kien khong duoc chot hoac thanh toan hai lan.
 
 ## QD-0029: Dinh co lenh mua truoc khop khong phai partial fill
 
