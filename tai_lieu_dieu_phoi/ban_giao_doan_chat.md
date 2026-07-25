@@ -7,80 +7,67 @@ Cap nhat: 2026-07-25
 - Doan `00` la dau moi dieu phoi trung tam.
 - Doan `03 Mo phong giao dich va backtest` phu trach Moc 3.
 - Kho: `Tienkhoaa2908/vn-quant-system`.
-- Nhanh chinh: `main`.
 - Nhanh chuyen mon: `m3-mo_phong-giao_dich`.
 - Base da phe duyet: `f52e06ffd4dde26e8af9d6451ec1e64f5a61b35d`.
-- Bon commit dieu phoi dau nhanh duoc giu nguyen, khong reset/squash/sua lich su.
+- PR trien khai: so 7, `M3: mo phong giao dich va backtest`.
+- PR phai giu draft; khong Ready, khong auto-merge, khong gop, khong force-push.
 
-## Nen da xac minh
+## Yeu cau sua cua doan 00 va ket qua
 
-- PR Mốc 2 số 5 gop bang merge commit `6e8d2ed49c2ef57e43c9f0f2249361b26b838b33`.
-- FPT, HPG, MBB Mốc 2 moi ma 287 phien va 38 dong MA250.
-- PR dieu phoi số 6 gop bang merge commit `f52e06ffd4dde26e8af9d6451ec1e64f5a61b35d`.
-- CI sau gop PR số 6: run 86, Run ID `30123567224`, Job ID `89581624420`, thanh cong.
-- Dac ta Mốc 3 va tam quyet dinh kien truc da duoc phe duyet.
+### Quyen co tuc tien mat
 
-## PR trien khai Mốc 3
+Engine khong con lay vi the tai ngay thanh toan. Tai `ngay_hieu_luc`, engine chot so luong duoc huong va luu nghia vu theo khoa su kien; tai `ngay_thanh_toan`, engine cong dung nghia vu da chot. Mua/ban sau ngay hieu luc khong thay doi quyen. Duplicate event bi tu choi.
 
-- PR: số 7.
-- Tieu de: `M3: mo phong giao dich va backtest`.
-- Trang thai bat buoc: draft.
-- Base: `main`.
-- Head: `m3-mo_phong-giao_dich`.
-- Khong chuyen Ready, khong bat auto-merge va khong gop.
+### Suc mua
 
-## Kien truc da trien khai
+Engine tach `so_luong_yeu_cau` va `so_luong` chap nhan. Ban chay truoc; sau ban, tung lenh mua duoc dinh co theo tien mat, gia khop open co slippage, phi mua va lot size. Khoi luong bi giam va ly do duoc ghi trong lenh/khop lenh. Day la pre-trade sizing, khong phai market partial fill.
 
-- `mo_hinh.py`: cau hinh, thanh gia, ty trong, corporate actions, lenh, khop lenh, vi the, so cai va ket qua.
-- `engine.py`: dong ho phien, tao/thuc thi lenh, bat bien tien mat/vi the, corporate actions va NAV.
-- `baseline.py`: mua-va-giu, can-bang-deu, MA250/dong-luong.
-- `chi_so.py`: loi nhuan, CAGR, drawdown, Sharpe, turnover va chi phi.
-- `bao_cao.py`: CSV/JSON, SHA-256, manifest, cong bo nguyen tu, rollback va bao cao loi rieng.
-- `dong_lenh.py`: CLI va truy vet dau vao/cau hinh/Git/Python/uv.
+### So cai
 
-## Quy tac nghiep vu chinh
+So cai da co realized/unrealized P&L, co tuc, slippage, phi mua, phi ban va thue ban. Gia von gom gia khop da co slippage, khong gom phi mua. Realized P&L tinh truoc phi ban va thue. Cuoi moi phien engine doi soat:
 
-1. Tin hieu sau close T; khop som nhat tai open phien ke tiep.
-2. Lenh DAY; thieu bar/open thi het han, khong tim phien xa hon.
-3. Mua/bán cong/tru truot gia; phi theo chieu; thue chi phia ban.
-4. Khong partial fill; lenh hop le khop toan bo hoac bi tu choi.
-5. Ban truoc mua; trong moi chieu sap xep ma tang dan.
-6. Long-only, khong margin, khong tien mat am, khong ban vuot vi the.
-7. Chia tach/co phieu thuong truoc giao dich/dinh gia; co tuc tien mat tai ngay thanh toan.
-8. Gia dieu chinh kem corporate actions bi tu choi de tranh tinh hai lan.
+```text
+NAV = von_dau + realized_luy_ke + unrealized + co_tuc_luy_ke
+      - phi_mua_luy_ke - phi_ban_luy_ke - thue_ban_luy_ke
+```
 
-## San pham
+Slippage khong tru lan hai vi da nam trong gia khop.
 
-Mot lan chay thanh cong tao dung:
+### Eligibility
 
-- `cau_hinh.json`;
-- `lenh.csv`;
-- `khop_lenh.csv`;
-- `vi_the.csv`;
-- `so_cai.csv`;
-- `nav.csv`;
-- `chi_so.json`;
-- `bao_cao.json`;
-- `manifest.json`.
+Mo/tang vi the chi khi membership va liquidity deu `True`; `False` va `None` deu bi tu choi. Giam/dong duoc phep, kem canh bao.
 
-Thu muc thanh cong va that bai khong tron. Khong ghi de; cong bo qua thu muc tam va rename nguyen tu; rollback neu loi.
+### Validation, bao mat va don vi
+
+- `0 <= slippage_bps < 10000`; gia khop/gia tri giao dich duong; tien ban rong khong am.
+- Lot size va so phien nam la integer thuc su, khong ep float/bool.
+- `lam_sach_loi` dung chung cho stdout va bao cao loi.
+- `don_vi_gia`/`don_vi_tien` bat buoc thong nhat (`dong/dong` hoac `nghin_dong/nghin_dong`) va duoc ghi trong config/report/manifest.
+
+## Cau truc ma bo sung
+
+- `khop_lenh.py`: pre-trade sizing, fill, phi/thue/slippage va realized P&L.
+- `su_kien_doanh_nghiep.py`: chia tach, chot quyen va thanh toan co tuc.
+- `engine.py`: dong ho, eligibility, so cai va doi soat NAV.
+- `mo_hinh.py`: validation, don vi va cac truong audit.
+- `bao_cao.py`: cot audit, so cai, don vi va quy uoc ke toan.
 
 ## Kiem thu
 
-- Tep `tests/test_mo_phong.py` gom 17 phuong thuc nhom, bao phu 33 kich ban bat buoc cua dac ta.
-- Co kich ban vang tinh tay voi von, open, truot gia, khoi luong, phi, thue, tien, vi the, NAV va loi nhuan.
-- Workflow van chay toan bo test Mốc 0–2, compileall va Python 3.12 ngoai tuyen.
-- CI head cuoi phai duoc lay sau commit ban giao nay va ghi vao PR/bao cao.
+Bo Moc 3 co 60 test, gom 17 test hoi quy cu va 43 test moi tach theo:
 
-## Ket qua du lieu that
+- quyen co tuc;
+- suc mua;
+- so cai/P&L;
+- eligibility;
+- bien chi phi;
+- lam sach loi;
+- don vi.
 
-Chua chay Mốc 3 tren FPT, HPG, MBB trong vong connector nay vi khong co working tree/du lieu that/Vnstock runtime duoc mount. Day la cua nghiem thu con mo; khong duoc tuyen bo hieu qua dau tu.
+CI run 154, Run ID `30148946003`, da thanh cong tren head ma/test, tong 121 test (60 Moc 3 + 61 Moc 0–2). Final head, final CI va merge ref sau commit tai lieu duoc ghi trong mo ta PR so 7.
 
-## Gioi han va cua kiem soat
+## Du lieu that va cua kiem soat
 
-- Nguon lich su thanh vien that chua duoc phe duyet.
-- Khong partial fill/participation rate; chua co quyen mua, sap nhap, hoan doi va huy niem yet cuong buc.
-- Khong tich hop SSI, khong doc tai khoan va khong gui lenh.
-- Khong Logistic Regression, LightGBM hay chia von san xuat.
-- Khong mo Mốc 4.
-- Chi doan 00 duoc phep yeu cau sua, chuyen Ready, cho phep gop va mo mốc tiep theo.
+Chua chay backtest FPT, HPG, MBB that sau vong sua. Chi sau khi doan 00 xac minh ma va CI moi, nguoi dung moi duoc chay xac minh that. Khong commit dau ra that.
+
+Khong mo Moc 4; khong SSI, ML, inverse volatility san xuat, tran ma/nganh hay toi uu danh muc. Nguon lich su thanh vien that chua duoc phe duyet.
