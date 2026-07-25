@@ -114,6 +114,16 @@ class TestLogisticM4(unittest.TestCase):
         self.assertFalse(result.thanh_cong)
         self.assertEqual(result.ly_do_that_bai, "tat_ca_candidate_khong_hop_le")
 
+    def test_refit_convergence_warning_fold_fail(self):
+        calls = {"count": 0}
+        def factory(**kwargs):
+            calls["count"] += 1
+            return FakePipeline(kwargs["C"], warn=calls["count"] == 4)
+        result = self.run_model(pipeline_factory=factory)
+        self.assertFalse(result.thanh_cong)
+        self.assertEqual(result.ly_do_that_bai, "refit_khong_hoi_tu")
+        self.assertEqual(du_doan_test(result, self.validation), ())
+
     def test_tie_chon_c_nho_hon(self):
         def factory(**kwargs):
             return FakePipeline(kwargs["C"], probabilities=(0.5, 0.5))

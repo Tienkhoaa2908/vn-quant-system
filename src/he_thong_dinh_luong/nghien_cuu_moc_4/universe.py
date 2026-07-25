@@ -5,7 +5,7 @@ from collections import defaultdict
 from datetime import date, datetime
 from typing import Iterable
 
-from .mo_hinh import BanGhiUniverse, TrangThaiUniverse, xac_thuc_timestamp
+from .mo_hinh import BanGhiPointInTime, BanGhiUniverse, TrangThaiUniverse, xac_thuc_timestamp
 
 
 def xac_dinh_universe(
@@ -20,6 +20,7 @@ def xac_dinh_universe(
     keys = [r.khoa() for r in records]
     if len(keys) != len(set(keys)):
         raise ValueError("Trung ban ghi universe theo ma/ngay_hieu_luc/thoi_diem_cong_bo.")
+
     by_symbol: dict[str, list[BanGhiUniverse]] = defaultdict(list)
     for record in records:
         by_symbol[record.ma].append(record)
@@ -52,3 +53,35 @@ def xac_dinh_universe(
 
 def cac_ma_hop_le(*args: object, **kwargs: object) -> tuple[str, ...]:
     return tuple(row.ma for row in xac_dinh_universe(*args, **kwargs) if row.thuoc_universe)
+
+
+def chon_ban_ghi_pit(
+    ban_ghi: Iterable[BanGhiPointInTime],
+    *,
+    ngay: date,
+    thoi_diem_tao_tin_hieu: datetime,
+    loai_du_lieu: str,
+) -> list[BanGhiPointInTime]:
+    """Chon snapshot PIT moi nhat theo tung khoa, fail closed va timezone-aware."""
+    signal_time = xac_thuc_timestamp(thoi_diem_tao_tin_hieu, "thoi_diem_tao_tin_hieu")
+    if loai_du_lieu not in {"benchmark_metadata", "corporate_action", "su_kien_point_in_time"}:
+        raise ValueError("loai_du_lieu PIT khong hop le.")
+    records = [r for r in ban_ghi if r.loai_du_lieu == loai_du_lieu]
+    keys = [r.khoa() for r in records]
+    if len(keys) != len(set(keys)):
+        raise ValueError(f"Trung ban ghi {loai_du_lieu} point-in-time.")
+    by_key: dict[str, list[BanGhiPointInTime]] = defaultdict(list)
+    for record in records:
+        if record.ngay_hieu_luc <= ngay and record.thoi_diem_cong_bo <= signal_time:
+            by_key[record.khoa_ban_ghi].append(record)
+    selected: list[BanGhiPointInTime] = []
+    for key in sorted(by_key):
+        candidates = by_key[key]
+        latest_effective = max(x.ngay_hieu_luc for x in candidates)
+        candidates = [x for x in candidates if x.ngay_hieu_luc == latest_effective]
+        latest_publication = max(x.thoi_diem_cong_bo for x in candidates)
+        candidates = [x for x in candidates if x.thoi_diem_cong_bo == latest_publication]
+        if len(candidates) != 1:
+            raise ValueError(f"{loai_du_lieu} {key} khong xac dinh sau tie-break.")
+        selected.append(candidates[0])
+    return selected

@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 
 MUC_DICH_HOP_LE = {"kiem_tra_ky_thuat", "nghien_cuu"}
 TAN_SUAT_MAU_HOP_LE = {"cuoi_thang"}
@@ -90,6 +90,7 @@ class CauHinhMoc4:
             raise ValueError(f"Thieu cau hinh: {', '.join(missing)}.")
         if extra:
             raise ValueError(f"Cau hinh ngoai hop dong: {', '.join(extra)}.")
+
         feature_order = data["feature_order"]
         required = data["feature_bat_buoc"]
         c_grid = data["C_grid"]
@@ -106,8 +107,7 @@ class CauHinhMoc4:
         if not isinstance(c_grid, list) or not c_grid:
             raise TypeError("C_grid phai la list khong rong.")
         parsed_c = tuple(_float_that(x, "C_grid") for x in c_grid)
-        if data["class_weight"] is not None:
-            raise ValueError("class_weight MVP phai la null.")
+
         result = cls(
             muc_dich_lan_chay=_str_that(data["muc_dich_lan_chay"], "muc_dich_lan_chay"),
             tan_suat_mau_mo_hinh=_str_that(data["tan_suat_mau_mo_hinh"], "tan_suat_mau_mo_hinh"),
@@ -127,7 +127,7 @@ class CauHinhMoc4:
             C_grid=parsed_c,
             solver=_str_that(data["solver"], "solver"),
             max_iter=_int_that(data["max_iter"], "max_iter", min_value=1),
-            class_weight=None,
+            class_weight=data["class_weight"] if data["class_weight"] is None else (_ for _ in ()).throw(ValueError("class_weight MVP phai la null.")),
             seed=_int_that(data["seed"], "seed", min_value=0),
             thu_muc_dau_ra=Path(_str_that(data["thu_muc_dau_ra"], "thu_muc_dau_ra")),
         )
@@ -244,6 +244,31 @@ class BanGhiUniverse:
 
 
 @dataclass(frozen=True)
+class BanGhiPointInTime:
+    """Ban ghi PIT dung chung cho benchmark metadata, corporate actions va event."""
+    loai_du_lieu: str
+    khoa_ban_ghi: str
+    ngay_hieu_luc: date
+    nguon: str
+    phien_ban: str
+    thoi_diem_cong_bo: datetime
+    du_lieu: Mapping[str, object] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if self.loai_du_lieu not in {"benchmark_metadata", "corporate_action", "su_kien_point_in_time"}:
+            raise ValueError("loai_du_lieu PIT khong hop le.")
+        if not self.khoa_ban_ghi or not self.nguon or not self.phien_ban:
+            raise ValueError("Ban ghi PIT thieu khoa, nguon hoac phien_ban.")
+        xac_thuc_timestamp(self.thoi_diem_cong_bo, "thoi_diem_cong_bo")
+
+    def khoa(self) -> tuple[object, ...]:
+        return (
+            self.loai_du_lieu, self.khoa_ban_ghi, self.ngay_hieu_luc,
+            self.thoi_diem_cong_bo, self.nguon, self.phien_ban,
+        )
+
+
+@dataclass(frozen=True)
 class TrangThaiUniverse:
     ngay: date
     ma: str
@@ -346,3 +371,18 @@ class KetQuaHuanLuyen:
     thanh_cong: bool
     ly_do_that_bai: str | None
     metadata: Mapping[str, object] = field(default_factory=dict)
+
+
+def xac_thuc_co_so_gia_va_su_kien(cau_hinh: CauHinhMoc4, *, so_su_kien: int) -> tuple[str, ...]:
+    """Khoa hop dong co so gia truoc khi chuyen corporate actions vao engine."""
+    if not isinstance(so_su_kien, int) or isinstance(so_su_kien, bool) or so_su_kien < 0:
+        raise TypeError("so_su_kien phai la int khong am; khong ep kieu ngam.")
+    if cau_hinh.co_so_gia == "gia_dieu_chinh" and so_su_kien > 0:
+        raise ValueError("gia_dieu_chinh khong duoc kem corporate actions.")
+    if (
+        cau_hinh.muc_dich_lan_chay == "nghien_cuu"
+        and cau_hinh.co_so_gia == "gia_khong_dieu_chinh"
+        and not cau_hinh.corporate_actions_day_du
+    ):
+        raise ValueError("nghien_cuu gia_khong_dieu_chinh can corporate actions day du.")
+    return cau_hinh.canh_bao_muc_dich()
