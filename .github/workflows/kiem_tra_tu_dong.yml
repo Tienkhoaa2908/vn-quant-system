@@ -2,7 +2,7 @@ name: kiem_tra_tu_dong
 
 on:
   push:
-    branches: [main, m3-mo_phong-giao_dich]
+    branches: [main, m4-dac_trung-xep_hang-hoc_may]
   pull_request:
   workflow_dispatch:
 
