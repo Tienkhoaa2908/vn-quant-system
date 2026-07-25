@@ -103,3 +103,31 @@ Bao cao Moc 2 canh bao rieng khi mot ma co duoi 250 phien, vi chua du de tinh MA
 ## QD-0020: Cau hinh lan chay duoc cong bo cung ket qua quy trinh
 
 Cau hinh anh huong den viec lay du lieu, nhu `so_nen_yeu_cau`, phai duoc truyen vao `chay_quy_trinh` truoc khi tao san pham. `ket_qua_lan_chay` la nguon duy nhat tao noi dung `tong_hop.json`; stdout dung cung noi dung va chi bo sung duong dan tep tong hop. Khong duoc chen cau hinh bang cach doc va ghi de tep bat bien sau khi cong bo. Cac khoa cau hinh khong duoc trung voi khoa he thong cua tong hop.
+
+## QD-0021: Dong ho giao dich va lenh DAY Moc 3
+
+Tin hieu ngay T chi duoc tao sau khi close T da biet. Lenh chi duoc khop tai open cua dung phien thi truong ke tiep. Neu ma thieu bar hoac thieu open tai ngay do, lenh DAY het han; khong tim phien xa hon va khong thay open bang gia khac.
+
+## QD-0022: Gia khop, phi, thue va partial fill
+
+Mua dung `open * (1 + truot_gia_bps/10000)`; ban dung `open * (1 - truot_gia_bps/10000)`. Phi tinh theo tung chieu; thue chi ap dung phia ban. MVP khong partial fill va khong participation rate: lenh khop toan bo khoi luong hop le hoac bi tu choi.
+
+## QD-0023: Thu tu xu ly tien mat xac dinh
+
+Trong mot ngay, lenh ban duoc xu ly truoc lenh mua; trong moi chieu sap xep ma tang dan. Lenh mua canh tranh tien mat duoc xu ly theo thu tu nay. Khong duoc lam tien mat am, ban vuot vi the hoac tao vi the am.
+
+## QD-0024: Corporate actions MVP va co so gia
+
+Chia tach/co phieu thuong ap dung truoc giao dich va dinh gia trong ngay hieu luc; so luong va lenh cho nhan he so, gia von chia cho cung he so. Co tuc tien mat chi tang tien vao ngay thanh toan. Neu gia da dieu chinh ma van cung cap corporate actions, lan chay bi tu choi de tranh tinh hai lan.
+
+## QD-0025: Chi so Moc 3
+
+Loi nhuan phien la `NAV_t/NAV_(t-1)-1`; maximum drawdown la `min(NAV_t/peak_t-1)`; Sharpe dung do lech chuan mau va lai phi rui ro quy doi theo phien; turnover la `(tong_mua+tong_ban)/(2*NAV_trung_binh)`. Sharpe tra null khi khong du quan sat hoac phuong sai bang 0.
+
+## QD-0026: Cong bo thu muc ket qua nguyen tu
+
+Chin san pham Moc 3 duoc tao trong thu muc tam, fsync va rename nguyen tu sang thu muc lan chay moi. Khong ghi de. Neu cong bo loi, thu muc tam bi xoa. Thu muc thanh cong va that bai khong duoc tron; manifest ghi Git commit, co so gia, dau vao va SHA-256 san pham.
+
+## QD-0027: Baseline khong phai chien luoc san xuat
+
+Mua-va-giu, can-bang-deu va MA250-dong-luong chi la baseline kiem tra engine. Moc 3 khong ket noi SSI, khong hoc may va khong chia von san xuat.
