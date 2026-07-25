@@ -4,58 +4,70 @@ Cap nhat: 2026-07-25
 
 ## Doan phu trach
 
-Doan `03 Mo phong giao dich va backtest` phu trach Moc 3 duoi dieu phoi cua doan `00 Dieu phoi trung tam`.
+Doan `00 Dieu phoi trung tam` phu trach dong ho so Moc 3 sau gop va chuan bi cua phe duyet cho dac ta tiep theo.
 
 ## Nen bat buoc
 
 - Kho: `Tienkhoaa2908/vn-quant-system`.
-- Base: `f52e06ffd4dde26e8af9d6451ec1e64f5a61b35d`.
-- Nhanh: `m3-mo_phong-giao_dich`.
-- PR: so 7, bat buoc Draft.
-- Khong force-push, khong gop, khong Ready va khong mo Moc 4.
+- `main`: `79a044d75f3a66e5c636f0a83613fc9af0cac3fc`.
+- Nhanh dieu phoi: `cap_nhat-sau-gop-m3`.
+- Pham vi nhanh: chi tai lieu dieu phoi sau gop.
+- Khong force-push, khong sua truc tiep `main`, khong tu gop.
 - Khong commit tep nao duoi `du_lieu/`.
+- Khong trien khai ma Moc 4 tren nhanh nay.
 
-## Ket qua vong sua va nghiem thu
+## Moc 3 da dong
 
-1. Co tuc tien mat chot quyen tai ngay hieu luc va thanh toan nghia vu da chot.
-2. Dinh co suc mua sau khi ban, tinh ca fill price, phi, slippage va lot size.
-3. Hoan thien realized/unrealized P&L, co tuc, phi/thue/slippage va doi soat NAV.
-4. Eligibility fail closed cho mo/tang vi the; giam/dong van duoc phep kem canh bao.
-5. Khoa bien slippage, phi/thue, gia khop, gia tri giao dich va so nguyen cau hinh.
-6. Lam sach credential dong nhat trong stdout va `bao_cao_loi.json`.
-7. Bat buoc `don_vi_gia` va `don_vi_tien` thong nhat, truy vet trong config/report/manifest.
-8. Bo Moc 3 co 60 test; toan repository co 121 test.
-9. Da chay xac minh ky thuat tren FPT, HPG va MBB bang du lieu that ngoai repository.
+- PR so 7 da gop bang merge commit `79a044d75f3a66e5c636f0a83613fc9af0cac3fc`.
+- Head da phe duyet: `305da62ac54b735a129ab4dc2c66b0826b8953c3`.
+- PR da dong va `merged=true`.
+- `main` trung khop voi merge commit.
 
-## Ket qua xac minh du lieu that
+CI sau gop:
 
-- Ma lan chay: `xac_minh_fpt_hpg_mbb_20260725T074736Z`.
-- Nguon Moc 1: `20260724T190515274806Z_6cd15c6d`.
-- 287 phien moi ma; 861 dong sau khi ghep voi trang thai Moc 2.
-- Python `3.12.10`; uv `0.11.32`.
-- FPT/HPG/MBB moi ma 30%, giu 10% tien mat.
-- Tin hieu mua 2025-06-27, khop mua 2025-06-30.
-- Tin hieu ban 2026-07-22, khop ban 2026-07-23.
-- 287 dong NAV, 287 dong so cai, 6 lenh tao va 6 lenh khop.
-- 0 lenh het han, 0 lenh tu choi, dong het ba vi the, tien mat khong am.
-- Chenh lech doi soat `0.0000000`; 9 san pham dung dac ta; manifest SHA-256 dat; khong canh bao.
+- run number `183`;
+- Run ID `30150924124`;
+- Job ID `89661073156`;
+- trigger `push`;
+- branch `main`;
+- checkout `79a044d75f3a66e5c636f0a83613fc9af0cac3fc`;
+- `completed/success`;
+- compile va 121 unittest ngoai tuyen dat.
 
-Chi tiet: `tai_lieu/ket_qua_xac_minh_that_moc_3.md`.
+Canh bao Node.js 20 deprecated khong lam thay doi ket qua CI.
 
-## Gioi han
+## Ket qua chuyen giao Moc 3
 
-- Day chi la xac minh ky thuat engine, khong phai bang chung hieu qua dau tu.
-- Ty trong 30% moi ma chi la kich ban kiem tra; khong dung baseline MA250-dong-luong.
-- Snapshot membership chua phai lich su thanh vien that.
-- Nguong thanh khoan chua phai cau hinh san xuat.
-- Co so gia `khong_dieu_chinh` chua duoc nguon xac nhan doc lap.
-- Khong co corporate actions that; chi co ba ma va mot khoang thoi gian.
-- Khong dien giai loi nhuan am hoac duong nhu danh gia chien luoc.
-- Chua co ML, walk-forward, inverse volatility hoac gioi han nganh.
+1. Engine T/T+1, lenh DAY va xu ly thieu bar/open.
+2. Phi, thue, slippage, lot size va dinh co suc mua.
+3. Tien mat, vi the, so cai, NAV va doi soat P&L.
+4. Corporate actions MVP va chong tinh hai lan.
+5. Eligibility fail closed cho mo/tang vi the.
+6. Don vi gia/tien va lam sach credential.
+7. 121 test, 9 san pham bat bien va manifest SHA-256.
+8. Xac minh ky thuat tren FPT, HPG, MBB: 287 phien moi ma, 6/6 lenh khop, doi soat `0.0000000`.
 
-## Cua kiem soat tiep theo
+## Gioi han con lai
 
-- Doan 00 xac minh diff khong co `du_lieu/`, 121 test va CI tren head moi.
-- CI phai checkout `refs/pull/7/merge`.
-- Head, Run ID, Job ID va merge commit tam la du lieu dong, duoc ghi trong mo ta PR so 7.
-- PR tiep tuc Draft; khong Ready, khong gop va khong mo Moc 4.
+- Bo ba ma chi la du lieu xac minh ky thuat.
+- Chua co lich su thanh vien VN100 point-in-time that.
+- Chua co corporate actions that duoc phe duyet.
+- Chua co nghien cuu nhieu nam tren toan universe.
+- Chua co ML, walk-forward, inverse volatility, gioi han ma va gioi han nganh.
+- Khong dien giai ket qua lan chay Moc 3 nhu hieu qua chien luoc.
+
+## Cong viec tiep theo
+
+1. Tao PR dieu phoi chi gom tai lieu sau gop Moc 3.
+2. Xac minh CI cua PR dieu phoi.
+3. Chi gop PR dieu phoi khi co lenh rieng cua doan 00/nguoi dung.
+4. Sau khi PR dieu phoi gop va CI `main` dat, soan dac ta Moc 4 de phe duyet.
+5. Dac ta Moc 4 phai chot ro:
+   - universe VN100 point-in-time hoac universe thanh khoan cao point-in-time;
+   - lich su nhieu nam, muc tieu 5–10 nam neu chat luong du lieu cho phep;
+   - warm-up MA250;
+   - kiem soat survivorship bias va look-ahead;
+   - feature, nhan va walk-forward;
+   - Logistic Regression truoc LightGBM.
+
+Moc 4 hien **chua mo** va chua co nhanh trien khai.
