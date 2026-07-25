@@ -14,16 +14,12 @@ from uuid import uuid4
 from .bao_cao import (
     cong_bo_bao_cao_loi,
     cong_bo_san_pham,
+    lam_sach_loi,
     ma_bam_tep,
     tao_noi_dung_san_pham,
 )
 from .engine import chay_mo_phong
-from .mo_hinh import (
-    cau_hinh_mo_phong,
-    chuan_hoa_gia,
-    chuan_hoa_su_kien,
-    chuan_hoa_ty_trong,
-)
+from .mo_hinh import cau_hinh_mo_phong, chuan_hoa_gia, chuan_hoa_su_kien, chuan_hoa_ty_trong
 
 
 def _doc_csv(duong_dan: Path) -> list[dict[str, str]]:
@@ -43,18 +39,14 @@ def _git_commit() -> str:
     if bien:
         return bien
     try:
-        return subprocess.run(
-            ["git", "rev-parse", "HEAD"], check=True, capture_output=True, text=True
-        ).stdout.strip()
+        return subprocess.run(["git", "rev-parse", "HEAD"], check=True, capture_output=True, text=True).stdout.strip()
     except (OSError, subprocess.SubprocessError):
         return "khong_xac_dinh"
 
 
 def _uv_version() -> str | None:
     try:
-        return subprocess.run(
-            ["uv", "--version"], check=True, capture_output=True, text=True
-        ).stdout.strip()
+        return subprocess.run(["uv", "--version"], check=True, capture_output=True, text=True).stdout.strip()
     except (OSError, subprocess.SubprocessError):
         return None
 
@@ -79,26 +71,16 @@ def main(argv: list[str] | None = None) -> int:
         tep_gia = Path(tham_so.duong_co_so)
         tep_ty_trong = Path(tham_so.ty_trong_muc_tieu)
         tep_cau_hinh = Path(tham_so.cau_hinh)
-        tep_su_kien = (
-            Path(tham_so.su_kien_doanh_nghiep)
-            if tham_so.su_kien_doanh_nghiep
-            else None
-        )
+        tep_su_kien = Path(tham_so.su_kien_doanh_nghiep) if tham_so.su_kien_doanh_nghiep else None
         cau_hinh_raw = _doc_json(tep_cau_hinh)
         if not isinstance(cau_hinh_raw, dict):
             raise ValueError("cau_hinh.json phai la mot doi tuong JSON.")
         cau_hinh = cau_hinh_mo_phong.tu_mapping(cau_hinh_raw)
         gia = chuan_hoa_gia(_doc_csv(tep_gia))
         ty_trong = chuan_hoa_ty_trong(_doc_csv(tep_ty_trong))
-        su_kien = chuan_hoa_su_kien(
-            _doc_csv(tep_su_kien) if tep_su_kien else (),
-            co_so_gia=cau_hinh.co_so_gia,
-        )
+        su_kien = chuan_hoa_su_kien(_doc_csv(tep_su_kien) if tep_su_kien else (), co_so_gia=cau_hinh.co_so_gia)
         ket_qua = chay_mo_phong(gia, ty_trong, cau_hinh, su_kien)
-        ma_lan_chay = tham_so.ma_lan_chay or (
-            f"{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ')}_"
-            f"{uuid4().hex[:8]}"
-        )
+        ma_lan_chay = tham_so.ma_lan_chay or f"{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ')}_{uuid4().hex[:8]}"
         sha_dau_vao = {
             "duong_co_so": ma_bam_tep(tep_gia),
             "ty_trong_muc_tieu": ma_bam_tep(tep_ty_trong),
@@ -113,7 +95,7 @@ def main(argv: list[str] | None = None) -> int:
             "su_kien_doanh_nghiep": str(tep_su_kien) if tep_su_kien else None,
         }
         gioi_han = (
-            "Khong mo phong partial fill hoac participation rate.",
+            "Khong mo phong market partial fill hoac participation rate; giam khoi luong truoc khop la dinh co theo suc mua.",
             "Khong ket noi SSI, khong doc tai khoan va khong gui lenh.",
             "Baseline Moc 3 chi dung de kiem tra engine, khong phai chien luoc san xuat.",
             "Nguon lich su thanh vien that chua duoc phe duyet.",
@@ -130,27 +112,11 @@ def main(argv: list[str] | None = None) -> int:
             gioi_han=gioi_han,
         )
         cong_bo_san_pham(dau_ra, noi_dung)
-        print(
-            json.dumps(
-                {
-                    "trang_thai": "thanh_cong",
-                    "ma_lan_chay": ma_lan_chay,
-                    "thu_muc_dau_ra": str(dau_ra),
-                },
-                ensure_ascii=False,
-                sort_keys=True,
-            )
-        )
+        print(json.dumps({"trang_thai": "thanh_cong", "ma_lan_chay": ma_lan_chay, "thu_muc_dau_ra": str(dau_ra)}, ensure_ascii=False, sort_keys=True))
         return 0
     except (OSError, ValueError, AssertionError, json.JSONDecodeError) as exc:
         cong_bo_bao_cao_loi(dau_ra, exc, thoi_diem_chay_utc=thoi_diem)
-        print(
-            json.dumps(
-                {"trang_thai": "that_bai", "loi": str(exc)},
-                ensure_ascii=False,
-                sort_keys=True,
-            )
-        )
+        print(json.dumps({"trang_thai": "that_bai", "loi": lam_sach_loi(exc)}, ensure_ascii=False, sort_keys=True))
         return 2
 
 
