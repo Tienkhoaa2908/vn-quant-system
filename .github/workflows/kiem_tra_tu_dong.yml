@@ -15,7 +15,7 @@ jobs:
   kiem_tra:
     runs-on: ubuntu-latest
     steps:
-      - name: Bao cao payload Moc 4
+      - name: Bao cao raw deflate payload Moc 4
         if: github.event_name == 'pull_request' && github.event.pull_request.number == 10
         env:
           GH_TOKEN: ${{ github.token }}
@@ -24,11 +24,13 @@ jobs:
           python - <<'PY'
           import base64
           import hashlib
+          import io
           import json
           import os
-          from pathlib import Path
+          from pathlib import PurePosixPath
           import tarfile
           import urllib.request
+          import zlib
 
           request = urllib.request.Request(
               f"https://api.github.com/repos/{os.environ['REPOSITORY']}/issues/10/comments?per_page=100",
@@ -47,29 +49,38 @@ jobs:
                   marker, payload = body.split("\n", 1)
                   pieces[marker.split()[1].split("/", 1)[0]] = payload.strip()
           required = [f"{index:02d}" for index in range(10)] + ["10A", "10B", "11"]
-          encoded_raw = "".join(pieces[key] for key in required)
-          padding = "=" * (-len(encoded_raw) % 4)
+          encoded = "".join(pieces[key] for key in required)
+          raw = base64.b64decode(encoded + "=" * (-len(encoded) % 4), validate=True)
           report = {
-              "keys": sorted(pieces),
-              "lengths": {key: len(pieces[key]) for key in required},
-              "encoded_length": len(encoded_raw),
-              "mod4": len(encoded_raw) % 4,
-              "padding_added": len(padding),
+              "encoded_length": len(encoded),
+              "raw_length": len(raw),
+              "raw_sha256": hashlib.sha256(raw).hexdigest(),
+              "header_hex": raw[:10].hex(),
+              "footer_hex": raw[-8:].hex(),
           }
           try:
-              raw = base64.b64decode(encoded_raw + padding, validate=True)
-              report["raw_length"] = len(raw)
-              report["sha256"] = hashlib.sha256(raw).hexdigest()
-              report["magic_hex"] = raw[:16].hex()
-              path = Path("/tmp/m4_payload.tar.gz")
-              path.write_bytes(raw)
-              with tarfile.open(path, "r:gz") as archive:
-                  report["members"] = [member.name for member in archive.getmembers()]
-              report["archive_valid"] = True
+              tar_bytes = zlib.decompress(raw[10:-8], -zlib.MAX_WBITS)
+              report["tar_length"] = len(tar_bytes)
+              report["tar_sha256"] = hashlib.sha256(tar_bytes).hexdigest()
+              members = []
+              with tarfile.open(fileobj=io.BytesIO(tar_bytes), mode="r:") as archive:
+                  for member in archive.getmembers():
+                      path = PurePosixPath(member.name)
+                      safe = not path.is_absolute() and ".." not in path.parts
+                      extracted = archive.extractfile(member) if member.isfile() else None
+                      content = extracted.read() if extracted is not None else b""
+                      members.append({
+                          "name": member.name,
+                          "size": member.size,
+                          "safe": safe,
+                          "sha256": hashlib.sha256(content).hexdigest() if member.isfile() else None,
+                      })
+              report["members"] = members
+              report["tar_valid"] = all(item["safe"] for item in members)
           except Exception as exc:
-              report["archive_valid"] = False
+              report["tar_valid"] = False
               report["error_type"] = type(exc).__name__
               report["error"] = str(exc)
-          print("M4_PAYLOAD_REPORT=" + json.dumps(report, ensure_ascii=True, sort_keys=True))
+          print("M4_RAW_DEFLATE_REPORT=" + json.dumps(report, ensure_ascii=True, sort_keys=True))
           raise SystemExit(1)
           PY
