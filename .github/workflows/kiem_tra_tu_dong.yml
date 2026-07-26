@@ -63,9 +63,12 @@ jobs:
           required = [f"{index:02d}" for index in range(10)] + ["10A", "10B", "11"]
           report = {"keys": sorted(pieces), "missing": [key for key in required if key not in pieces]}
           try:
-              encoded = "".join(pieces[key] for key in required)
+              encoded_raw = "".join(pieces[key] for key in required)
+              padding = "=" * (-len(encoded_raw) % 4)
+              encoded = encoded_raw + padding
+              report["encoded_length"] = len(encoded_raw)
+              report["padding_added"] = len(padding)
               raw = base64.b64decode(encoded, validate=True)
-              report["encoded_length"] = len(encoded)
               report["raw_length"] = len(raw)
               report["sha256"] = hashlib.sha256(raw).hexdigest()
               path = Path("/tmp/m4_payload.tar.gz")
@@ -83,14 +86,13 @@ jobs:
           )
           PY
           git fetch origin m4-dac_trung-xep_hang-hoc_may
-          git switch -C m4-dac_trung-xep_hang-hoc_may origin/m4-dac_trung-xep_hang-hoc_may
+          git switch -C m4-dac_trung-xep-hang-hoc_may origin/m4-dac_trung-xep-hang-hoc_may
           cp /tmp/m4_payload_report.md tai_lieu/chan_doan_payload_moc_4.md
-          rm -f .github/workflows/chan_doan_payload_m4.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git diff --cached --check
           if ! git diff --cached --quiet; then
-            git commit -m "cap nhat chan doan SHA payload Moc 4"
+            git commit -m "cap nhat chan doan padding payload Moc 4"
             git push origin HEAD:m4-dac_trung-xep_hang-hoc_may
           fi
