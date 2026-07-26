@@ -85,7 +85,16 @@ jobs:
         env:
           PYTHONPATH: src
           NO_PROXY: "*"
-        run: uv run --python 3.12 python -m unittest discover -s tests -p 'test_*.py' -v
+        run: |
+          set -o pipefail
+          uv run --python 3.12 python -m unittest discover -s tests -p 'test_*.py' -v 2>&1 | tee unittest-windows.log
+      - name: Tai log unittest Windows
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unittest-windows
+          path: unittest-windows.log
+          if-no-files-found: error
       - name: Tai thong tin phien ban
         if: always()
         uses: actions/upload-artifact@v4
