@@ -1,1 +1,1 @@
-trigger final runner m4
+trigger final runner m4 lan 2
