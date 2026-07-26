@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   issues: read
   pull-requests: read
 
@@ -29,7 +29,7 @@ jobs:
         env:
           NO_PROXY: "*"
         run: PYTHONPATH=src uv run --python 3.12 python -m unittest discover -s tests -p 'test_*.py' -v
-      - name: Chan doan payload Moc 4
+      - name: Ghi chan doan payload Moc 4
         if: github.event_name == 'pull_request' && github.event.pull_request.number == 10
         env:
           GH_TOKEN: ${{ github.token }}
@@ -61,10 +61,11 @@ jobs:
                   marker, payload = body.split("\n", 1)
                   pieces[marker.split()[1].split("/", 1)[0]] = payload.strip()
           required = [f"{index:02d}" for index in range(10)] + ["10A", "10B", "11"]
-          encoded = "".join(pieces[key] for key in required)
-          report = {"keys": sorted(pieces), "encoded_length": len(encoded)}
+          report = {"keys": sorted(pieces), "missing": [key for key in required if key not in pieces]}
           try:
+              encoded = "".join(pieces[key] for key in required)
               raw = base64.b64decode(encoded, validate=True)
+              report["encoded_length"] = len(encoded)
               report["raw_length"] = len(raw)
               report["sha256"] = hashlib.sha256(raw).hexdigest()
               path = Path("/tmp/m4_payload.tar.gz")
@@ -76,5 +77,20 @@ jobs:
               report["archive_valid"] = False
               report["error_type"] = type(exc).__name__
               report["error"] = str(exc)
-          print("M4_PAYLOAD_REPORT=" + json.dumps(report, ensure_ascii=True, sort_keys=True))
+          Path("/tmp/m4_payload_report.md").write_text(
+              "# Chan doan payload Moc 4\n\n```json\n" + json.dumps(report, ensure_ascii=False, indent=2) + "\n```\n",
+              encoding="utf-8",
+          )
           PY
+          git fetch origin m4-dac_trung-xep_hang-hoc_may
+          git switch -C m4-dac_trung-xep_hang-hoc_may origin/m4-dac_trung-xep_hang-hoc_may
+          cp /tmp/m4_payload_report.md tai_lieu/chan_doan_payload_moc_4.md
+          rm -f .github/workflows/chan_doan_payload_m4.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          if ! git diff --cached --quiet; then
+            git commit -m "cap nhat chan doan SHA payload Moc 4"
+            git push origin HEAD:m4-dac_trung-xep_hang-hoc_may
+          fi
