@@ -1,39 +1,95 @@
-name: cap_nhat_quyet_dinh_lock
+name: kiem_tra_tu_dong
 
 on:
   push:
     branches:
+      - main
+      - m4-dac_trung-xep_hang-hoc_may
       - m4-dac_trung-xep-hang-hoc_may-sach-v2
-
-permissions:
-  contents: write
+  pull_request:
+  workflow_dispatch:
 
 jobs:
-  cap_nhat_quyet_dinh:
+  kiem_tra_ubuntu:
     runs-on: ubuntu-24.04
-    steps:
-      - name: Lay nhanh
-        uses: actions/checkout@v4
-        with:
-          ref: m4-dac_trung-xep-hang-hoc_may-sach-v2
-          fetch-depth: 0
-      - name: Ghi QD-0059
+    defaults:
+      run:
         shell: bash
+    steps:
+      - name: Lay ma nguon
+        uses: actions/checkout@v4
+      - name: Cai dat uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.32"
+      - name: Cai dat Python
+        run: uv python install 3.12
+      - name: Kiem tra khoa dependency
+        run: uv lock --check
+      - name: Dong bo moi truong
+        run: uv sync --frozen --python 3.12
+      - name: Ghi nhan phien ban
         run: |
-          if grep -q "QD-0059: Dependency lock bat buoc da nen tang" DECISIONS.md; then
-            echo "QD-0059 da ton tai."
-            exit 0
-          fi
-          cat >> DECISIONS.md <<'DECISION'
+          {
+            uv --version
+            uv run --python 3.12 python --version
+            uv run --python 3.12 python -c "import sklearn; print('scikit-learn', sklearn.__version__)"
+          } | tee phien-ban-ci-ubuntu.txt
+      - name: Kiem tra cu phap
+        env:
+          PYTHONPATH: src
+        run: uv run --python 3.12 python -m compileall -q src tests
+      - name: Chay kiem thu ngoai tuyen
+        env:
+          PYTHONPATH: src
+          NO_PROXY: "*"
+        run: uv run --python 3.12 python -m unittest discover -s tests -p 'test_*.py' -v
+      - name: Tai thong tin phien ban
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phien-ban-ci-ubuntu
+          path: phien-ban-ci-ubuntu.txt
+          if-no-files-found: error
 
-          ## QD-0059: Dependency lock bat buoc da nen tang
-
-          Preflight Tier A tren Windows phat hien lock cu chi chua wheel manylinux cho NumPy, SciPy va scikit-learn, lam frozen sync that bai voi `BLOCKED_DEPENDENCY_LOCK_LINUX_ONLY_ON_WINDOWS`. Du an giu `package = false` va khai bao `required-environments` cho Linux x86_64 va Windows AMD64; khong dung marker de loai Windows.
-
-          Lock da nen tang giu nguyen `scikit-learn==1.9.0`, `numpy==2.3.5`, `scipy==1.17.0`, `joblib==1.5.3`, `narwhals==2.0.1` va `threadpoolctl==3.6.0`. CI bat buoc chay `uv 0.11.32`, `uv lock --check`, frozen sync, compileall va toan bo unittest tren ca `ubuntu-24.04` va `windows-2025`. Sua lock khong thay doi logic Moc 4; Tier A/Tier B va du lieu that van chua chay.
-          DECISION
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add DECISIONS.md
-          git commit -m "ghi quyet dinh dependency lock da nen tang"
-          git push origin HEAD:m4-dac_trung-xep-hang-hoc_may-sach-v2
+  kiem_tra_windows:
+    runs-on: windows-2025
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Lay ma nguon
+        uses: actions/checkout@v4
+      - name: Cai dat uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.32"
+      - name: Cai dat Python
+        run: uv python install 3.12
+      - name: Kiem tra khoa dependency
+        run: uv lock --check
+      - name: Dong bo moi truong
+        run: uv sync --frozen --python 3.12
+      - name: Ghi nhan phien ban
+        run: |
+          {
+            uv --version
+            uv run --python 3.12 python --version
+            uv run --python 3.12 python -c "import sklearn; print('scikit-learn', sklearn.__version__)"
+          } | tee phien-ban-ci-windows.txt
+      - name: Kiem tra cu phap
+        env:
+          PYTHONPATH: src
+        run: uv run --python 3.12 python -m compileall -q src tests
+      - name: Chay kiem thu ngoai tuyen
+        env:
+          PYTHONPATH: src
+          NO_PROXY: "*"
+        run: uv run --python 3.12 python -m unittest discover -s tests -p 'test_*.py' -v
+      - name: Tai thong tin phien ban
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phien-ban-ci-windows
+          path: phien-ban-ci-windows.txt
+          if-no-files-found: error
