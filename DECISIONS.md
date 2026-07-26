@@ -293,3 +293,9 @@ Tap phien yeu cau cua tung ma la giao cua khoang nghien cuu, thoi gian tu phien 
 ## QD-0058: Nghien cuu khong duoc thanh cong rong
 
 Benchmark file phai co dung mot ma va bang `config.benchmark`; MVP khoa VNINDEX. `nghien_cuu` tu choi cong bo neu thieu benchmark metadata PIT, khong co fold test hop le, prediction OOS hoac ngay tai can bang, tat ca fold that bai, coverage/universe duoi nguong, hoac co so gia/corporate actions khong dat. `kiem_tra_ky_thuat` co the tiep tuc nhung bat buoc ghi canh bao.
+
+## QD-0059: Dependency lock bat buoc da nen tang
+
+Preflight Tier A tren Windows phat hien lock cu chi chua wheel manylinux cho NumPy, SciPy va scikit-learn, lam frozen sync that bai voi `BLOCKED_DEPENDENCY_LOCK_LINUX_ONLY_ON_WINDOWS`. Du an giu `package = false` va khai bao `required-environments` cho Linux x86_64 va Windows AMD64; khong dung marker de loai Windows.
+
+Lock da nen tang giu nguyen `scikit-learn==1.9.0`, `numpy==2.3.5`, `scipy==1.17.0`, `joblib==1.5.3`, `narwhals==2.0.1` va `threadpoolctl==3.6.0`. CI bat buoc chay `uv 0.11.32`, `uv lock --check`, frozen sync, compileall va toan bo unittest tren ca `ubuntu-24.04` va `windows-2025`. Sua lock khong thay doi logic Moc 4; Tier A/Tier B va du lieu that van chua chay.
