@@ -1,96 +1,107 @@
-name: kiem_tra_tu_dong
+name: hoan_tat_sua_lock
 
 on:
   push:
     branches:
-      - main
-      - m4-dac_trung-xep_hang-hoc_may
       - m4-dac_trung-xep-hang-hoc_may-sach-v2
-  pull_request:
-  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  cap_nhat_lock:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/m4-dac_trung-xep-hang-hoc_may-sach-v2'
+  hoan_tat:
     runs-on: ubuntu-24.04
     steps:
-      - name: Lay nhanh can cap nhat
+      - name: Lay nhanh
         uses: actions/checkout@v4
         with:
           ref: m4-dac_trung-xep-hang-hoc_may-sach-v2
           fetch-depth: 0
-      - name: Cai dat uv
-        uses: astral-sh/setup-uv@v6
-        with:
-          version: "0.11.32"
-      - name: Cai dat Python
-        run: uv python install 3.12
-      - name: Tai tao va commit uv.lock
+      - name: Cap nhat quyet dinh va khoi phuc CI thuần tuy
         shell: bash
         run: |
-          uv lock --python 3.12
-          if git diff --quiet -- uv.lock; then
-            echo "uv.lock da dung; khong tao commit."
-            exit 0
+          if ! grep -q "QD-0059: Dependency lock bat buoc da nen tang" DECISIONS.md; then
+            cat >> DECISIONS.md <<'DECISION'
+
+          ## QD-0059: Dependency lock bat buoc da nen tang
+
+          Preflight Tier A tren Windows phat hien lock cu chi chua wheel manylinux cho NumPy, SciPy va scikit-learn, lam frozen sync that bai voi `BLOCKED_DEPENDENCY_LOCK_LINUX_ONLY_ON_WINDOWS`. Du an giu `package = false` va khai bao `required-environments` cho Linux x86_64 va Windows AMD64; khong dung marker de loai Windows.
+
+          Lock da nen tang giu nguyen `scikit-learn==1.9.0`, `numpy==2.3.5`, `scipy==1.17.0`, `joblib==1.5.3`, `narwhals==2.0.1` va `threadpoolctl==3.6.0`. CI bat buoc chay `uv 0.11.32`, `uv lock --check`, frozen sync, compileall va toan bo unittest tren ca `ubuntu-24.04` va `windows-2025`. Sua lock khong thay doi logic Moc 4; Tier A/Tier B va du lieu that van chua chay.
+          DECISION
           fi
+
+          cat > .github/workflows/kiem_tra_tu_dong.yml <<'FINAL_WORKFLOW'
+          name: kiem_tra_tu_dong
+
+          on:
+            push:
+              branches:
+                - main
+                - m4-dac_trung-xep_hang-hoc_may
+                - m4-dac_trung-xep-hang-hoc_may-sach-v2
+            pull_request:
+            workflow_dispatch:
+
+          jobs:
+            kiem_tra:
+              name: kiem_tra_${{ matrix.he_dieu_hanh }}
+              strategy:
+                fail-fast: false
+                matrix:
+                  include:
+                    - he_dieu_hanh: ubuntu
+                      runner: ubuntu-24.04
+                    - he_dieu_hanh: windows
+                      runner: windows-2025
+              runs-on: ${{ matrix.runner }}
+              defaults:
+                run:
+                  shell: bash
+              steps:
+                - name: Lay ma nguon
+                  uses: actions/checkout@v4
+                - name: Cai dat uv
+                  uses: astral-sh/setup-uv@v6
+                  with:
+                    version: "0.11.32"
+                - name: Cai dat Python
+                  run: uv python install 3.12
+                - name: Kiem tra khoa dependency
+                  run: uv lock --check
+                - name: Dong bo moi truong
+                  run: uv sync --frozen --python 3.12
+                - name: Ghi nhan phien ban
+                  run: |
+                    {
+                      uv --version
+                      uv run --python 3.12 python --version
+                      uv run --python 3.12 python -c "import sklearn; print('scikit-learn', sklearn.__version__)"
+                    } | tee "phien-ban-ci-${{ matrix.he_dieu_hanh }}.txt"
+                - name: Kiem tra cu phap
+                  env:
+                    PYTHONPATH: src
+                  run: uv run --python 3.12 python -m compileall -q src tests
+                - name: Chay kiem thu ngoai tuyen
+                  env:
+                    PYTHONPATH: src
+                    NO_PROXY: "*"
+                  run: uv run --python 3.12 python -m unittest discover -s tests -p 'test_*.py' -v
+                - name: Tai thong tin phien ban
+                  if: always()
+                  uses: actions/upload-artifact@v4
+                  with:
+                    name: phien-ban-ci-${{ matrix.he_dieu_hanh }}
+                    path: phien-ban-ci-${{ matrix.he_dieu_hanh }}.txt
+                    if-no-files-found: error
+          FINAL_WORKFLOW
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add uv.lock
-          git commit -m "cap nhat uv lock da nen tang do uv 0.11.32 sinh ra"
+          git add DECISIONS.md .github/workflows/kiem_tra_tu_dong.yml
+          if git diff --cached --quiet; then
+            echo "Khong co thay doi can commit."
+            exit 0
+          fi
+          git commit -m "hoan tat tai lieu va CI da nen tang"
           git push origin HEAD:m4-dac_trung-xep-hang-hoc_may-sach-v2
-
-  kiem_tra:
-    name: kiem_tra_${{ matrix.he_dieu_hanh }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - he_dieu_hanh: ubuntu
-            runner: ubuntu-24.04
-          - he_dieu_hanh: windows
-            runner: windows-2025
-    runs-on: ${{ matrix.runner }}
-    defaults:
-      run:
-        shell: bash
-    steps:
-      - name: Lay ma nguon
-        uses: actions/checkout@v4
-      - name: Cai dat uv
-        uses: astral-sh/setup-uv@v6
-        with:
-          version: "0.11.32"
-      - name: Cai dat Python
-        run: uv python install 3.12
-      - name: Tai tao khoa dependency bang uv
-        run: uv lock --python 3.12
-      - name: Dong bo moi truong
-        run: uv sync --frozen --python 3.12
-      - name: Ghi nhan phien ban
-        run: |
-          {
-            uv --version
-            uv run --python 3.12 python --version
-            uv run --python 3.12 python -c "import sklearn; print('scikit-learn', sklearn.__version__)"
-          } | tee "phien-ban-ci-${{ matrix.he_dieu_hanh }}.txt"
-      - name: Kiem tra cu phap
-        env:
-          PYTHONPATH: src
-        run: uv run --python 3.12 python -m compileall -q src tests
-      - name: Chay kiem thu ngoai tuyen
-        env:
-          PYTHONPATH: src
-          NO_PROXY: "*"
-        run: uv run --python 3.12 python -m unittest discover -s tests -p 'test_*.py' -v
-      - name: Tai thong tin phien ban
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: phien-ban-ci-${{ matrix.he_dieu_hanh }}
-          path: phien-ban-ci-${{ matrix.he_dieu_hanh }}.txt
-          if-no-files-found: error
-      - name: Xac nhan lock trong repository da duoc cap nhat
-        run: git diff --exit-code -- uv.lock
