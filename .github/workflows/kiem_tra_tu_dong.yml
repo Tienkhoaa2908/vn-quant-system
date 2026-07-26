@@ -118,11 +118,11 @@ jobs:
           import os
           from pathlib import Path
           import subprocess
+          import traceback
           import urllib.request
 
           repo = os.environ["REPOSITORY"]
           token = os.environ["GH_TOKEN"]
-          parent = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
 
           def api(path, method="GET", payload=None):
               data = None if payload is None else json.dumps(payload).encode("utf-8")
@@ -140,55 +140,64 @@ jobs:
               with urllib.request.urlopen(request) as response:
                   return json.load(response)
 
-          raw = subprocess.check_output(
-              ["git", "diff", "--cached", "--name-status", "-z", "HEAD"]
-          ).split(b"\0")
-          if raw and raw[-1] == b"":
-              raw.pop()
-          if len(raw) % 2:
-              raise SystemExit("Khong doc duoc danh sach thay doi staged")
+          try:
+              parent = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+              raw_paths = subprocess.check_output(
+                  ["git", "diff", "--cached", "--name-only", "--no-renames", "-z", "HEAD"]
+              ).split(b"\0")
+              paths = [item.decode("utf-8") for item in raw_paths if item]
+              changes = []
+              for path in paths:
+                  if path.startswith(".github/workflows/"):
+                      raise RuntimeError(f"Commit object khong duoc sua workflow: {path}")
+                  listed = subprocess.run(
+                      ["git", "ls-files", "--error-unmatch", "--", path],
+                      stdout=subprocess.DEVNULL,
+                      stderr=subprocess.DEVNULL,
+                  ).returncode == 0
+                  if not listed:
+                      changes.append({"path": path, "mode": "100644", "type": "blob", "sha": None})
+                      continue
+                  content = Path(path).read_bytes()
+                  blob = api(
+                      "/git/blobs",
+                      "POST",
+                      {"content": base64.b64encode(content).decode("ascii"), "encoding": "base64"},
+                  )
+                  mode = subprocess.check_output(
+                      ["git", "ls-files", "-s", "--", path], text=True
+                  ).split()[0]
+                  changes.append({"path": path, "mode": mode, "type": "blob", "sha": blob["sha"]})
 
-          changes = []
-          for index in range(0, len(raw), 2):
-              status = raw[index].decode("utf-8")
-              path = raw[index + 1].decode("utf-8")
-              if path.startswith(".github/workflows/"):
-                  raise SystemExit(f"Commit object khong duoc sua workflow: {path}")
-              if status == "D":
-                  changes.append({"path": path, "mode": "100644", "type": "blob", "sha": None})
-                  continue
-              if status not in {"A", "M"}:
-                  raise SystemExit(f"Trang thai staged chua ho tro: {status} {path}")
-              content = Path(path).read_bytes()
-              blob = api(
-                  "/git/blobs",
+              parent_object = api(f"/git/commits/{parent}")
+              tree = api(
+                  "/git/trees",
                   "POST",
-                  {"content": base64.b64encode(content).decode("ascii"), "encoding": "base64"},
+                  {"base_tree": parent_object["tree"]["sha"], "tree": changes},
               )
-              mode = subprocess.check_output(
-                  ["git", "ls-files", "-s", "--", path], text=True
-              ).split()[0]
-              changes.append({"path": path, "mode": mode, "type": "blob", "sha": blob["sha"]})
-
-          parent_object = api(f"/git/commits/{parent}")
-          tree = api(
-              "/git/trees",
-              "POST",
-              {"base_tree": parent_object["tree"]["sha"], "tree": changes},
-          )
-          commit = api(
-              "/git/commits",
-              "POST",
-              {
-                  "message": "hoan thien runner dau cuoi Moc 4",
-                  "tree": tree["sha"],
-                  "parents": [parent],
-              },
-          )
-          api(
-              "/issues/10/comments",
-              "POST",
-              {"body": f"M4_FINAL_COMMIT {commit['sha']} parent={parent} files={len(changes)} tests=267"},
-          )
-          print(f"M4_FINAL_COMMIT {commit['sha']}")
+              commit = api(
+                  "/git/commits",
+                  "POST",
+                  {
+                      "message": "hoan thien runner dau cuoi Moc 4",
+                      "tree": tree["sha"],
+                      "parents": [parent],
+                  },
+              )
+              api(
+                  "/issues/10/comments",
+                  "POST",
+                  {"body": f"M4_FINAL_COMMIT {commit['sha']} parent={parent} files={len(changes)} tests=267"},
+              )
+              print(f"M4_FINAL_COMMIT {commit['sha']}")
+          except Exception:
+              detail = traceback.format_exc()
+              try:
+                  api(
+                      "/issues/10/comments",
+                      "POST",
+                      {"body": "M4_FINAL_ERROR\n```text\n" + detail[-5000:] + "\n```"},
+                  )
+              finally:
+                  raise
           PY
