@@ -26,6 +26,7 @@ def bao_cao_do_phu(
     cac_ngay_thuc_te: Iterable[date] = (),
     cac_ma_universe: Iterable[str] = (),
     phien_co_du_lieu_theo_ma: Mapping[str, Iterable[date]] | None = None,
+    phien_yeu_cau_theo_ma: Mapping[str, Iterable[date]] | None = None,
     coverage_theo_ngay: Mapping[date, tuple[int, int]] | None = None,
     ma_that_bai_hoan_toan: Iterable[str] = (),
     ma_thieu_warm_up: Iterable[str] = (),
@@ -57,6 +58,9 @@ def bao_cao_do_phu(
     sessions_by_symbol = {
         symbol: set(days) for symbol, days in (phien_co_du_lieu_theo_ma or {}).items()
     }
+    required_by_symbol = {
+        symbol: set(days) for symbol, days in (phien_yeu_cau_theo_ma or {}).items()
+    }
     symbols_with_data = tuple(sorted(symbol for symbol in universe if sessions_by_symbol.get(symbol)))
 
     day_coverage_rows: list[dict[str, object]] = []
@@ -81,8 +85,9 @@ def bao_cao_do_phu(
 
     symbol_coverage_rows: list[dict[str, object]] = []
     for symbol in universe:
-        requested_count = len(requested)
-        available = len(set(requested) & sessions_by_symbol.get(symbol, set()))
+        required_sessions = required_by_symbol.get(symbol, set(requested))
+        requested_count = len(required_sessions)
+        available = len(required_sessions & sessions_by_symbol.get(symbol, set()))
         symbol_coverage_rows.append({
             "ma": symbol,
             "so_phien_co": available,
@@ -118,6 +123,7 @@ def bao_cao_do_phu(
             "benchmark": {"nguon": nguon_benchmark, "phien_ban": phien_ban_benchmark},
         },
         "co_so_gia": co_so_gia,
+        "chinh_sach_du_lieu_loi": "loai_dong_ma_co_kiem_soat_va_ghi_coverage",
         # Cac khoa cu duoc giu de khong pha hop dong kiem thu/nguoi dung hien tai.
         "tong_dong_loai": len(rows),
         "theo_ngay": dict(sorted(by_day.items())),

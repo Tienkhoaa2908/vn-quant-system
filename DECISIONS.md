@@ -259,3 +259,37 @@ Manifest bat buoc co SHA-256 tung dau vao va san pham, Git commit, ma lan chay, 
 ## QD-0051: NaN va Inf bi tu choi xuyen suot
 
 OHLCV, feature, probability, relative return, metric input va payload CSV/JSON phai huu han theo `math.isfinite`. Metric model/ranking tu xac thuc vai tro test, khoa `(ngay,ma)`, fold/model, probability va nhan; khong am tham dem trung.
+
+## QD-0052: Eligibility M4 la phep AND fail closed
+
+Tai ngay T, ma chi eligible khi dong thoi dat membership PIT, thanh khoan PIT, warm-up, feature bat buoc, chat luong du lieu, benchmark metadata PIT va open hop le tai dung phien T+1 tren lich benchmark. Thanh khoan MVP:
+
+```text
+gtgd_tb_20 = mean(gia_dong_cua * khoi_luong)
+```
+
+Tinh tren dung 20 phien benchmark ket thuc tai T, don vi dong/phien, khong forward-fill va khong dung du lieu sau T. Gia tri thieu hoac duoi `nguong_gtgd_tb_toi_thieu` ghi `khong_dat_thanh_khoan`. Thieu open dung T+1 ghi `thieu_open_t1`; open T+2 khong thay the.
+
+## QD-0053: Metric backtest chi tinh trong cua so OOS
+
+Moi run khoa `oos_start`, `ngay_bat_dau_metric` va `oos_end`. Engine chi nhan pham vi can de thuc thi tin hieu OOS dau tien; NAV va metric duoc cat tai `ngay_bat_dau_metric..oos_end`. Du lieu train/warm-up truoc OOS khong vao CAGR, Sharpe, turnover hoac cash ratio; du lieu sau `oos_end` khong anh huong metric. Von khoi tao mot lan va chuoi OOS lien tuc.
+
+## QD-0054: Fold test rong fail closed
+
+Sau refit, `selected["test"]` rong tao loi `test_rong`; khong tao prediction test tao loi `khong_co_prediction_test`. Fold khong tang `so_fold_thanh_cong`, khong them test date, ranking hoac ngay tai can bang. Loi duoc cong bo trong coverage va `mo_hinh.csv`.
+
+## QD-0055: Corporate action khong phu thuoc lich tin hieu
+
+Su kien duoc dung khi timestamp cong bo co mui gio, khong sau cutoff bao thu cua ngay hieu luc, ngay hieu luc nam trong cua so backtest va co so gia phu hop. Su kien giua hai ky tai can bang van duoc ap dung dung ngay hieu luc. Cong bo sau ngay hieu luc, ap dung hoi to, su kien trung va gia dieu chinh kem su kien deu bi tu choi.
+
+## QD-0056: Coverage theo ma la point-in-time
+
+Tap phien yeu cau cua tung ma la giao cua khoang nghien cuu, thoi gian tu phien du lieu hop le dau tien, membership PIT va cac phien thuc su can kiem tra. Khong tinh thieu truoc khi ma bat dau hop le hoac sau khi roi universe; `ma_co_gap` chi xet gap ben trong tap phien yeu cau. Chon policy B: dong/ma loi gia hoac volume bi loai co kiem soat, run tiep tuc va coverage ghi ro loi.
+
+## QD-0057: Model audit phan biet selection va refit
+
+`validation_selection` fit scaler/model tren train de chon C va cong bo validation processed rows bang selection scaler/model ID. `final_refit` fit tren train+validation va cong bo test processed rows bang refit scaler/model ID. Audit luu stage, hai model ID, scaler mean/scale, C, coefficients, intercept, n_iter, convergence/warning, candidate errors, feature order, cutoff va scikit-learn version.
+
+## QD-0058: Nghien cuu khong duoc thanh cong rong
+
+Benchmark file phai co dung mot ma va bang `config.benchmark`; MVP khoa VNINDEX. `nghien_cuu` tu choi cong bo neu thieu benchmark metadata PIT, khong co fold test hop le, prediction OOS hoac ngay tai can bang, tat ca fold that bai, coverage/universe duoi nguong, hoac co so gia/corporate actions khong dat. `kiem_tra_ky_thuat` co the tiep tuc nhung bat buoc ghi canh bao.

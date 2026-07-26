@@ -7,23 +7,19 @@ Cập nhật: 2026-07-26
 - Kho: `Tienkhoaa2908/vn-quant-system`.
 - Base: `24bf02a7cf0f18d5a0fe342356b8ea0e045b1ed6`.
 - Nhánh: `m4-dac_trung-xep_hang-hoc_may`.
-- PR #10 giữ Draft; không force-push và không tự gộp.
+- Head được đoạn 00 rà soát trước vòng: `8652067b99b689eca46636c2617231d7b87f0427`.
+- PR #10 phải giữ Draft.
 
-## Nội dung bàn giao
+## Final tree vòng này
 
-Mốc 4 đã có runner/CLI đầu-cuối ngoại tuyến. Pipeline thực hiện parse/validate, PIT, coverage, monthly calendar-aligned feature, T+H label, walk-forward, momentum baseline, Logistic Regression, OOS ranking/target/backtest, metrics và công bố 17 tệp.
+- Eligibility AND fail closed, thanh khoản PIT `gtgd_tb_20`, open đúng T+1; không tìm T+2.
+- OOS metric được cắt khỏi train/warm-up và dữ liệu sau `oos_end`; một vốn và một chuỗi liên tục.
+- Fold test rỗng/không prediction không được tính thành công hoặc tạo rebalance.
+- Corporate action giữa hai kỳ tín hiệu được áp dụng đúng effective date khi publication cutoff hợp lệ.
+- Coverage theo mã point-in-time, không phạt trước listing/entry hoặc sau exit; lỗi giá/volume theo policy B.
+- Audit phân biệt selection/refit scaler/model và công bố đầy đủ n_iter/convergence/candidate warning.
+- Research mode không công bố run toàn tiền mặt/rỗng như thành công.
 
-Các sửa khóa cuối:
+## Kiểm thử và giới hạn
 
-- lịch benchmark truyền riêng; thiếu bar đúng cửa sổ/endpoint không được bù;
-- coverage theo ngày/mã cùng nguồn, phiên bản, cơ sở giá và lỗi fold;
-- baseline và Logistic dùng cùng OOS dates/universe/eligibility/top_k/engine/chi phí;
-- adapter bắt `muc_tieu_bang_0`, đóng mã rời top_k và xử lý ngày danh mục rỗng;
-- manifest bắt metadata và SHA-256 từng input/product;
-- NaN/Inf và duplicate/role/fold/model bị từ chối.
-
-Suite: 146 test Mốc 4 + 121 test nền = 267 test. Fixture vàng xác minh runner, CLI, 17 tệp, fold, prediction, ranking, T+1, NAV, manifest và reproducibility.
-
-## Giới hạn
-
-Tier A/Tier B chưa chạy; chưa tải hoặc phê duyệt nguồn thật; không tuyên bố hiệu quả chiến lược. Không LightGBM, SSI, Ready, merge hoặc Mốc 5.
+Suite cục bộ: 308 test = 187 Mốc 4 + 121 nền; 41 test mới. CI Python 3.12 phải chạy trên commit cuối và merge ref. Tier A/Tier B, dữ liệu thật và phê duyệt nguồn chưa diễn ra; metric fixture không chứng minh hiệu quả chiến lược. Không LightGBM, Ready, merge, Mốc 5 hoặc nhánh sạch trước lệnh đoạn 00.

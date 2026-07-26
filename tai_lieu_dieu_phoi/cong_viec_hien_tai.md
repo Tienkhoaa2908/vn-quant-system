@@ -4,24 +4,26 @@ Cập nhật: 2026-07-26
 
 ## Đoạn phụ trách
 
-Đoạn `04` hoàn thiện Mốc 4 trên PR #10; đoạn `00` rà soát và quyết định cửa dữ liệu thật.
+Đoạn `04` hoàn thiện final tree Mốc 4 trên PR #10; đoạn `00` rà soát kỹ thuật và quyết định bước tạo nhánh sạch/dữ liệu thật.
 
-## Đã hoàn tất bằng fixture ngoại tuyến
+## Nội dung final tree
 
-1. Runner `chay_nghien_cuu_moc_4(...)` và CLI đầu-cuối từ tệp cục bộ.
-2. Lịch benchmark chính thức làm trục cho toàn bộ cửa sổ/endpoint feature; không forward-fill hoặc nén thời gian.
-3. Coverage schema đầy đủ theo yêu cầu.
-4. Momentum baseline và Logistic Regression dùng cùng OOS test set/engine/chi phí.
-5. Adapter bắt `muc_tieu_bang_0`, target 0 cho mã rời top_k và ngày rỗng về tiền mặt.
-6. Manifest bắt metadata, input/product SHA-256 và rollback.
-7. NaN/Inf, duplicate, role/fold/model validation fail closed.
-8. 146 test Mốc 4; toàn suite 267 test cùng 121 test hồi quy.
+1. Eligibility PIT với thanh khoản `gtgd_tb_20`, ngưỡng cấu hình, lý do `khong_dat_thanh_khoan` và open đúng T+1 (`thieu_open_t1`).
+2. Cửa sổ OOS khóa `oos_start`, `ngay_bat_dau_metric`, `oos_end`; train/warm-up và dữ liệu tương lai không ảnh hưởng metric.
+3. Fold test rỗng/không có prediction test fail closed.
+4. Corporate actions lọc theo publication/effective cutoff và cửa sổ backtest, không theo lịch tín hiệu tháng.
+5. Coverage point-in-time; gap chỉ trong phiên yêu cầu; policy B cho lỗi giá/volume.
+6. Model audit hai stage với scaler, hệ số, n_iter, warning, candidate error, cutoff và version.
+7. Research mode fail closed cho benchmark identity/metadata, fold, prediction, rebalance và ngưỡng coverage/universe.
+8. Giữ runner/CLI, baseline, adapter zero target, manifest SHA-256, finite protection, publication atomic và hồi quy Mốc 0–3.
 
-## Cửa tiếp theo thuộc đoạn 00
+## Kiểm thử
 
-- Rà soát diff/CI/PR #10 trong trạng thái Draft.
-- Nguồn thật chỉ được xác nhận và chạy Tier A/Tier B sau phê duyệt riêng.
+- Trước vòng: 267 test.
+- Bổ sung: 41 test tách riêng.
+- Hiện tại: 308 test, gồm 187 test Mốc 4 và 121 test nền.
+- Cần CI Python 3.12 trên head mới và merge ref PR #10 trước khi báo đoạn 00.
 
 ## Cấm hiện hành
 
-Không force-push, không Ready/merge, không dữ liệu thật, không LightGBM, không SSI và không mở Mốc 5. Không diễn giải fixture như hiệu quả chiến lược.
+Không workflow/payload chẩn đoán mới, không force-push/reset/rebase/squash, không Ready/merge, không Tier A/Tier B, không dữ liệu thật, không LightGBM và không Mốc 5. Chưa tạo nhánh sạch.

@@ -528,3 +528,36 @@ Kich ban vang:
 ## 23. Cua kiem soat
 
 Tier A/Tier B chua chay. VN100/VNINDEX, lich benchmark, co so gia va corporate actions that chua duoc phe duyet. Ket qua fixture chi xac minh ky thuat, khong duoc dung de tuyen bo hieu qua chien luoc. Khong LightGBM, SSI, Ready, merge hay Mốc 5.
+
+## 24. Eligibility, thanh khoan va open T+1
+
+Eligibility tai T la AND fail closed cua: membership PIT, thanh khoan PIT, warm-up, feature bat buoc hop le, chat luong du lieu, benchmark metadata PIT va open tai dung T+1. Thanh khoan MVP dung `gtgd_tb_20 = mean(close * volume)` tren dung 20 phien benchmark ket thuc tai T, don vi dong/phien, cutoff tai T va nguong cau hinh. `None`, thieu bar hoac duoi nguong ghi `khong_dat_thanh_khoan`. T+1 lay tu lich benchmark chinh thuc; thieu open dung T+1 ghi `thieu_open_t1`, khong tim xa hon.
+
+## 25. Cua so backtest va metric OOS
+
+Runner khoa ba ngay: `oos_start` la tin hieu test dau tien, `ngay_bat_dau_metric` la phien T+1 dau tien co the thuc thi, `oos_end` la diem ket thuc nhan/nam giu can thiet cua tin hieu test cuoi. Engine chi nhan gia trong pham vi OOS can thiet; ket qua NAV/lenh/su_kien duoc cat truoc khi tinh metric. Du lieu warm-up/train truoc OOS va du lieu sau `oos_end` khong vao metric. Mot engine call, mot von ban dau, mot chuoi lien tuc.
+
+## 26. Fold rong va model audit
+
+Fold refit thanh cong nhung test sample rong fail `test_rong`; co test sample nhung khong tao prediction fail `khong_co_prediction_test`. Ca hai khong tao ranking/target/rebalance va duoc ghi coverage/mo_hinh.
+
+Audit co hai stage:
+
+- `validation_selection`: pipeline fit train, dung de bien doi validation va chon C;
+- `final_refit`: pipeline fit train+validation, dung de bien doi/predict test.
+
+Moi stage co model ID rieng, scaler mean/scale, C, coefficients, intercept, n_iter, converged, warning, candidate errors, feature order, cutoff train/validation/test va scikit-learn version.
+
+## 27. Corporate action cutoff
+
+Corporate action khong duoc loc theo viec co ngay tin hieu nam giua publication/effective date. Su kien co timestamp cong bo co mui gio, cong bo khong sau cutoff bao thu cua ngay hieu luc, ngay hieu luc nam trong `oos_start..oos_end`, khong hoi to va phu hop co so gia thi duoc dua vao engine. Su kien giua hai ky tai can bang van duoc ap dung. Cong bo sau hieu luc, su kien trung va gia dieu chinh kem su kien bi tu choi.
+
+## 28. Coverage PIT va policy du lieu loi
+
+Mau so theo ma la `research range ∩ tu phien quan sat du lieu hop le/loi dau tien ∩ membership PIT ∩ phien can kiem tra`; neu ma khong co bat ky quan sat nao, membership PIT dau tien la fallback de ma that bai hoan toan van co mau so, gom T+1 khi can open. Ma moi khong bi phat truoc ngay bat dau; ma roi universe khong bi phat sau ngay roi; gap chi xet ben trong tap yeu cau. Policy B loai dong/ma loi gia/volume co kiem soat, ghi danh sach/khoa loi va coverage, khong cong bo bao cao thanh cong mau thuan voi exception.
+
+## 29. Research fail closed va kiem thu final tree
+
+Benchmark file co dung mot identity bang `config.benchmark`; MVP VNINDEX. Run `nghien_cuu` chi duoc cong bo khi co benchmark metadata PIT, it nhat mot fold test hop le, prediction test OOS, ngay tai can bang, coverage/universe dat nguong va hop dong gia/corporate actions dat. Technical run ghi canh bao thay vi tuyen bo nghien cuu thanh cong.
+
+Suite final tree gom 187 test Mốc 4 va 121 test Mốc 0–3, tong 308 test. 41 test moi cua vong nay tach rieng cho eligibility, OOS metamorphic, fold rong, corporate action cutoff, coverage PIT/data error, model audit stage va research fail closed. Tier A/Tier B va du lieu that chua chay; metric fixture khong chung minh hieu qua chien luoc. PR #10 tiep tuc Draft.

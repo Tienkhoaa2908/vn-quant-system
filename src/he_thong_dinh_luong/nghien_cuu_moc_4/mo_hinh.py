@@ -52,6 +52,22 @@ def _float_that(value: object, ten: str) -> float:
     return result
 
 
+def _float_khong_am(value: object, ten: str) -> float:
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        raise TypeError(f"{ten} phai la so; khong ep chuoi thanh so.")
+    result = float(value)
+    if result < 0.0:
+        raise ValueError(f"{ten} phai >= 0.")
+    return result
+
+
+def _ty_le(value: object, ten: str) -> float:
+    result = _float_khong_am(value, ten)
+    if result > 1.0:
+        raise ValueError(f"{ten} phai trong [0,1].")
+    return result
+
+
 @dataclass(frozen=True)
 class CauHinhMoc4:
     muc_dich_lan_chay: str
@@ -67,6 +83,10 @@ class CauHinhMoc4:
     so_thang_validation: int
     so_thang_test: int
     top_k: int
+    cua_so_thanh_khoan: int
+    nguong_gtgd_tb_toi_thieu: float
+    ty_le_coverage_toi_thieu: float
+    so_ma_eligible_toi_thieu: int
     feature_order: tuple[str, ...]
     feature_bat_buoc: tuple[str, ...]
     C_grid: tuple[float, ...]
@@ -82,7 +102,9 @@ class CauHinhMoc4:
             "muc_dich_lan_chay", "tan_suat_mau_mo_hinh", "benchmark", "co_so_gia",
             "co_so_gia_da_xac_nhan", "corporate_actions_day_du", "label_horizon",
             "purge_phien", "embargo_phien", "so_thang_train_toi_thieu",
-            "so_thang_validation", "so_thang_test", "top_k", "feature_order",
+            "so_thang_validation", "so_thang_test", "top_k", "cua_so_thanh_khoan",
+            "nguong_gtgd_tb_toi_thieu", "ty_le_coverage_toi_thieu",
+            "so_ma_eligible_toi_thieu", "feature_order",
             "feature_bat_buoc", "C_grid", "solver", "max_iter", "class_weight",
             "seed", "thu_muc_dau_ra",
         }
@@ -124,6 +146,10 @@ class CauHinhMoc4:
             so_thang_validation=_int_that(data["so_thang_validation"], "so_thang_validation", min_value=1),
             so_thang_test=_int_that(data["so_thang_test"], "so_thang_test", min_value=1),
             top_k=_int_that(data["top_k"], "top_k", min_value=1),
+            cua_so_thanh_khoan=_int_that(data["cua_so_thanh_khoan"], "cua_so_thanh_khoan", min_value=1),
+            nguong_gtgd_tb_toi_thieu=_float_khong_am(data["nguong_gtgd_tb_toi_thieu"], "nguong_gtgd_tb_toi_thieu"),
+            ty_le_coverage_toi_thieu=_ty_le(data["ty_le_coverage_toi_thieu"], "ty_le_coverage_toi_thieu"),
+            so_ma_eligible_toi_thieu=_int_that(data["so_ma_eligible_toi_thieu"], "so_ma_eligible_toi_thieu", min_value=0),
             feature_order=tuple(feature_order),
             feature_bat_buoc=tuple(required),
             C_grid=parsed_c,
@@ -151,6 +177,8 @@ class CauHinhMoc4:
             raise ValueError("purge_phien phai >= label_horizon.")
         if self.so_thang_test != 1:
             raise ValueError("MVP khoa so_thang_test=1.")
+        if self.cua_so_thanh_khoan != 20:
+            raise ValueError("MVP khoa cua_so_thanh_khoan=20 phien benchmark.")
         if self.C_grid != (0.1, 1.0, 10.0):
             raise ValueError("MVP khoa C_grid=[0.1, 1.0, 10.0].")
         if self.solver != "lbfgs" or self.max_iter != 1000 or self.seed != 20260725:
@@ -186,6 +214,10 @@ class CauHinhMoc4:
             "so_thang_validation": self.so_thang_validation,
             "so_thang_test": self.so_thang_test,
             "top_k": self.top_k,
+            "cua_so_thanh_khoan": self.cua_so_thanh_khoan,
+            "nguong_gtgd_tb_toi_thieu": self.nguong_gtgd_tb_toi_thieu,
+            "ty_le_coverage_toi_thieu": self.ty_le_coverage_toi_thieu,
+            "so_ma_eligible_toi_thieu": self.so_ma_eligible_toi_thieu,
             "feature_order": list(self.feature_order),
             "feature_bat_buoc": list(self.feature_bat_buoc),
             "C_grid": list(self.C_grid),
@@ -415,6 +447,9 @@ class KetQuaHuanLuyen:
     thanh_cong: bool
     ly_do_that_bai: str | None
     metadata: Mapping[str, object] = field(default_factory=dict)
+    selection_model_id: str | None = None
+    refit_model_id: str | None = None
+    selection_pipeline: Any | None = None
 
 
 def xac_thuc_co_so_gia_va_su_kien(cau_hinh: CauHinhMoc4, *, so_su_kien: int) -> tuple[str, ...]:

@@ -48,11 +48,17 @@ Bat bien chinh:
 - Lich benchmark duoc truyen rieng. Moi cua so va endpoint `T-N` dung dung phien benchmark; khong nen thoi gian, forward-fill, tim phien thay the hoac lay bar cu de bu.
 - Thieu bat ky bar bat buoc trong MA, momentum, volatility, liquidity hay regime thi feature tuong ung rong; dong thieu feature bat buoc bi loai va ghi coverage.
 - T+H la phien thu H sau T tren lich benchmark; thieu stock/benchmark dung T/T+H thi nhan rong.
-- Expanding monthly walk-forward co purge/embargo; chi prediction test vao metric cuoi va backtest.
+- Expanding monthly walk-forward co purge/embargo; fold co test rong hoac khong tao prediction test bi fail closed va khong tao ranking/tai can bang. Chi prediction test vao metric cuoi va backtest.
+- Backtest khoa `oos_start`, `ngay_bat_dau_metric` va `oos_end`. Du lieu truoc OOS chi phuc vu warm-up/train/dinh gia can thiet; metric NAV/CAGR/Sharpe/turnover/cash ratio chi tinh trong cua so OOS, du lieu sau `oos_end` khong duoc anh huong.
 - Dependency khoa `scikit-learn==1.9.0`; khong pandas, khong LightGBM.
+- Eligibility tai T la phep AND fail closed cua membership PIT, thanh khoan PIT, warm-up, feature bat buoc, chat luong du lieu, benchmark metadata PIT va open dung T+1. Thanh khoan MVP dung `gtgd_tb_20 = mean(close * volume)` tren dung 20 phien benchmark ket thuc tai T, don vi dong/phien, cutoff tai T va nguong `nguong_gtgd_tb_toi_thieu`; thieu/khong dat ghi `khong_dat_thanh_khoan`. Thieu open dung T+1 ghi `thieu_open_t1`, khong tim T+2.
 - Momentum baseline va Logistic Regression dung cung test dates, universe, eligibility, top_k, chi phi va engine.
 - Adapter bat buoc `che_do_ma_khong_xuat_hien=muc_tieu_bang_0`, phat target 0 cho ma roi top_k va bieu dien ngay tai can bang rong de ve tien mat.
-- Manifest tu tinh SHA-256 tung dau vao va tung san pham; metadata version/cau hinh/canh bao/gioi han la bat buoc.
+- Corporate action duoc chon theo timestamp cong bo va ngay hieu luc trong cua so backtest, khong phu thuoc co ngay tin hieu nam giua cong bo va hieu luc; khong ap dung hoi to, su kien trung va gia dieu chinh kem su kien bi tu choi.
+- Coverage theo ma dung tap phien yeu cau PIT, khong tinh truoc ngay bat dau hop le hoac sau khi ma roi universe; gap chi xet trong tap phien yeu cau. Policy B loai dong/ma loi co kiem soat va ghi `ma_loi_gia`/`ma_loi_volume`.
+- Model audit phan biet `validation_selection` (fit train) va `final_refit` (fit train+validation), luu scaler, C, coefficient, intercept, n_iter, warning, candidate error, feature order, cutoff va scikit-learn version.
+- Che do `nghien_cuu` fail closed neu sai benchmark identity, thieu metadata PIT, khong co fold/prediction/tai can bang OOS, coverage/universe duoi nguong hoac hop dong gia/corporate actions khong dat. Run technical duoc tiep tuc voi canh bao.
+- Manifest tu tinh SHA-256 tung dau vao va tung san pham; metadata version/cau hinh/canh_bao/gioi_han la bat buoc.
 - NaN/Inf bi tu choi trong dau vao, feature, probability, relative return, metric va san pham.
 - Cong bo 17 tep bang staging, fsync, rename nguyen tu va rollback.
 
@@ -80,7 +86,7 @@ PYTHONPATH=src uv run --python 3.12 \
   --kiem-tra-cau-hinh duong_dan/cau_hinh.json
 ```
 
-Suite hien co 146 test Mốc 4 va 121 test hoi quy Mốc 0–3, tong 267 test ngoai tuyen. Kich ban vang chay runner hai lan byte-for-byte va chay CLI tren fixture; khong goi mang.
+Suite hien co 187 test Mốc 4 va 121 test hoi quy Mốc 0–3, tong 308 test ngoai tuyen. Kich ban vang chay runner hai lan byte-for-byte va chay CLI tren fixture; khong goi mang.
 
 Chua chay Tier A/Tier B, chua tai VN100/VNINDEX that, nguon that chua duoc phe duyet va khong duoc dien giai metric fixture nhu hieu qua chien luoc.
 

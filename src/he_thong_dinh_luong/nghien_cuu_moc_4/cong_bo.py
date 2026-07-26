@@ -192,7 +192,7 @@ def cong_bo_san_pham(
         raise
 
 
-COT_FEATURE_SAU_TIEN_XU_LY = ("fold", "model_id", "vai_tro_du_lieu", "ngay", "ma")
+COT_FEATURE_SAU_TIEN_XU_LY = ("fold", "stage", "model_id", "vai_tro_du_lieu", "ngay", "ma")
 COT_DU_DOAN = ("fold", "model_id", "vai_tro_du_lieu", "ngay", "ma", "xac_suat_nhan_1")
 
 
@@ -212,8 +212,15 @@ def tao_csv_feature_sau_tien_xu_ly(rows: Iterable[Mapping[str, object]], feature
     for raw in rows:
         row = dict(raw)
         role = row.get("vai_tro_du_lieu")
+        stage = row.get("stage")
         if role not in {"train", "validation", "refit_train_validation", "test"}:
             raise ValueError("vai_tro_du_lieu feature khong hop le.")
+        if stage not in {"validation_selection", "final_refit"}:
+            raise ValueError("stage feature khong hop le.")
+        if stage == "validation_selection" and role not in {"train", "validation"}:
+            raise ValueError("validation_selection chi duoc cong bo train/validation.")
+        if stage == "final_refit" and role not in {"refit_train_validation", "test"}:
+            raise ValueError("final_refit chi duoc cong bo refit/test.")
         if tuple(row) != fieldnames:
             raise ValueError("Cot feature_sau_tien_xu_ly khong dung thu tu/hop dong.")
         for name in feature_order:
@@ -225,7 +232,7 @@ def tao_csv_feature_sau_tien_xu_ly(rows: Iterable[Mapping[str, object]], feature
             raise ValueError("Trung khoa feature_sau_tien_xu_ly.")
         keys.add(key)
         normalized.append(row)
-    normalized.sort(key=lambda x: (str(x["fold"]), str(x["model_id"]), str(x["vai_tro_du_lieu"]), str(x["ngay"]), str(x["ma"])))
+    normalized.sort(key=lambda x: (str(x["fold"]), str(x["stage"]), str(x["model_id"]), str(x["vai_tro_du_lieu"]), str(x["ngay"]), str(x["ma"])))
     return _csv_on_dinh(normalized, fieldnames)
 
 

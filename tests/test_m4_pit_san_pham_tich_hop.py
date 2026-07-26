@@ -81,16 +81,16 @@ class TestPitDungChungM4(unittest.TestCase):
 class TestSanPhamTheoFoldM4(unittest.TestCase):
     def test_feature_processed_co_header_bat_buoc(self):
         row = {
-            "fold": "f1", "model_id": "m1", "vai_tro_du_lieu": "train",
+            "fold": "f1", "stage": "validation_selection", "model_id": "m1", "vai_tro_du_lieu": "train",
             "ngay": "2026-01-30", "ma": "AAA", "x": 1.5,
         }
         text = tao_csv_feature_sau_tien_xu_ly([row], ("x",))
         header = next(csv.reader(StringIO(text)))
-        self.assertEqual(tuple(header[:5]), COT_FEATURE_SAU_TIEN_XU_LY)
+        self.assertEqual(tuple(header[:6]), COT_FEATURE_SAU_TIEN_XU_LY)
 
     def test_feature_processed_sai_thu_tu_cot_bi_tu_choi(self):
         row = {
-            "model_id": "m1", "fold": "f1", "vai_tro_du_lieu": "train",
+            "model_id": "m1", "stage": "validation_selection", "fold": "f1", "vai_tro_du_lieu": "train",
             "ngay": "2026-01-30", "ma": "AAA", "x": 1.5,
         }
         with self.assertRaisesRegex(ValueError, "thu tu"):
@@ -98,7 +98,7 @@ class TestSanPhamTheoFoldM4(unittest.TestCase):
 
     def test_feature_processed_duplicate_bi_tu_choi(self):
         row = {
-            "fold": "f1", "model_id": "m1", "vai_tro_du_lieu": "test",
+            "fold": "f1", "stage": "final_refit", "model_id": "m1", "vai_tro_du_lieu": "test",
             "ngay": "2026-01-30", "ma": "AAA", "x": 1.5,
         }
         with self.assertRaisesRegex(ValueError, "Trung khoa"):

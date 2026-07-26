@@ -15,7 +15,7 @@ from typing import Iterable, Mapping, Sequence
 
 import sklearn
 
-from .adapter_mo_phong import chay_backtest_oos_lien_tuc, chuyen_ty_trong_test
+from .adapter_mo_phong import chay_backtest_oos_lien_tuc, chuyen_ty_trong_test, metric_backtest_oos
 from .baseline import du_doan_baseline_test, metric_baseline_test, xep_hang_baseline_test
 from .chi_so import metric_model_test, metric_ranking_test
 from .cong_bo import (
@@ -26,6 +26,7 @@ from .cong_bo import (
 )
 from .dac_trung import FEATURE_ORDER_MAC_DINH, phien_cuoi_thang, tao_feature_cuoi_thang
 from .do_phu import DongLoai, bao_cao_do_phu
+from .eligibility import danh_gia_eligibility, phien_t1_chinh_thuc
 from .logistic import du_doan_test, huan_luyen_logistic
 from .mo_hinh import (
     BanGhiPointInTime,
@@ -51,6 +52,7 @@ MUI_GIO_VIET_NAM = timezone(timedelta(hours=7))
 GIO_TAO_TIN_HIEU = time(15, 0)
 
 
+
 @dataclass(frozen=True)
 class KetQuaNghienCuuMoc4:
     thu_muc_san_pham: Path
@@ -65,390 +67,12 @@ class KetQuaNghienCuuMoc4:
     canh_bao: tuple[str, ...]
 
 
-@dataclass(frozen=True)
-class _DocOHLCV:
-    rows: tuple[ThanhOHLCV, ...]
-    nguon: str
-    phien_ban: str
-    ma_loi_gia: tuple[str, ...]
-    ma_loi_volume: tuple[str, ...]
-
-
-@dataclass(frozen=True)
-class _DocPIT:
-    records: tuple[BanGhiPointInTime, ...]
-    event_rows: tuple[Mapping[str, object], ...]
-    nguon: str
-    phien_ban: str
-
-
-def _read_csv(path: Path) -> tuple[list[dict[str, str]], tuple[str, ...]]:
-    if not path.is_file():
-        raise ValueError(f"Tep dau vao khong ton tai: {path}.")
-    with path.open("r", encoding="utf-8", newline="") as handle:
-        reader = csv.DictReader(handle)
-        if reader.fieldnames is None:
-            raise ValueError(f"CSV khong co header: {path}.")
-        rows = [dict(row) for row in reader]
-        return rows, tuple(reader.fieldnames)
-
-
-def _parse_date(value: object, name: str) -> date:
-    if not isinstance(value, str) or not value.strip():
-        raise ValueError(f"{name} khong duoc rong.")
-    try:
-        return date.fromisoformat(value.strip())
-    except ValueError as exc:
-        raise ValueError(f"{name} khong dung YYYY-MM-DD.") from exc
-
-
-def _parse_datetime(value: object, name: str) -> datetime:
-    if not isinstance(value, str) or not value.strip():
-        raise ValueError(f"{name} khong duoc rong.")
-    try:
-        result = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
-    except ValueError as exc:
-        raise ValueError(f"{name} khong phai ISO-8601.") from exc
-    if result.tzinfo is None or result.utcoffset() is None:
-        raise ValueError(f"{name} phai co mui gio.")
-    return result
-
-
-def _parse_bool(value: object, name: str) -> bool:
-    if value is True or value == "true" or value == "True" or value == "1":
-        return True
-    if value is False or value == "false" or value == "False" or value == "0":
-        return False
-    raise ValueError(f"{name} phai la boolean ro rang.")
-
-
-def _parse_float(value: object, name: str) -> float:
-    if isinstance(value, bool):
-        raise ValueError(f"{name} khong phai so hop le.")
-    try:
-        result = float(str(value).strip())
-    except (TypeError, ValueError) as exc:
-        raise ValueError(f"{name} khong phai so hop le.") from exc
-    if not isfinite(result):
-        raise ValueError(f"{name} phai huu han; NaN/Inf bi tu choi.")
-    return result
-
-
-def _parse_int(value: object, name: str) -> int:
-    if isinstance(value, bool):
-        raise ValueError(f"{name} khong phai int hop le.")
-    text = str(value).strip()
-    if not text or not text.lstrip("-").isdigit():
-        raise ValueError(f"{name} phai la int.")
-    return int(text)
-
-
-def _unique(values: Iterable[str], name: str) -> str:
-    found = sorted({value for value in values if value})
-    if len(found) != 1:
-        raise ValueError(f"{name} phai co dung mot gia tri; nhan duoc {found}.")
-    return found[0]
-
-
-def _doc_ohlcv(path: Path, *, benchmark: bool = False) -> _DocOHLCV:
-    raw_rows, fields = _read_csv(path)
-    required = {
-        "ma", "ngay", "gia_mo_cua", "gia_cao_nhat", "gia_thap_nhat",
-        "gia_dong_cua", "khoi_luong", "nguon", "phien_ban", "co_so_gia",
-    }
-    missing = sorted(required - set(fields))
-    if missing:
-        raise ValueError(f"OHLCV thieu cot: {', '.join(missing)}.")
-    rows: list[ThanhOHLCV] = []
-    price_errors: set[str] = set()
-    volume_errors: set[str] = set()
-    seen: set[tuple[str, date]] = set()
-    sources: list[str] = []
-    versions: list[str] = []
-    for number, raw in enumerate(raw_rows, 2):
-        symbol = str(raw.get("ma", "")).strip().upper()
-        if not symbol:
-            raise ValueError(f"Ma rong tai dong {number} cua {path.name}.")
-        day = _parse_date(raw.get("ngay"), f"ngay dong {number}")
-        key = (symbol, day)
-        if key in seen:
-            raise ValueError(f"OHLCV trung ma/ngay: {symbol}, {day}.")
-        seen.add(key)
-        source = str(raw.get("nguon", "")).strip()
-        version = str(raw.get("phien_ban", "")).strip()
-        basis = str(raw.get("co_so_gia", "")).strip()
-        if not source or not version or not basis:
-            raise ValueError(f"OHLCV thieu nguon/phien_ban/co_so_gia tai dong {number}.")
-        sources.append(source)
-        versions.append(version)
-        try:
-            open_price = _parse_float(raw.get("gia_mo_cua"), "gia_mo_cua")
-            high = _parse_float(raw.get("gia_cao_nhat"), "gia_cao_nhat")
-            low = _parse_float(raw.get("gia_thap_nhat"), "gia_thap_nhat")
-            close = _parse_float(raw.get("gia_dong_cua"), "gia_dong_cua")
-            if min(open_price, high, low, close) <= 0:
-                raise ValueError("Gia phai duong.")
-        except ValueError as exc:
-            price_errors.add(symbol)
-            raise ValueError(f"OHLCV loi gia tai {symbol}, {day}: {exc}") from exc
-        try:
-            volume = _parse_int(raw.get("khoi_luong"), "khoi_luong")
-            if volume < 0:
-                raise ValueError("khoi_luong khong duoc am.")
-        except ValueError as exc:
-            volume_errors.add(symbol)
-            raise ValueError(f"OHLCV loi volume tai {symbol}, {day}: {exc}") from exc
-        rows.append(ThanhOHLCV(
-            ma=symbol, ngay=day, gia_mo_cua=open_price, gia_cao_nhat=high,
-            gia_thap_nhat=low, gia_dong_cua=close, khoi_luong=volume,
-            nguon=source, phien_ban=version, co_so_gia=basis,
-        ))
-    if benchmark and not rows:
-        raise ValueError("Benchmark khong co bar hop le.")
-    return _DocOHLCV(
-        tuple(sorted(rows, key=lambda row: (row.ma, row.ngay))),
-        _unique(sources, "nguon OHLCV"), _unique(versions, "phien_ban OHLCV"),
-        tuple(sorted(price_errors)), tuple(sorted(volume_errors)),
-    )
-
-
-def _doc_calendar(path: Path) -> tuple[date, ...]:
-    rows, fields = _read_csv(path)
-    if "ngay" not in fields:
-        raise ValueError("Lich benchmark thieu cot ngay.")
-    days = tuple(_parse_date(row.get("ngay"), "lich_benchmark.ngay") for row in rows)
-    if not days:
-        raise ValueError("Lich benchmark rong.")
-    if len(days) != len(set(days)):
-        raise ValueError("Lich benchmark trung ngay.")
-    if tuple(sorted(days)) != days:
-        raise ValueError("Lich benchmark phai sap xep tang dan.")
-    return days
-
-
-def _doc_universe(path: Path) -> tuple[tuple[BanGhiUniverse, ...], str, str]:
-    rows, fields = _read_csv(path)
-    required = {"ngay_hieu_luc", "ma", "thuoc_universe", "nguon", "phien_ban", "thoi_diem_cong_bo"}
-    missing = sorted(required - set(fields))
-    if missing:
-        raise ValueError(f"Universe thieu cot: {', '.join(missing)}.")
-    result: list[BanGhiUniverse] = []
-    for number, row in enumerate(rows, 2):
-        result.append(BanGhiUniverse(
-            ngay_hieu_luc=_parse_date(row.get("ngay_hieu_luc"), f"universe.ngay_hieu_luc dong {number}"),
-            ma=str(row.get("ma", "")).strip().upper(),
-            thuoc_universe=_parse_bool(row.get("thuoc_universe"), "thuoc_universe"),
-            nguon=str(row.get("nguon", "")).strip(),
-            phien_ban=str(row.get("phien_ban", "")).strip(),
-            thoi_diem_cong_bo=_parse_datetime(row.get("thoi_diem_cong_bo"), "thoi_diem_cong_bo"),
-        ))
-    if not result:
-        raise ValueError("Universe rong.")
-    return tuple(result), _unique((x.nguon for x in result), "nguon universe"), _unique((x.phien_ban for x in result), "phien_ban universe")
-
-
-def _doc_pit(path: Path) -> _DocPIT:
-    rows, fields = _read_csv(path)
-    if not rows:
-        return _DocPIT((), (), "khong_co_su_kien", "0")
-    required = {"loai_du_lieu", "khoa_ban_ghi", "ngay_hieu_luc", "nguon", "phien_ban", "thoi_diem_cong_bo"}
-    missing = sorted(required - set(fields))
-    if missing:
-        raise ValueError(f"Metadata PIT thieu cot: {', '.join(missing)}.")
-    records: list[BanGhiPointInTime] = []
-    events: list[Mapping[str, object]] = []
-    for number, row in enumerate(rows, 2):
-        data_text = str(row.get("du_lieu_json", "") or "{}").strip()
-        try:
-            data = json.loads(data_text)
-        except json.JSONDecodeError as exc:
-            raise ValueError(f"du_lieu_json sai tai dong {number}.") from exc
-        if not isinstance(data, dict):
-            raise ValueError("du_lieu_json phai la object.")
-        xac_thuc_cau_truc_huu_han(data, f"metadata_pit[{number}]")
-        record = BanGhiPointInTime(
-            loai_du_lieu=str(row.get("loai_du_lieu", "")).strip(),
-            khoa_ban_ghi=str(row.get("khoa_ban_ghi", "")).strip(),
-            ngay_hieu_luc=_parse_date(row.get("ngay_hieu_luc"), "metadata_pit.ngay_hieu_luc"),
-            nguon=str(row.get("nguon", "")).strip(),
-            phien_ban=str(row.get("phien_ban", "")).strip(),
-            thoi_diem_cong_bo=_parse_datetime(row.get("thoi_diem_cong_bo"), "metadata_pit.thoi_diem_cong_bo"),
-            du_lieu=data,
-        )
-        records.append(record)
-        if record.loai_du_lieu == "corporate_action":
-            events.append(data)
-    return _DocPIT(
-        tuple(records), tuple(events),
-        _unique((x.nguon for x in records), "nguon metadata PIT"),
-        _unique((x.phien_ban for x in records), "phien_ban metadata PIT"),
-    )
-
-
-def _signal_time(day: date) -> datetime:
-    return datetime.combine(day, GIO_TAO_TIN_HIEU, tzinfo=MUI_GIO_VIET_NAM)
-
-
-def _json_ready(value: object) -> object:
-    if isinstance(value, Decimal):
-        return str(value)
-    if isinstance(value, (date, datetime)):
-        return value.isoformat()
-    if isinstance(value, Mapping):
-        return {str(key): _json_ready(item) for key, item in value.items()}
-    if isinstance(value, (list, tuple, set)):
-        return [_json_ready(item) for item in value]
-    if isinstance(value, float):
-        xac_thuc_so_huu_han(value, "json")
-    return value
-
-
-def _json_text(value: object) -> str:
-    return json.dumps(_json_ready(value), ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False) + "\n"
-
-
-def _csv_text(fieldnames: Sequence[str], rows: Iterable[Mapping[str, object]]) -> str:
-    stream = StringIO(newline="")
-    writer = csv.DictWriter(stream, fieldnames=fieldnames, extrasaction="raise", lineterminator="\n")
-    writer.writeheader()
-    for row in rows:
-        normalized = {}
-        for name in fieldnames:
-            value = row.get(name)
-            if isinstance(value, bool):
-                normalized[name] = "true" if value else "false"
-            elif isinstance(value, (date, datetime)):
-                normalized[name] = value.isoformat()
-            elif value is None:
-                normalized[name] = ""
-            elif isinstance(value, float):
-                xac_thuc_so_huu_han(value, f"csv.{name}")
-                normalized[name] = format(value, ".17g")
-            else:
-                normalized[name] = value
-        writer.writerow(normalized)
-    return stream.getvalue()
-
-
-def _samples(
-    features: Sequence[DongFeature],
-    labels: Sequence[DongNhan],
-    eligible: set[tuple[date, str]],
-    feature_order: Sequence[str],
-) -> tuple[list[MauMoHinh], dict[tuple[date, str], float]]:
-    label_map = {(row.ngay, row.ma): row for row in labels}
-    result: list[MauMoHinh] = []
-    momentum: dict[tuple[date, str], float] = {}
-    for row in features:
-        key = (row.ngay, row.ma)
-        value = row.gia_tri.get("dong_luong_12_1")
-        if value is not None and not isinstance(value, bool):
-            momentum[key] = xac_thuc_so_huu_han(value, "dong_luong_12_1")
-        label = label_map.get(key)
-        if key not in eligible or not row.hop_le or label is None or label.nhan is None:
-            continue
-        if label.ngay_ket_thuc_nhan is None or label.loi_nhuan_tuong_doi is None:
-            continue
-        vector: list[float] = []
-        for name in feature_order:
-            raw = row.gia_tri.get(name)
-            if isinstance(raw, bool):
-                vector.append(float(raw))
-            elif raw is not None:
-                vector.append(xac_thuc_so_huu_han(raw, f"feature.{name}"))
-            else:
-                raise ValueError(f"Feature bat buoc {name} bi rong trong dong hop_le.")
-        result.append(MauMoHinh(
-            ngay=row.ngay, ma=row.ma, feature=tuple(vector), nhan=label.nhan,
-            ngay_ket_thuc_nhan=label.ngay_ket_thuc_nhan,
-            loi_nhuan_tuong_doi=label.loi_nhuan_tuong_doi,
-        ))
-    return sorted(result, key=lambda x: (x.ngay, x.ma)), momentum
-
-
-def _m3_price_rows(rows: Sequence[ThanhOHLCV]) -> list[object]:
-    from he_thong_dinh_luong.mo_phong.mo_hinh import thanh_gia
-    return [thanh_gia(
-        ma=row.ma, ngay=row.ngay, gia_mo_cua=Decimal(str(row.gia_mo_cua)),
-        gia_dong_cua=Decimal(str(row.gia_dong_cua)), khoi_luong=row.khoi_luong,
-        thuoc_tap_co_phieu=True, dat_thanh_khoan=True,
-    ) for row in sorted(rows, key=lambda x: (x.ngay, x.ma))]
-
-
-def _m3_config(data: Mapping[str, object], basis: str) -> object:
-    from he_thong_dinh_luong.mo_phong.mo_hinh import cau_hinh_mo_phong
-    mapping = dict(data)
-    mapping["co_so_gia"] = "dieu_chinh" if basis == "gia_dieu_chinh" else "khong_dieu_chinh"
-    if mapping.get("che_do_ma_khong_xuat_hien") != "muc_tieu_bang_0":
-        raise ValueError("Backtest Moc 4 bat buoc che_do_ma_khong_xuat_hien=muc_tieu_bang_0.")
-    return cau_hinh_mo_phong.tu_mapping(mapping)
-
-
-def _m3_events(records: Sequence[BanGhiPointInTime], basis: str, signal_dates: Sequence[date]) -> list[object]:
-    if not records:
-        return []
-    accepted: list[Mapping[str, object]] = []
-    signal_times = [_signal_time(day) for day in signal_dates]
-    for record in records:
-        if record.loai_du_lieu != "corporate_action":
-            continue
-        usable = any(record.thoi_diem_cong_bo <= instant and instant.date() <= record.ngay_hieu_luc for instant in signal_times)
-        if usable:
-            accepted.append(record.du_lieu)
-    if not accepted:
-        return []
-    from he_thong_dinh_luong.mo_phong.mo_hinh import chuan_hoa_su_kien
-    return chuan_hoa_su_kien(accepted, co_so_gia="dieu_chinh" if basis == "gia_dieu_chinh" else "khong_dieu_chinh")
-
-
-def _uv_version() -> str:
-    try:
-        completed = subprocess.run(["uv", "--version"], check=True, capture_output=True, text=True, timeout=10)
-        value = completed.stdout.strip()
-    except (OSError, subprocess.SubprocessError):
-        value = "khong_xac_dinh"
-    return value or "khong_xac_dinh"
-
-
-def _backtest_metrics(result: object) -> dict[str, object]:
-    from he_thong_dinh_luong.mo_phong import tinh_chi_so
-    return tinh_chi_so(result)
-
-
-def _processed_rows(
-    fold: FoldWalkForward,
-    selected: Mapping[str, Sequence[MauMoHinh]],
-    training: object,
-    feature_order: tuple[str, ...],
-) -> list[dict[str, object]]:
-    pipeline = getattr(training, "pipeline", None)
-    if pipeline is None:
-        return []
-    scaler = pipeline.named_steps["standard_scaler"]
-    result: list[dict[str, object]] = []
-    for role in ("train", "validation", "refit_train_validation", "test"):
-        samples = list(selected[role])
-        if not samples:
-            continue
-        transformed = scaler.transform([sample.feature for sample in samples])
-        for sample, values in zip(samples, transformed, strict=True):
-            row: dict[str, object] = {
-                "fold": fold.fold, "model_id": training.model_id, "vai_tro_du_lieu": role,
-                "ngay": sample.ngay.isoformat(), "ma": sample.ma,
-            }
-            row.update({name: float(value) for name, value in zip(feature_order, values, strict=True)})
-            result.append(row)
-    return result
-
-
-def _product_rows_targets(strategy: str, targets: Sequence[object]) -> list[dict[str, object]]:
-    return [{
-        "chien_luoc": strategy,
-        "ngay_tin_hieu": target.ngay_tin_hieu,
-        "ma": target.ma,
-        "ty_trong_muc_tieu": float(target.ty_trong),
-    } for target in targets]
-
+from .runner_io import (
+    _DocOHLCV, _DocPIT, _read_csv, _parse_date, _parse_datetime, _parse_bool, _parse_float, _parse_int, _unique, _doc_ohlcv, _xac_thuc_benchmark_identity, _doc_calendar, _doc_universe, _doc_pit, _signal_time, _json_ready, _json_text, _csv_text,
+)
+from .runner_core import (
+    _samples, _m3_price_rows, _m3_config, _m3_events, _uv_version, _backtest_metrics, _processed_rows, _model_audit_rows, _oos_window, _benchmark_metadata_ok, _phien_yeu_cau_coverage_pit, _ma_co_gap_pit, _research_fail_closed, _product_rows_targets,
+)
 
 def chay_nghien_cuu_moc_4(
     *,
@@ -493,11 +117,13 @@ def chay_nghien_cuu_moc_4(
     pit_doc = _doc_pit(paths["corporate_actions"])
     benchmark_source = benchmark_doc.nguon
     benchmark_version = benchmark_doc.phien_ban
+    _xac_thuc_benchmark_identity(benchmark_doc.rows, config.benchmark)
     if any(row.co_so_gia != config.co_so_gia for row in [*stock_doc.rows, *benchmark_doc.rows]):
         raise ValueError("Co so gia OHLCV/benchmark khong khop cau hinh.")
 
     sample_dates = phien_cuoi_thang(calendar)
-    symbols = tuple(sorted({record.ma for record in universe_records} | {row.ma for row in stock_doc.rows}))
+    symbols = tuple(sorted({record.ma for record in universe_records} | {row.ma for row in stock_doc.rows}
+                           | set(stock_doc.ma_loi_gia) | set(stock_doc.ma_loi_volume)))
     features = tao_feature_cuoi_thang(
         stock_doc.rows, benchmark_doc.rows, lich_benchmark=calendar,
         feature_bat_buoc=config.feature_bat_buoc,
@@ -508,43 +134,52 @@ def chay_nghien_cuu_moc_4(
     )
     feature_map = {(row.ngay, row.ma): row for row in features}
     label_map = {(row.ngay, row.ma): row for row in labels}
+    stock_bar_map = {(row.ngay, row.ma): row for row in stock_doc.rows}
     universe_rows: list[object] = []
     exclusion_rows: list[DongLoai] = []
     eligible: set[tuple[date, str]] = set()
+    eligibility_details: dict[tuple[date, str], dict[str, object]] = {}
     coverage_by_day: dict[date, tuple[int, int]] = {}
     less_top_k: list[date] = []
+    benchmark_metadata_missing: list[date] = []
     for day in sample_dates:
         signal_time = _signal_time(day)
         states = xac_dinh_universe(
             universe_records, ngay=day, thoi_diem_tao_tin_hieu=signal_time, cac_ma=symbols,
         )
         universe_rows.extend(states)
-        benchmark_metadata = chon_ban_ghi_pit(
-            pit_doc.records, ngay=day, thoi_diem_tao_tin_hieu=signal_time,
-            loai_du_lieu="benchmark_metadata",
+        metadata_ok = _benchmark_metadata_ok(
+            pit_doc.records, day=day, signal_time=signal_time, expected_symbol=config.benchmark,
         )
-        metadata_ok = bool(benchmark_metadata) or not pit_doc.records
+        if not metadata_ok:
+            benchmark_metadata_missing.append(day)
+        t1 = phien_t1_chinh_thuc(calendar, day)
         denominator = sum(state.thuoc_universe for state in states)
         numerator = 0
         for state in states:
             key = (day, state.ma)
-            reasons: set[str] = set()
-            if not state.thuoc_universe:
-                reasons.add(state.ly_do or "khong_thuoc_universe")
             feature = feature_map.get(key)
-            if feature is None:
-                reasons.add("thieu_feature")
-            elif not feature.hop_le:
-                reasons.update(feature.ly_do)
-            if not metadata_ok:
-                reasons.add("thieu_benchmark_metadata_pit")
+            open_t1 = stock_bar_map.get((t1, state.ma)) if t1 is not None else None
+            is_eligible, reasons, liquidity_value = danh_gia_eligibility(
+                state=state, feature=feature, benchmark_metadata_ok=metadata_ok,
+                open_t1=open_t1, cua_so_thanh_khoan=config.cua_so_thanh_khoan,
+                nguong_gtgd_tb_toi_thieu=config.nguong_gtgd_tb_toi_thieu,
+                loi_gia=(state.ma, day) in stock_doc.khoa_loi_gia,
+                loi_volume=(state.ma, day) in stock_doc.khoa_loi_volume,
+            )
             label = label_map.get(key)
+            all_reasons = set(reasons)
             if label is None or label.nhan is None:
-                reasons.add(label.ly_do_nhan_rong if label is not None else "thieu_nhan")
-            if state.thuoc_universe and feature is not None and feature.hop_le and metadata_ok:
+                all_reasons.add(label.ly_do_nhan_rong if label is not None else "thieu_nhan")
+            if is_eligible:
                 eligible.add(key)
                 numerator += 1
-            for reason in sorted(reasons):
+            eligibility_details[key] = {
+                "eligible": is_eligible, "ly_do": tuple(sorted(reasons)),
+                "gtgd_tb_20": liquidity_value, "T1": t1,
+                "open_t1_hop_le": open_t1 is not None,
+            }
+            for reason in sorted(all_reasons):
                 exclusion_rows.append(DongLoai(day, state.ma, reason))
         coverage_by_day[day] = (numerator, denominator)
         if numerator < config.top_k:
@@ -588,78 +223,91 @@ def chay_nghien_cuu_moc_4(
             thoi_diem_huan_luyen=trained_at, thoi_diem_tao_tin_hieu=signal_at,
             cutoff_feature=feature_cutoff, cutoff_nhan=label_cutoff,
         )
-        model_rows.append({
-            "fold": fold.fold, "model_id": result.model_id, "thanh_cong": result.thanh_cong,
-            "C": result.C, "validation_log_loss": result.validation_log_loss,
-            "validation_auc": result.validation_auc, "ly_do_that_bai": result.ly_do_that_bai,
-            "thoi_diem_huan_luyen": result.metadata.get("thoi_diem_huan_luyen"),
-            "thoi_diem_tao_tin_hieu": result.metadata.get("thoi_diem_tao_tin_hieu"),
-            "cutoff_feature": result.metadata.get("cutoff_feature"),
-            "cutoff_nhan": result.metadata.get("cutoff_nhan"),
-        })
         logistic_validation.extend(result.validation_predictions)
+        processed_rows.extend(_processed_rows(fold, selected, result, config.feature_order))
+
+        fold_failure_reason: str | None = None
         if not result.thanh_cong:
-            fold_errors.append({"fold": fold.fold, "ly_do": result.ly_do_that_bai or "fold_that_bai"})
+            fold_failure_reason = result.ly_do_that_bai or "fold_that_bai"
+        elif not selected["test"]:
+            fold_failure_reason = "test_rong"
+        else:
+            test_predictions = list(du_doan_test(result, selected["test"]))
+            if not test_predictions:
+                fold_failure_reason = "khong_co_prediction_test"
+
+        model_rows.extend(_model_audit_rows(
+            fold=fold, training=result, fold_failure_reason=fold_failure_reason,
+        ))
+        for stage_key, stage_name, model_id in (
+            ("validation_selection", "validation_selection", result.selection_model_id),
+            ("final_refit", "final_refit", result.refit_model_id),
+        ):
+            audit = result.metadata.get(stage_key)
+            if not isinstance(audit, Mapping) or not model_id:
+                continue
+            coefficients = list(audit.get("coefficients", []))
+            for name, coefficient in zip(config.feature_order, coefficients, strict=True):
+                coefficient_rows.append({
+                    "fold": fold.fold, "stage": stage_name, "model_id": model_id,
+                    "feature": name, "he_so": float(coefficient), "intercept": "",
+                })
+            intercept = list(audit.get("intercept", []))
+            if intercept:
+                coefficient_rows.append({
+                    "fold": fold.fold, "stage": stage_name, "model_id": model_id,
+                    "feature": "__intercept__", "he_so": "", "intercept": float(intercept[0]),
+                })
+
+        if fold_failure_reason is not None:
+            fold_errors.append({"fold": fold.fold, "ly_do": fold_failure_reason})
             continue
-        test_predictions = list(du_doan_test(result, selected["test"]))
+
         logistic_test.extend(test_predictions)
         baseline_test.extend(du_doan_baseline_test(
             fold=fold.fold, samples=selected["test"], momentum_theo_khoa=momentum_map,
         ))
         successful_test_dates.extend(fold.test_dates)
         successful_fold_count += 1
-        processed_rows.extend(_processed_rows(fold, selected, result, config.feature_order))
-        coefficients = list(result.metadata.get("coefficients", []))
-        for name, coefficient in zip(config.feature_order, coefficients, strict=True):
-            coefficient_rows.append({
-                "fold": fold.fold, "model_id": result.model_id, "feature": name,
-                "he_so": float(coefficient), "intercept": "",
-            })
-        intercept = list(result.metadata.get("intercept", []))
-        if intercept:
-            coefficient_rows.append({
-                "fold": fold.fold, "model_id": result.model_id, "feature": "__intercept__",
-                "he_so": "", "intercept": float(intercept[0]),
-            })
 
     xac_thuc_prediction_test(logistic_test)
     xac_thuc_prediction_test(baseline_test)
     logistic_rankings, logistic_cash = xep_hang_test(logistic_test, top_k=config.top_k)
     baseline_rankings, baseline_cash = xep_hang_baseline_test(baseline_test, top_k=config.top_k)
     successful_test_dates = sorted(set(successful_test_dates))
-    m3_config = _m3_config(m3_raw, config.co_so_gia)
-    warnings = list(xac_thuc_co_so_gia_va_su_kien(config, so_su_kien=len(pit_doc.event_rows)))
-    events = _m3_events(pit_doc.records, config.co_so_gia, successful_test_dates)
-    price_rows = _m3_price_rows(stock_doc.rows)
-    logistic_backtest = chay_backtest_oos_lien_tuc(
-        rankings=logistic_rankings, du_lieu_gia=price_rows, cau_hinh_mo_phong=m3_config,
-        cac_su_kien=events, ngay_tai_can_bang=successful_test_dates,
-        cac_ma_lien_quan=symbols, ten_chien_luoc="m4_logistic_oos",
-    )
-    baseline_backtest = chay_backtest_oos_lien_tuc(
-        rankings=baseline_rankings, du_lieu_gia=price_rows, cau_hinh_mo_phong=m3_config,
-        cac_su_kien=events, ngay_tai_can_bang=successful_test_dates,
-        cac_ma_lien_quan=symbols, ten_chien_luoc="m4_momentum_oos",
-    )
-    logistic_model_metrics = metric_model_test(logistic_test)
-    baseline_model_metrics = metric_baseline_test(baseline_test)
-    logistic_ranking_metrics = metric_ranking_test(logistic_rankings)
-    baseline_ranking_metrics = metric_ranking_test(baseline_rankings)
-    logistic_backtest_metrics = _backtest_metrics(logistic_backtest)
-    baseline_backtest_metrics = _backtest_metrics(baseline_backtest)
 
     sessions_by_symbol: dict[str, set[date]] = {symbol: set() for symbol in symbols}
     for row in stock_doc.rows:
         sessions_by_symbol.setdefault(row.ma, set()).add(row.ngay)
-    calendar_set = set(calendar)
-    gap_symbols = [symbol for symbol in symbols if not calendar_set.issubset(sessions_by_symbol.get(symbol, set()))]
-    warmup_symbols = sorted({row.ma for row in features if any("ma250" in reason or "thieu_warm_up" in reason for reason in row.ly_do)})
+    observed_start_by_symbol: dict[str, date] = {}
+    for symbol, days in sessions_by_symbol.items():
+        if days:
+            observed_start_by_symbol[symbol] = min(days)
+    for symbol, day in (*stock_doc.khoa_loi_gia, *stock_doc.khoa_loi_volume):
+        current = observed_start_by_symbol.get(symbol)
+        if current is None or day < current:
+            observed_start_by_symbol[symbol] = day
+    required_by_symbol = _phien_yeu_cau_coverage_pit(
+        calendar=calendar, sample_dates=sample_dates, universe_records=universe_records,
+        symbols=symbols, sessions_by_symbol=sessions_by_symbol,
+        ngay_bat_dau_theo_ma=observed_start_by_symbol,
+    )
+    gap_symbols = _ma_co_gap_pit(required_by_symbol, sessions_by_symbol)
+    warmup_symbols = sorted({
+        row.ma for row in features
+        if any("ma250" in reason or "thieu_warm_up" in reason for reason in row.ly_do)
+    })
     failed_symbols = [symbol for symbol in symbols if not sessions_by_symbol.get(symbol)]
-    missing_ca = symbols if config.co_so_gia == "gia_khong_dieu_chinh" and not config.corporate_actions_day_du else ()
+    missing_ca = (
+        symbols if config.co_so_gia == "gia_khong_dieu_chinh"
+        and not config.corporate_actions_day_du else ()
+    )
     coverage = bao_cao_do_phu(
         exclusion_rows, loi_fold=fold_errors, cac_ngay_yeu_cau=calendar,
         cac_ngay_thuc_te=[row.ngay for row in stock_doc.rows], cac_ma_universe=symbols,
-        phien_co_du_lieu_theo_ma=sessions_by_symbol, coverage_theo_ngay=coverage_by_day,
+        phien_co_du_lieu_theo_ma=sessions_by_symbol,
+        phien_yeu_cau_theo_ma=required_by_symbol,
+        coverage_theo_ngay=coverage_by_day,
         ma_that_bai_hoan_toan=failed_symbols, ma_thieu_warm_up=warmup_symbols,
         ma_co_gap=gap_symbols, ma_loi_gia=stock_doc.ma_loi_gia,
         ma_loi_volume=stock_doc.ma_loi_volume, ma_thieu_corporate_actions=missing_ca,
@@ -667,6 +315,56 @@ def chay_nghien_cuu_moc_4(
         phien_ban_ohlcv=stock_doc.phien_ban, nguon_universe=universe_source,
         phien_ban_universe=universe_version, nguon_benchmark=benchmark_source,
         phien_ban_benchmark=benchmark_version, co_so_gia=config.co_so_gia,
+    )
+
+    m3_config = _m3_config(m3_raw, config.co_so_gia)
+    warnings = list(xac_thuc_co_so_gia_va_su_kien(
+        config, so_su_kien=len(pit_doc.event_rows),
+    ))
+    if stock_doc.ma_loi_gia:
+        warnings.append("DU_LIEU_LOI_GIA_DA_LOAI_CO_KIEM_SOAT")
+    if stock_doc.ma_loi_volume:
+        warnings.append("DU_LIEU_LOI_VOLUME_DA_LOAI_CO_KIEM_SOAT")
+    _research_fail_closed(
+        config=config, warnings=warnings,
+        benchmark_metadata_missing=benchmark_metadata_missing,
+        successful_fold_count=successful_fold_count,
+        test_predictions=logistic_test, rebalance_dates=successful_test_dates,
+        coverage_by_day=coverage_by_day,
+    )
+    if config.muc_dich_lan_chay == "nghien_cuu" and not baseline_test:
+        raise ValueError("Nghien_cuu fail closed: KHONG_CO_PREDICTION_BASELINE_TEST.")
+    if config.muc_dich_lan_chay == "kiem_tra_ky_thuat" and not baseline_test:
+        warnings.append("TECHNICAL_KHONG_CO_PREDICTION_BASELINE_TEST")
+
+    oos_start, metric_start, oos_end = _oos_window(
+        calendar, successful_test_dates, horizon=config.label_horizon,
+    )
+    events = _m3_events(
+        pit_doc.records, config.co_so_gia, oos_start=oos_start, oos_end=oos_end,
+    )
+    price_rows = _m3_price_rows(stock_doc.rows, eligible=eligible)
+    logistic_backtest = chay_backtest_oos_lien_tuc(
+        rankings=logistic_rankings, du_lieu_gia=price_rows, cau_hinh_mo_phong=m3_config,
+        cac_su_kien=events, ngay_tai_can_bang=successful_test_dates,
+        cac_ma_lien_quan=symbols, ten_chien_luoc="m4_logistic_oos",
+        oos_start=oos_start, oos_end=oos_end,
+    )
+    baseline_backtest = chay_backtest_oos_lien_tuc(
+        rankings=baseline_rankings, du_lieu_gia=price_rows, cau_hinh_mo_phong=m3_config,
+        cac_su_kien=events, ngay_tai_can_bang=successful_test_dates,
+        cac_ma_lien_quan=symbols, ten_chien_luoc="m4_momentum_oos",
+        oos_start=oos_start, oos_end=oos_end,
+    )
+    logistic_model_metrics = metric_model_test(logistic_test)
+    baseline_model_metrics = metric_baseline_test(baseline_test)
+    logistic_ranking_metrics = metric_ranking_test(logistic_rankings)
+    baseline_ranking_metrics = metric_ranking_test(baseline_rankings)
+    logistic_backtest_metrics = metric_backtest_oos(
+        logistic_backtest, oos_start=oos_start, metric_start=metric_start, oos_end=oos_end,
+    )
+    baseline_backtest_metrics = metric_backtest_oos(
+        baseline_backtest, oos_start=oos_start, metric_start=metric_start, oos_end=oos_end,
     )
 
     all_predictions = [*logistic_validation, *logistic_test, *baseline_test]
@@ -691,7 +389,16 @@ def chay_nghien_cuu_moc_4(
         })
     feature_product_rows = []
     for row in sorted(features, key=lambda x: (x.ngay, x.ma)):
-        item: dict[str, object] = {"ngay": row.ngay, "ma": row.ma, "hop_le": row.hop_le, "ly_do": "|".join(row.ly_do)}
+        detail = eligibility_details.get((row.ngay, row.ma), {})
+        item: dict[str, object] = {
+            "ngay": row.ngay, "ma": row.ma, "hop_le": row.hop_le,
+            "ly_do": "|".join(row.ly_do),
+            "eligible": detail.get("eligible", False),
+            "ly_do_eligibility": "|".join(detail.get("ly_do", ())),
+            "gtgd_tb_20_eligibility": detail.get("gtgd_tb_20"),
+            "T1": detail.get("T1"),
+            "open_t1_hop_le": detail.get("open_t1_hop_le", False),
+        }
         item.update({name: row.gia_tri.get(name) for name in config.feature_order})
         feature_product_rows.append(item)
     label_product_rows = [{
@@ -703,7 +410,7 @@ def chay_nghien_cuu_moc_4(
         "nhan": row.nhan, "ly_do_nhan_rong": row.ly_do_nhan_rong,
     } for row in sorted(labels, key=lambda x: (x.ngay, x.ma))]
     ranking_rows = [{
-        "chien_luoc": "logistic" if row.model_id.endswith("_logistic") else "momentum_baseline",
+        "chien_luoc": "logistic" if "_logistic_" in row.model_id else "momentum_baseline",
         "fold": row.fold, "model_id": row.model_id, "ngay": row.ngay, "ma": row.ma,
         "diem": row.xac_suat_nhan_1, "thu_hang": row.thu_hang,
         "duoc_chon": row.duoc_chon, "ty_trong_muc_tieu": row.ty_trong_muc_tieu,
@@ -725,6 +432,7 @@ def chay_nghien_cuu_moc_4(
     ]
     report = {
         "ma_lan_chay": ma_lan_chay, "so_fold": len(folds),
+        "oos_start": oos_start, "ngay_bat_dau_metric": metric_start, "oos_end": oos_end,
         "so_fold_thanh_cong": successful_fold_count,
         "so_du_doan_test_logistic": len(logistic_test),
         "so_du_doan_test_baseline": len(baseline_test),
@@ -754,7 +462,11 @@ def chay_nghien_cuu_moc_4(
             ("ngay", "ma", "thuoc_universe", "ly_do", "ngay_hieu_luc", "nguon", "phien_ban", "thoi_diem_cong_bo"),
             universe_product_rows,
         ),
-        "feature_raw.csv": _csv_text(("ngay", "ma", "hop_le", "ly_do", *config.feature_order), feature_product_rows),
+        "feature_raw.csv": _csv_text(
+            ("ngay", "ma", "hop_le", "ly_do", "eligible", "ly_do_eligibility",
+             "gtgd_tb_20_eligibility", "T1", "open_t1_hop_le", *config.feature_order),
+            feature_product_rows,
+        ),
         "feature_sau_tien_xu_ly.csv": tao_csv_feature_sau_tien_xu_ly(processed_rows, config.feature_order),
         "nhan.csv": _csv_text(
             ("ngay", "ma", "T_H", "ngay_ket_thuc_nhan", "loi_nhuan_co_phieu", "loi_nhuan_benchmark", "loi_nhuan_tuong_doi", "nhan", "ly_do_nhan_rong"),
@@ -765,10 +477,22 @@ def chay_nghien_cuu_moc_4(
             fold_rows,
         ),
         "mo_hinh.csv": _csv_text(
-            ("fold", "model_id", "thanh_cong", "C", "validation_log_loss", "validation_auc", "ly_do_that_bai", "thoi_diem_huan_luyen", "thoi_diem_tao_tin_hieu", "cutoff_feature", "cutoff_nhan"),
+            (
+                "fold", "stage", "selection_model_id", "refit_model_id", "model_id",
+                "thanh_cong", "C", "scaler_mean", "scaler_scale", "coefficients",
+                "intercept", "n_iter", "converged", "convergence_warning",
+                "candidate_errors", "feature_order", "train_cutoff",
+                "validation_cutoff", "test_cutoff", "scikit_learn_version",
+                "validation_log_loss", "validation_auc", "ly_do_that_bai",
+                "thoi_diem_huan_luyen", "thoi_diem_tao_tin_hieu",
+                "cutoff_feature", "cutoff_nhan",
+            ),
             model_rows,
         ),
-        "he_so_logistic.csv": _csv_text(("fold", "model_id", "feature", "he_so", "intercept"), coefficient_rows),
+        "he_so_logistic.csv": _csv_text(
+            ("fold", "stage", "model_id", "feature", "he_so", "intercept"),
+            coefficient_rows,
+        ),
         "du_doan.csv": tao_csv_du_doan(all_predictions),
         "xep_hang.csv": _csv_text(
             ("chien_luoc", "fold", "model_id", "ngay", "ma", "diem", "thu_hang", "duoc_chon", "ty_trong_muc_tieu", "nhan", "loi_nhuan_tuong_doi"),
@@ -794,11 +518,35 @@ def chay_nghien_cuu_moc_4(
         "nguon_universe": universe_source, "phien_ban_universe": universe_version,
         "nguon_benchmark": benchmark_source, "phien_ban_benchmark": benchmark_version,
         "co_so_gia": config.co_so_gia, "muc_dich_lan_chay": config.muc_dich_lan_chay,
-        "cau_hinh_feature": {"feature_order": list(config.feature_order), "feature_bat_buoc": list(config.feature_bat_buoc), "tan_suat": "cuoi_thang", "lich": "benchmark_chinh_thuc"},
+        "cau_hinh_feature": {
+            "feature_order": list(config.feature_order),
+            "feature_bat_buoc": list(config.feature_bat_buoc),
+            "tan_suat": "cuoi_thang", "lich": "benchmark_chinh_thuc",
+            "thanh_khoan": {
+                "cong_thuc": "mean(close*volume) tren 20 phien benchmark ket thuc tai T",
+                "cua_so_phien": config.cua_so_thanh_khoan,
+                "nguong_toi_thieu": config.nguong_gtgd_tb_toi_thieu,
+                "don_vi": "VND/phien", "cutoff": "close T",
+            },
+            "open_t1": "open dung phien benchmark T+1; khong tim phien xa hon",
+        },
         "cau_hinh_label": {"horizon": config.label_horizon, "lich": "benchmark_chinh_thuc"},
-        "cau_hinh_fold": {"expanding": True, "purge_phien": config.purge_phien, "embargo_phien": config.embargo_phien, "so_thang_validation": config.so_thang_validation, "so_thang_test": config.so_thang_test},
+        "cau_hinh_fold": {
+            "expanding": True, "purge_phien": config.purge_phien,
+            "embargo_phien": config.embargo_phien,
+            "so_thang_validation": config.so_thang_validation,
+            "so_thang_test": config.so_thang_test,
+            "oos_start": oos_start.isoformat(),
+            "ngay_bat_dau_metric": metric_start.isoformat(),
+            "oos_end": oos_end.isoformat(),
+        },
         "cau_hinh_model": {"standard_scaler": True, "penalty": "l2", "solver": config.solver, "max_iter": config.max_iter, "C_grid": list(config.C_grid), "seed": config.seed},
-        "cau_hinh_ranking": {"top_k": config.top_k, "tie_break": "ma_tang_dan", "ty_trong": "1/top_k", "phan_thieu": "tien_mat"},
+        "cau_hinh_ranking": {
+            "top_k": config.top_k, "tie_break": "ma_tang_dan",
+            "ty_trong": "1/top_k", "phan_thieu": "tien_mat",
+            "ty_le_coverage_toi_thieu": config.ty_le_coverage_toi_thieu,
+            "so_ma_eligible_toi_thieu": config.so_ma_eligible_toi_thieu,
+        },
         "canh_bao": warnings, "gioi_han": limitations,
     }
     destination = Path(thu_muc_dau_ra) / ma_lan_chay
