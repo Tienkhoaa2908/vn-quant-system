@@ -54,7 +54,7 @@ jobs:
               "08": (6132, "a146943a5133ee8caa7d68a728aef4e4954d28b6ccc99ffcc425c45500f7f2e7"),
           }
           request = urllib.request.Request(
-              f"https://api.github.com/repos/{os.environ['REPOSITORY']}/issues/10/comments?per_page=100",
+              f"https://api.github.com/repos/{os.environ['REPOSITORY']}/issues/10/comments?per_page=100&page=2",
               headers={
                   "Authorization": f"Bearer {os.environ['GH_TOKEN']}",
                   "Accept": "application/vnd.github+json",
