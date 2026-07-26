@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
   issues: read
   pull-requests: read
 
@@ -16,30 +16,15 @@ jobs:
     if: github.event_name == 'pull_request' && github.event.pull_request.number == 10
     runs-on: ubuntu-latest
     steps:
-      - name: Lay nhanh chuyen mon
-        uses: actions/checkout@v4
-        with:
-          ref: m4-dac_trung-xep_hang-hoc_may
-          fetch-depth: 0
-
-      - name: Cai dat uv
-        uses: astral-sh/setup-uv@v6
-
-      - name: Cai dat Python
-        run: uv python install 3.12
-
-      - name: Xac minh va ap dung payload
+      - name: Chan doan chunk trang 2
         env:
           GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
         run: |
           python - <<'PY'
-          import base64
           import hashlib
           import json
           import os
-          from pathlib import Path, PurePosixPath
-          import tarfile
           import urllib.request
 
           expected = {
@@ -63,80 +48,22 @@ jobs:
           )
           with urllib.request.urlopen(request) as response:
               comments = json.load(response)
-          pieces: dict[str, tuple[int, str]] = {}
+          print(f"PAGE2 count={len(comments)}")
+          pieces = {}
           for item in comments:
               body = item.get("body") or ""
-              if not body.startswith("M4FINAL3 ") or "\n" not in body:
-                  continue
-              marker, payload = body.split("\n", 1)
-              fields = marker.split()
-              if len(fields) != 4:
-                  continue
-              index, total = fields[1].split("/", 1)
-              if total != "09" or index not in expected:
-                  continue
-              pieces[index] = (int(item["id"]), payload.strip())
-          missing = sorted(set(expected) - set(pieces))
-          if missing:
-              raise SystemExit(f"Thieu chunk M4FINAL3: {missing}")
-          ordered = []
+              if body.startswith("M4FINAL3 ") and "\n" in body:
+                  marker, payload = body.split("\n", 1)
+                  fields = marker.split()
+                  print(f"MARKER id={item['id']} fields={fields}")
+                  if len(fields) == 4:
+                      index, total = fields[1].split("/", 1)
+                      if total == "09" and index in expected:
+                          pieces[index] = payload.strip()
           for index in sorted(expected):
-              payload = pieces[index][1]
-              expected_length, expected_hash = expected[index]
+              payload = pieces.get(index, "")
               actual_hash = hashlib.sha256(payload.encode("ascii")).hexdigest()
-              if len(payload) != expected_length:
-                  raise SystemExit(f"Sai do dai chunk {index}: {len(payload)} != {expected_length}")
-              if actual_hash != expected_hash:
-                  raise SystemExit(f"Sai SHA chunk {index}: {actual_hash}")
-              ordered.append(payload)
-          archive_bytes = base64.b64decode("".join(ordered), validate=True)
-          archive_hash = hashlib.sha256(archive_bytes).hexdigest()
-          if len(archive_bytes) != 52597:
-              raise SystemExit(f"Sai kich thuoc archive: {len(archive_bytes)}")
-          if archive_hash != "a44887597d53f5fa784cf828b0c69f4494c1a5ed447d97d0d8d10bf4674bfa6b":
-              raise SystemExit(f"Sai SHA archive: {archive_hash}")
-          archive_path = Path("/tmp/m4final.tar.gz")
-          archive_path.write_bytes(archive_bytes)
-          root = Path.cwd().resolve()
-          with tarfile.open(archive_path, "r:gz") as archive:
-              for member in archive.getmembers():
-                  path = PurePosixPath(member.name)
-                  if path.is_absolute() or ".." in path.parts:
-                      raise SystemExit(f"Duong dan archive khong an toan: {member.name}")
-                  destination = (root / Path(*path.parts)).resolve()
-                  if destination != root and root not in destination.parents:
-                      raise SystemExit(f"Archive thoat khoi repository: {member.name}")
-              archive.extractall(root, filter="data")
-          deletions_path = root / ".m4_deletions.json"
-          deletions = json.loads(deletions_path.read_text(encoding="utf-8"))
-          for relative in deletions:
-              target = (root / relative).resolve()
-              if target != root and root not in target.parents:
-                  raise SystemExit(f"Duong dan xoa khong an toan: {relative}")
-              if target.exists():
-                  target.unlink()
-          deletions_path.unlink()
+              expected_length, expected_hash = expected[index]
+              print(f"CHUNK {index} length={len(payload)}/{expected_length} sha={actual_hash} expected={expected_hash} ok={len(payload)==expected_length and actual_hash==expected_hash}")
+          raise SystemExit(1)
           PY
-
-      - name: Dong bo moi truong
-        run: uv sync --frozen --python 3.12
-
-      - name: Kiem tra cu phap
-        run: PYTHONPATH=src uv run --python 3.12 python -m compileall -q src tests
-
-      - name: Chay kiem thu ngoai tuyen
-        env:
-          NO_PROXY: "*"
-        run: PYTHONPATH=src uv run --python 3.12 python -m unittest discover -s tests -p 'test_*.py' -v
-
-      - name: Commit va push fast-forward
-        run: |
-          git fetch origin m4-dac_trung-xep_hang-hoc_may
-          test "$(git rev-parse HEAD)" = "$(git rev-parse origin/m4-dac_trung-xep_hang-hoc_may)"
-          git diff --check
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          test -n "$(git diff --cached --name-only)"
-          git commit -m "hoan thien pipeline dau cuoi Moc 4"
-          git push origin HEAD:m4-dac_trung-xep_hang-hoc_may
