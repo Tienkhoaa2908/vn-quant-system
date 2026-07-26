@@ -1,3 +1,4 @@
+# kich_hoat_don_cuoi_qua_contents_api
 name: hoan_tat_sua_lock
 
 on:
@@ -17,7 +18,7 @@ jobs:
         with:
           ref: m4-dac_trung-xep-hang-hoc_may-sach-v2
           fetch-depth: 0
-      - name: Cap nhat quyet dinh va khoi phuc CI thuần tuy
+      - name: Cap nhat quyet dinh va khoi phuc CI thuan tuy
         shell: bash
         run: |
           if ! grep -q "QD-0059: Dependency lock bat buoc da nen tang" DECISIONS.md; then
