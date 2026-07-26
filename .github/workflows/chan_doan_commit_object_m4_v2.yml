@@ -1,0 +1,212 @@
+name: chan_doan_commit_object_m4_v2
+
+on:
+  pull_request:
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  tao_commit_object:
+    if: github.event.pull_request.number == 10
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Lay nhanh trien_khai
+        uses: actions/checkout@v4
+        with:
+          ref: m4-dac_trung-xep_hang-hoc_may
+          fetch-depth: 0
+
+      - name: Cai dat uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Giai nen payload va chuan hoa
+        run: |
+          python - <<'PY'
+          import base64
+          import hashlib
+          import json
+          from pathlib import Path, PurePosixPath
+          import shutil
+          import tarfile
+
+          root = Path.cwd().resolve()
+          payload_dir = root / ".github" / "m4_payload"
+          parts = ["00", "01", "02", "03a", "03b", "04", "05", "06", "07", "08"]
+          encoded = "".join(
+              (payload_dir / f"chunk_{part}").read_text(encoding="utf-8")
+              for part in parts
+          )
+          raw = base64.b64decode(encoded, validate=True)
+          expected = "a44887597d53f5fa784cf828b0c69f4494c1a5ed447d97d0d8d10bf4674bfa6b"
+          actual = hashlib.sha256(raw).hexdigest()
+          if actual != expected:
+              raise SystemExit(f"Sai SHA payload: {actual}")
+
+          archive_path = Path("/tmp/m4final.tar.gz")
+          archive_path.write_bytes(raw)
+          with tarfile.open(archive_path, "r:gz") as archive:
+              for member in archive.getmembers():
+                  path = PurePosixPath(member.name)
+                  if path.is_absolute() or ".." in path.parts:
+                      raise SystemExit(f"Duong dan payload khong an toan: {member.name}")
+                  destination = (root / Path(*path.parts)).resolve()
+                  if destination != root and root not in destination.parents:
+                      raise SystemExit(f"Payload thoat khoi repository: {member.name}")
+              archive.extractall(root, filter="data")
+
+          deletion_file = root / ".m4_deletions.json"
+          deletions = json.loads(deletion_file.read_text(encoding="utf-8"))
+          if not isinstance(deletions, list):
+              raise SystemExit(".m4_deletions.json phai la danh sach")
+          for item in deletions:
+              relative = PurePosixPath(str(item))
+              if relative.is_absolute() or ".." in relative.parts:
+                  raise SystemExit(f"Duong dan xoa khong an toan: {item}")
+              target = (root / Path(*relative.parts)).resolve()
+              if target != root and root not in target.parents:
+                  raise SystemExit(f"Duong dan xoa thoat repository: {item}")
+              if target.is_dir():
+                  shutil.rmtree(target)
+              elif target.exists():
+                  target.unlink()
+          deletion_file.unlink()
+
+          decisions = root / "DECISIONS.md"
+          decisions.write_text(decisions.read_text(encoding="utf-8").rstrip() + "\n", encoding="utf-8")
+          PY
+          git checkout HEAD -- .github/workflows
+          rm -rf .github/m4_payload
+          rm -f .github/payload_trigger.txt
+
+      - name: Dong bo moi truong Python 3.12
+        run: uv sync --frozen --python 3.12
+
+      - name: Ghi phien ban cong cu
+        run: |
+          uv run --python 3.12 python --version
+          uv --version
+          uv run --python 3.12 python -c "import sklearn; print('scikit-learn', sklearn.__version__)"
+
+      - name: Kiem tra cu phap
+        env:
+          PYTHONPATH: src
+          NO_PROXY: "*"
+        run: uv run --python 3.12 python -m compileall -q src tests
+
+      - name: Chay kiem thu ngoai tuyen
+        env:
+          PYTHONPATH: src
+          NO_PROXY: "*"
+        run: uv run --python 3.12 python -m unittest discover -s tests -p 'test_*.py' -v
+
+      - name: Tao Git object
+        id: tao_object
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          git add -A
+          git diff --cached --check
+          set -o pipefail
+          python - <<'PY' 2>&1 | tee /tmp/m4_commit_object_v2.log
+          import base64
+          import json
+          import os
+          from pathlib import Path
+          import subprocess
+          import traceback
+          import urllib.request
+
+          repo = os.environ["REPOSITORY"]
+          token = os.environ["GH_TOKEN"]
+
+          def api(path, method="GET", payload=None):
+              data = None if payload is None else json.dumps(payload).encode("utf-8")
+              request = urllib.request.Request(
+                  f"https://api.github.com/repos/{repo}{path}",
+                  data=data,
+                  method=method,
+                  headers={
+                      "Authorization": f"Bearer {token}",
+                      "Accept": "application/vnd.github+json",
+                      "X-GitHub-Api-Version": "2022-11-28",
+                      "Content-Type": "application/json",
+                  },
+              )
+              try:
+                  with urllib.request.urlopen(request) as response:
+                      return json.load(response)
+              except Exception as exc:
+                  print(f"API_FAIL method={method} path={path} error={exc}")
+                  if hasattr(exc, "read"):
+                      print(exc.read().decode("utf-8", errors="replace"))
+                  raise
+
+          try:
+              parent = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+              raw_paths = subprocess.check_output(
+                  ["git", "diff", "--cached", "--name-only", "--no-renames", "-z", "HEAD"]
+              ).split(b"\0")
+              paths = [item.decode("utf-8") for item in raw_paths if item]
+              print(f"PARENT={parent} PATHS={len(paths)}")
+
+              changes = []
+              for path in paths:
+                  if path.startswith(".github/workflows/"):
+                      raise RuntimeError(f"Khong duoc sua workflow: {path}")
+                  listed = subprocess.run(
+                      ["git", "ls-files", "--error-unmatch", "--", path],
+                      stdout=subprocess.DEVNULL,
+                      stderr=subprocess.DEVNULL,
+                  ).returncode == 0
+                  if not listed:
+                      changes.append({"path": path, "mode": "100644", "type": "blob", "sha": None})
+                      print(f"DELETE {path}")
+                      continue
+                  content = Path(path).read_bytes()
+                  blob = api(
+                      "/git/blobs",
+                      "POST",
+                      {"content": base64.b64encode(content).decode("ascii"), "encoding": "base64"},
+                  )
+                  mode = subprocess.check_output(
+                      ["git", "ls-files", "-s", "--", path], text=True
+                  ).split()[0]
+                  changes.append({"path": path, "mode": mode, "type": "blob", "sha": blob["sha"]})
+                  print(f"BLOB {path} {blob['sha']}")
+
+              parent_object = api(f"/git/commits/{parent}")
+              tree = api(
+                  "/git/trees",
+                  "POST",
+                  {"base_tree": parent_object["tree"]["sha"], "tree": changes},
+              )
+              commit = api(
+                  "/git/commits",
+                  "POST",
+                  {
+                      "message": "hoan thien runner dau cuoi Moc 4",
+                      "tree": tree["sha"],
+                      "parents": [parent],
+                  },
+              )
+              print(f"M4_FINAL_COMMIT {commit['sha']}")
+          except Exception:
+              traceback.print_exc()
+              raise
+          PY
+
+      - name: Tai log Git object
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m4-commit-object-v2-log
+          path: /tmp/m4_commit_object_v2.log
+          if-no-files-found: warn
+
+      - name: Ket luan
+        if: steps.tao_object.outcome == 'failure'
+        run: exit 1
