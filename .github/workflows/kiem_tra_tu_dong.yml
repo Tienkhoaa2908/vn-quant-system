@@ -1,4 +1,3 @@
-# kich_hoat_don_cuoi_qua_contents_api
 name: hoan_tat_sua_lock
 
 on:
@@ -39,23 +38,14 @@ jobs:
             push:
               branches:
                 - main
-                - m4-dac_trung-xep_hang-hoc_may
+                - m4-dac_trung-xep-hang-hoc_may
                 - m4-dac_trung-xep-hang-hoc_may-sach-v2
             pull_request:
             workflow_dispatch:
 
           jobs:
-            kiem_tra:
-              name: kiem_tra_${{ matrix.he_dieu_hanh }}
-              strategy:
-                fail-fast: false
-                matrix:
-                  include:
-                    - he_dieu_hanh: ubuntu
-                      runner: ubuntu-24.04
-                    - he_dieu_hanh: windows
-                      runner: windows-2025
-              runs-on: ${{ matrix.runner }}
+            kiem_tra_ubuntu:
+              runs-on: ubuntu-24.04
               defaults:
                 run:
                   shell: bash
@@ -78,7 +68,7 @@ jobs:
                       uv --version
                       uv run --python 3.12 python --version
                       uv run --python 3.12 python -c "import sklearn; print('scikit-learn', sklearn.__version__)"
-                    } | tee "phien-ban-ci-${{ matrix.he_dieu_hanh }}.txt"
+                    } | tee phien-ban-ci-ubuntu.txt
                 - name: Kiem tra cu phap
                   env:
                     PYTHONPATH: src
@@ -92,17 +82,55 @@ jobs:
                   if: always()
                   uses: actions/upload-artifact@v4
                   with:
-                    name: phien-ban-ci-${{ matrix.he_dieu_hanh }}
-                    path: phien-ban-ci-${{ matrix.he_dieu_hanh }}.txt
+                    name: phien-ban-ci-ubuntu
+                    path: phien-ban-ci-ubuntu.txt
+                    if-no-files-found: error
+
+            kiem_tra_windows:
+              runs-on: windows-2025
+              defaults:
+                run:
+                  shell: bash
+              steps:
+                - name: Lay ma nguon
+                  uses: actions/checkout@v4
+                - name: Cai dat uv
+                  uses: astral-sh/setup-uv@v6
+                  with:
+                    version: "0.11.32"
+                - name: Cai dat Python
+                  run: uv python install 3.12
+                - name: Kiem tra khoa dependency
+                  run: uv lock --check
+                - name: Dong bo moi truong
+                  run: uv sync --frozen --python 3.12
+                - name: Ghi nhan phien ban
+                  run: |
+                    {
+                      uv --version
+                      uv run --python 3.12 python --version
+                      uv run --python 3.12 python -c "import sklearn; print('scikit-learn', sklearn.__version__)"
+                    } | tee phien-ban-ci-windows.txt
+                - name: Kiem tra cu phap
+                  env:
+                    PYTHONPATH: src
+                  run: uv run --python 3.12 python -m compileall -q src tests
+                - name: Chay kiem thu ngoai tuyen
+                  env:
+                    PYTHONPATH: src
+                    NO_PROXY: "*"
+                  run: uv run --python 3.12 python -m unittest discover -s tests -p 'test_*.py' -v
+                - name: Tai thong tin phien ban
+                  if: always()
+                  uses: actions/upload-artifact@v4
+                  with:
+                    name: phien-ban-ci-windows
+                    path: phien-ban-ci-windows.txt
                     if-no-files-found: error
           FINAL_WORKFLOW
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add DECISIONS.md .github/workflows/kiem_tra_tu_dong.yml
-          if git diff --cached --quiet; then
-            echo "Khong co thay doi can commit."
-            exit 0
-          fi
           git commit -m "hoan tat tai lieu va CI da nen tang"
           git push origin HEAD:m4-dac_trung-xep-hang-hoc_may-sach-v2
