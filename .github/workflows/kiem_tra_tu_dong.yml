@@ -6,6 +6,11 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
 jobs:
   kiem_tra:
     runs-on: ubuntu-latest
@@ -24,3 +29,52 @@ jobs:
         env:
           NO_PROXY: "*"
         run: PYTHONPATH=src uv run --python 3.12 python -m unittest discover -s tests -p 'test_*.py' -v
+      - name: Chan doan payload Moc 4
+        if: github.event_name == 'pull_request' && github.event.pull_request.number == 10
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          python - <<'PY'
+          import base64
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import tarfile
+          import urllib.request
+
+          request = urllib.request.Request(
+              f"https://api.github.com/repos/{os.environ['REPOSITORY']}/issues/10/comments?per_page=100",
+              headers={
+                  "Authorization": f"Bearer {os.environ['GH_TOKEN']}",
+                  "Accept": "application/vnd.github+json",
+                  "X-GitHub-Api-Version": "2022-11-28",
+              },
+          )
+          with urllib.request.urlopen(request) as response:
+              comments = json.load(response)
+          pieces = {}
+          for item in comments:
+              body = item.get("body") or ""
+              if body.startswith("M4PAYLOAD ") and "\n" in body:
+                  marker, payload = body.split("\n", 1)
+                  pieces[marker.split()[1].split("/", 1)[0]] = payload.strip()
+          required = [f"{index:02d}" for index in range(10)] + ["10A", "10B", "11"]
+          encoded = "".join(pieces[key] for key in required)
+          report = {"keys": sorted(pieces), "encoded_length": len(encoded)}
+          try:
+              raw = base64.b64decode(encoded, validate=True)
+              report["raw_length"] = len(raw)
+              report["sha256"] = hashlib.sha256(raw).hexdigest()
+              path = Path("/tmp/m4_payload.tar.gz")
+              path.write_bytes(raw)
+              with tarfile.open(path, "r:gz") as archive:
+                  report["members"] = [member.name for member in archive.getmembers()]
+              report["archive_valid"] = True
+          except Exception as exc:
+              report["archive_valid"] = False
+              report["error_type"] = type(exc).__name__
+              report["error"] = str(exc)
+          print("M4_PAYLOAD_REPORT=" + json.dumps(report, ensure_ascii=True, sort_keys=True))
+          PY
