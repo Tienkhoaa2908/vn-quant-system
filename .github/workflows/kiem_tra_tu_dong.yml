@@ -78,12 +78,10 @@ jobs:
           deletion_file.unlink()
           PY
 
-      - name: Don tep tam
+      - name: Giu nguyen workflow va don payload
         run: |
+          git checkout HEAD -- .github/workflows
           rm -rf .github/m4_payload
-          rm -f .github/workflows/ap_dung_runner_m4_final.yml
-          rm -f .github/workflows/ap_dung_payload_m4.yml
-          rm -f .github/workflows/ap_dung_payload_m4_reopen.yml
           rm -f .github/payload_trigger.txt
 
       - name: Dong bo moi truong Python 3.12
