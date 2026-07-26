@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
   issues: read
   pull-requests: read
 
@@ -17,19 +17,7 @@ jobs:
     steps:
       - name: Lay ma nguon
         uses: actions/checkout@v4
-      - name: Cai dat uv
-        uses: astral-sh/setup-uv@v6
-      - name: Cai dat Python
-        run: uv python install 3.12
-      - name: Dong bo moi truong
-        run: uv sync --frozen --python 3.12
-      - name: Kiem tra cu phap
-        run: PYTHONPATH=src uv run --python 3.12 python -m compileall -q src tests
-      - name: Chay kiem thu ngoai tuyen
-        env:
-          NO_PROXY: "*"
-        run: PYTHONPATH=src uv run --python 3.12 python -m unittest discover -s tests -p 'test_*.py' -v
-      - name: Ghi chan doan payload Moc 4
+      - name: Bao cao payload Moc 4
         if: github.event_name == 'pull_request' && github.event.pull_request.number == 10
         env:
           GH_TOKEN: ${{ github.token }}
@@ -61,16 +49,20 @@ jobs:
                   marker, payload = body.split("\n", 1)
                   pieces[marker.split()[1].split("/", 1)[0]] = payload.strip()
           required = [f"{index:02d}" for index in range(10)] + ["10A", "10B", "11"]
-          report = {"keys": sorted(pieces), "missing": [key for key in required if key not in pieces]}
+          encoded_raw = "".join(pieces[key] for key in required)
+          padding = "=" * (-len(encoded_raw) % 4)
+          report = {
+              "keys": sorted(pieces),
+              "lengths": {key: len(pieces[key]) for key in required},
+              "encoded_length": len(encoded_raw),
+              "mod4": len(encoded_raw) % 4,
+              "padding_added": len(padding),
+          }
           try:
-              encoded_raw = "".join(pieces[key] for key in required)
-              padding = "=" * (-len(encoded_raw) % 4)
-              encoded = encoded_raw + padding
-              report["encoded_length"] = len(encoded_raw)
-              report["padding_added"] = len(padding)
-              raw = base64.b64decode(encoded, validate=True)
+              raw = base64.b64decode(encoded_raw + padding, validate=True)
               report["raw_length"] = len(raw)
               report["sha256"] = hashlib.sha256(raw).hexdigest()
+              report["magic_hex"] = raw[:16].hex()
               path = Path("/tmp/m4_payload.tar.gz")
               path.write_bytes(raw)
               with tarfile.open(path, "r:gz") as archive:
@@ -80,19 +72,18 @@ jobs:
               report["archive_valid"] = False
               report["error_type"] = type(exc).__name__
               report["error"] = str(exc)
-          Path("/tmp/m4_payload_report.md").write_text(
-              "# Chan doan payload Moc 4\n\n```json\n" + json.dumps(report, ensure_ascii=False, indent=2) + "\n```\n",
-              encoding="utf-8",
-          )
+          print("M4_PAYLOAD_REPORT=" + json.dumps(report, ensure_ascii=True, sort_keys=True))
+          raise SystemExit(1)
           PY
-          git fetch origin m4-dac_trung-xep_hang-hoc_may
-          git switch -C m4-dac_trung-xep-hang-hoc_may origin/m4-dac_trung-xep-hang-hoc_may
-          cp /tmp/m4_payload_report.md tai_lieu/chan_doan_payload_moc_4.md
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git diff --cached --check
-          if ! git diff --cached --quiet; then
-            git commit -m "cap nhat chan doan padding payload Moc 4"
-            git push origin HEAD:m4-dac_trung-xep_hang-hoc_may
-          fi
+      - name: Cai dat uv
+        uses: astral-sh/setup-uv@v6
+      - name: Cai dat Python
+        run: uv python install 3.12
+      - name: Dong bo moi truong
+        run: uv sync --frozen --python 3.12
+      - name: Kiem tra cu phap
+        run: PYTHONPATH=src uv run --python 3.12 python -m compileall -q src tests
+      - name: Chay kiem thu ngoai tuyen
+        env:
+          NO_PROXY: "*"
+        run: PYTHONPATH=src uv run --python 3.12 python -m unittest discover -s tests -p 'test_*.py' -v
