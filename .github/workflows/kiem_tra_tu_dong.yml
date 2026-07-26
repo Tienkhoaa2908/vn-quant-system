@@ -15,7 +15,7 @@ jobs:
   kiem_tra:
     runs-on: ubuntu-latest
     steps:
-      - name: Phan tich block tar payload Moc 4
+      - name: Phan tich tom tat tar payload Moc 4
         if: github.event_name == 'pull_request' && github.event.pull_request.number == 10
         env:
           GH_TOKEN: ${{ github.token }}
@@ -23,7 +23,6 @@ jobs:
         run: |
           python - <<'PY'
           import base64
-          import hashlib
           import json
           import os
           import urllib.request
@@ -49,12 +48,7 @@ jobs:
           encoded = "".join(pieces[key] for key in required)
           raw = base64.b64decode(encoded + "=" * (-len(encoded) % 4), validate=True)
           tar_bytes = zlib.decompress(raw[10:-8], -zlib.MAX_WBITS)
-          report = {
-              "tar_length": len(tar_bytes),
-              "tar_mod_512": len(tar_bytes) % 512,
-              "tar_sha256": hashlib.sha256(tar_bytes).hexdigest(),
-              "members": [],
-          }
+          report = {"tar_length": len(tar_bytes), "tar_mod_512": len(tar_bytes) % 512, "members": []}
           offset = 0
           while offset + 512 <= len(tar_bytes):
               header = tar_bytes[offset:offset + 512]
@@ -69,29 +63,21 @@ jobs:
               try:
                   size = int(raw_size, 8)
               except ValueError:
-                  report["header_error"] = {"offset": offset, "name": name, "raw_size": raw_size.decode("ascii", "replace")}
+                  report["header_error"] = {"offset": offset, "name": name}
                   break
               data_start = offset + 512
               data_end = data_start + size
               padded_end = data_start + ((size + 511) // 512) * 512
               complete = data_end <= len(tar_bytes)
-              content = tar_bytes[data_start:min(data_end, len(tar_bytes))]
-              report["members"].append({
-                  "name": name,
-                  "size": size,
-                  "offset": offset,
-                  "data_end": data_end,
-                  "padded_end": padded_end,
-                  "complete": complete,
-                  "available": len(content),
-                  "sha256": hashlib.sha256(content).hexdigest(),
-              })
+              report["members"].append([name, size, complete, max(0, min(size, len(tar_bytes) - data_start))])
               if not complete:
                   report["truncated_member"] = name
+                  report["missing_bytes"] = data_end - len(tar_bytes)
                   break
               offset = padded_end
+          report["member_count"] = len(report["members"])
           report["parsed_until"] = offset
           report["remaining_bytes"] = len(tar_bytes) - offset
-          print("M4_TAR_BLOCK_REPORT=" + json.dumps(report, ensure_ascii=True, sort_keys=True))
+          print("M4_TAR_SUMMARY=" + json.dumps(report, ensure_ascii=True, separators=(",", ":")))
           raise SystemExit(1)
           PY
