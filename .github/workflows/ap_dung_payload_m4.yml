@@ -17,7 +17,7 @@ jobs:
       - name: Lay ma nguon
         uses: actions/checkout@v4
         with:
-          ref: m4-dac_trung-xep-hang-hoc_may
+          ref: m4-dac_trung-xep_hang-hoc_may
           fetch-depth: 0
 
       - name: Cai dat uv
@@ -120,4 +120,4 @@ jobs:
             git diff --cached --check
             git commit -m "ghi nhan chan doan payload Moc 4"
           fi
-          git push origin HEAD:m4-dac_trung-xep-hang-hoc_may
+          git push origin HEAD:m4-dac_trung-xep_hang-hoc_may
