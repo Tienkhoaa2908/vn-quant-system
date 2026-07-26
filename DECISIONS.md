@@ -235,3 +235,27 @@ Khoang test khong chong lan; `(ngay,ma)` prediction test va `(ngay_tin_hieu,ma)`
 ## QD-0045: Cong bo Moc 4 va cua du lieu that
 
 Moc 4 cong bo 17 tep bang staging, fsync, atomic rename, rollback va SHA-256; khong ghi de va khong tron thanh cong/that bai. Toan bo trien khai hien tai chi dung fixture ngoai tuyen. Tier A/Tier B va du lieu that chi duoc chay sau phe duyet rieng cua doan 00.
+
+## QD-0046: Feature can theo lich benchmark chinh thuc
+
+Lich benchmark la dau vao rieng. Moi cua so MA/volatility/liquidity va moi endpoint `T-N` duoc xac dinh tren lich nay. Thieu bar dung phien lam feature tuong ung rong; khong forward-fill, tim phien thay the, nen thoi gian hoac lay them bar cu de bu.
+
+## QD-0047: Runner dau-cuoi la cua vao nghien cuu Moc 4
+
+`chay_nghien_cuu_moc_4(...)` doc cac tep cuc bo, dieu phoi PIT, coverage, feature, label, folds, baseline, Logistic Regression, ranking, target weights, engine Moc 3, metrics va publication. CLI chay cung runner; khong co loi goi mang.
+
+## QD-0048: Tai can bang rong phai dong vi the cu
+
+Backtest Moc 4 bat buoc `che_do_ma_khong_xuat_hien=muc_tieu_bang_0`. Moi ngay tai can bang duoc bieu dien ke ca khi khong co ma hop le; ma roi top_k hoac mat eligibility nhan target 0. Engine Moc 3 chay mot chuoi lien tuc va von chi khoi tao mot lan.
+
+## QD-0049: Momentum baseline la mot chien luoc OOS day du
+
+Baseline dung `dong_luong_12_1` tren cung sample test du eligibility voi Logistic Regression, sort giam dan/tie-break ma tang, top_k, `1/top_k`, tien mat cho phan thieu va cung engine/chi phi. Test khong chon tham so baseline.
+
+## QD-0050: Manifest Moc 4 tu tinh va fail closed
+
+Manifest bat buoc co SHA-256 tung dau vao va san pham, Git commit, ma lan chay, UTC, Python/uv/scikit-learn version, nguon/phien ban/co so gia, muc dich, cau hinh feature/label/fold/model/ranking, canh bao va gioi han. Metadata rong hoac thieu bi tu choi.
+
+## QD-0051: NaN va Inf bi tu choi xuyen suot
+
+OHLCV, feature, probability, relative return, metric input va payload CSV/JSON phai huu han theo `math.isfinite`. Metric model/ranking tu xac thuc vai tro test, khoa `(ngay,ma)`, fold/model, probability va nhan; khong am tham dem trung.

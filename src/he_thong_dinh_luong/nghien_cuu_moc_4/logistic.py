@@ -110,7 +110,7 @@ def huan_luyen_logistic(
 
 
 def du_doan_test(result: KetQuaHuanLuyen, samples: Sequence[MauMoHinh]) -> tuple[DuDoan, ...]:
-    if not result.thanh_cong or result.pipeline is None:
+    if not result.thanh_cong or result.pipeline is None or not samples:
         return ()
     probabilities = result.pipeline.predict_proba([x.feature for x in samples])[:, 1]
     return tuple(DuDoan(

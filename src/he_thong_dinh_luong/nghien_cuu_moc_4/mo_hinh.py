@@ -6,6 +6,8 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
+from .phong_ve import xac_thuc_cau_truc_huu_han, xac_thuc_so_huu_han
+
 MUC_DICH_HOP_LE = {"kiem_tra_ky_thuat", "nghien_cuu"}
 TAN_SUAT_MAU_HOP_LE = {"cuoi_thang"}
 CO_SO_GIA_HOP_LE = {"gia_dieu_chinh", "gia_khong_dieu_chinh"}
@@ -212,8 +214,8 @@ class ThanhOHLCV:
         if not self.ma or self.ma != self.ma.upper():
             raise ValueError("ma phai la chu hoa khong rong.")
         for ten in ("gia_mo_cua", "gia_cao_nhat", "gia_thap_nhat", "gia_dong_cua"):
-            value = getattr(self, ten)
-            if not isinstance(value, (int, float)) or isinstance(value, bool) or value <= 0:
+            value = xac_thuc_so_huu_han(getattr(self, ten), ten)
+            if value <= 0:
                 raise ValueError(f"{ten} phai la so duong.")
         if not isinstance(self.khoi_luong, int) or isinstance(self.khoi_luong, bool) or self.khoi_luong < 0:
             raise ValueError("khoi_luong phai la int khong am.")
@@ -285,6 +287,11 @@ class DongFeature:
     hop_le: bool
     ly_do: tuple[str, ...] = ()
 
+    def __post_init__(self) -> None:
+        if not self.ma:
+            raise ValueError("ma feature khong duoc rong.")
+        xac_thuc_cau_truc_huu_han(self.gia_tri, f"feature.{self.ma}.{self.ngay}")
+
 
 @dataclass(frozen=True)
 class DongNhan:
@@ -298,6 +305,16 @@ class DongNhan:
     nhan: int | None
     ly_do_nhan_rong: str | None
 
+    def __post_init__(self) -> None:
+        if not self.ma:
+            raise ValueError("ma nhan khong duoc rong.")
+        for ten in ("loi_nhuan_co_phieu", "loi_nhuan_benchmark", "loi_nhuan_tuong_doi"):
+            value = getattr(self, ten)
+            if value is not None:
+                xac_thuc_so_huu_han(value, ten)
+        if self.nhan not in {None, 0, 1}:
+            raise ValueError("nhan khong hop le.")
+
 
 @dataclass(frozen=True)
 class MauMoHinh:
@@ -307,6 +324,15 @@ class MauMoHinh:
     nhan: int
     ngay_ket_thuc_nhan: date
     loi_nhuan_tuong_doi: float
+
+    def __post_init__(self) -> None:
+        if self.nhan not in {0, 1}:
+            raise ValueError("nhan mau mo hinh khong hop le.")
+        if not self.feature:
+            raise ValueError("feature mau mo hinh khong duoc rong.")
+        for index, value in enumerate(self.feature):
+            xac_thuc_so_huu_han(value, f"feature[{index}]")
+        xac_thuc_so_huu_han(self.loi_nhuan_tuong_doi, "loi_nhuan_tuong_doi")
 
 
 @dataclass(frozen=True)
@@ -336,10 +362,13 @@ class DuDoan:
     def __post_init__(self) -> None:
         if self.vai_tro_du_lieu not in VAI_TRO_DU_DOAN_HOP_LE:
             raise ValueError("Du doan chi co vai tro validation hoac test.")
-        if not 0.0 <= self.xac_suat_nhan_1 <= 1.0:
+        probability = xac_thuc_so_huu_han(self.xac_suat_nhan_1, "xac_suat_nhan_1")
+        if not 0.0 <= probability <= 1.0:
             raise ValueError("xac_suat_nhan_1 phai trong [0,1].")
         if self.nhan not in {None, 0, 1}:
             raise ValueError("nhan du doan khong hop le.")
+        if self.loi_nhuan_tuong_doi is not None:
+            xac_thuc_so_huu_han(self.loi_nhuan_tuong_doi, "loi_nhuan_tuong_doi")
 
     def khoa(self) -> tuple[date, str]:
         return self.ngay, self.ma
@@ -357,6 +386,21 @@ class DongXepHang:
     ty_trong_muc_tieu: float
     nhan: int | None
     loi_nhuan_tuong_doi: float | None
+    vai_tro_du_lieu: str = "test"
+
+    def __post_init__(self) -> None:
+        if not self.fold or not self.model_id or not self.ma:
+            raise ValueError("fold/model_id/ma ranking khong duoc rong.")
+        if self.vai_tro_du_lieu != "test":
+            raise ValueError("Ranking cuoi chi chap nhan vai_tro_du_lieu=test.")
+        probability = xac_thuc_so_huu_han(self.xac_suat_nhan_1, "xac_suat_nhan_1")
+        weight = xac_thuc_so_huu_han(self.ty_trong_muc_tieu, "ty_trong_muc_tieu")
+        if not 0.0 <= probability <= 1.0 or not 0.0 <= weight <= 1.0:
+            raise ValueError("Probability/target weight ranking khong hop le.")
+        if self.nhan not in {None, 0, 1}:
+            raise ValueError("nhan ranking khong hop le.")
+        if self.loi_nhuan_tuong_doi is not None:
+            xac_thuc_so_huu_han(self.loi_nhuan_tuong_doi, "loi_nhuan_tuong_doi")
 
 
 @dataclass(frozen=True)

@@ -1,8 +1,8 @@
-"""Metric model va ranking chi tren prediction test ngoai mau."""
+"""Metric model va ranking chi tren prediction test ngoai mau, co phong ve du lieu."""
 from __future__ import annotations
 
 from collections import defaultdict
-from math import sqrt
+from math import isfinite, sqrt
 from statistics import fmean
 from typing import Iterable, Sequence
 
@@ -11,7 +11,29 @@ from sklearn.metrics import log_loss, roc_auc_score
 from .mo_hinh import DongXepHang, DuDoan
 
 
+def _xac_thuc_prediction_metric(predictions: Sequence[DuDoan]) -> None:
+    if any(x.vai_tro_du_lieu != "test" for x in predictions):
+        raise ValueError("Metric cuoi chi nhan prediction test.")
+    keys = [(x.ngay, x.ma) for x in predictions]
+    if len(keys) != len(set(keys)):
+        raise ValueError("Trung khoa (ngay,ma) trong metric model test.")
+    fold_model: dict[str, str] = {}
+    for row in predictions:
+        if not row.fold or not row.model_id:
+            raise ValueError("fold/model_id metric khong hop le.")
+        if row.fold in fold_model and fold_model[row.fold] != row.model_id:
+            raise ValueError("Mot fold metric model chi duoc co mot model_id.")
+        fold_model[row.fold] = row.model_id
+        if not isfinite(row.xac_suat_nhan_1) or not 0.0 <= row.xac_suat_nhan_1 <= 1.0:
+            raise ValueError("Probability metric phai huu han trong [0,1].")
+        if row.nhan not in {None, 0, 1}:
+            raise ValueError("Nhan metric khong hop le.")
+        if row.loi_nhuan_tuong_doi is not None and not isfinite(row.loi_nhuan_tuong_doi):
+            raise ValueError("Relative return metric phai huu han.")
+
+
 def calibration_equal_width(predictions: Sequence[DuDoan]) -> list[dict[str, object]]:
+    _xac_thuc_prediction_metric(predictions)
     bins: list[list[DuDoan]] = [[] for _ in range(10)]
     for row in predictions:
         index = min(int(row.xac_suat_nhan_1 * 10), 9)
@@ -36,8 +58,7 @@ def calibration_equal_width(predictions: Sequence[DuDoan]) -> list[dict[str, obj
 
 def metric_model_test(predictions: Iterable[DuDoan]) -> dict[str, object]:
     rows = list(predictions)
-    if any(x.vai_tro_du_lieu != "test" for x in rows):
-        raise ValueError("Metric cuoi chi nhan prediction test.")
+    _xac_thuc_prediction_metric(rows)
     labeled = [x for x in rows if x.nhan is not None]
     if not labeled:
         return {"so_quan_sat": 0, "auc": None, "log_loss": None, "brier": None, "calibration": []}
@@ -56,6 +77,8 @@ def metric_model_test(predictions: Iterable[DuDoan]) -> dict[str, object]:
 
 
 def _average_ranks(values: Sequence[float]) -> list[float]:
+    if any(not isfinite(value) for value in values):
+        raise ValueError("Rank input phai huu han.")
     indexed = sorted(enumerate(values), key=lambda x: x[1])
     ranks = [0.0] * len(values)
     i = 0
@@ -73,6 +96,8 @@ def _average_ranks(values: Sequence[float]) -> list[float]:
 def spearman_rank_ic(scores: Sequence[float], returns: Sequence[float]) -> float | None:
     if len(scores) != len(returns):
         raise ValueError("scores va returns khac do dai.")
+    if any(not isfinite(value) for value in [*scores, *returns]):
+        raise ValueError("Spearman input phai huu han.")
     if len(scores) < 3:
         return None
     x, y = _average_ranks(scores), _average_ranks(returns)
@@ -100,8 +125,32 @@ def decile_spread(rows: Sequence[DongXepHang]) -> float | None:
     return fmean(float(x.loi_nhuan_tuong_doi) for x in groups[0]) - fmean(float(x.loi_nhuan_tuong_doi) for x in groups[-1])
 
 
+def _xac_thuc_ranking_metric(rows: Sequence[DongXepHang]) -> None:
+    keys = [(row.ngay, row.ma) for row in rows]
+    if len(keys) != len(set(keys)):
+        raise ValueError("Trung khoa (ngay,ma) trong metric ranking test.")
+    fold_model: dict[str, str] = {}
+    for row in rows:
+        if row.vai_tro_du_lieu != "test":
+            raise ValueError("Metric ranking cuoi chi nhan du lieu test.")
+        if not row.fold or not row.model_id:
+            raise ValueError("fold/model_id ranking khong hop le.")
+        if row.fold in fold_model and fold_model[row.fold] != row.model_id:
+            raise ValueError("Mot fold ranking chi duoc co mot model_id.")
+        fold_model[row.fold] = row.model_id
+        if not isfinite(row.xac_suat_nhan_1) or not 0.0 <= row.xac_suat_nhan_1 <= 1.0:
+            raise ValueError("Score ranking phai huu han trong [0,1].")
+        if not isfinite(row.ty_trong_muc_tieu) or not 0.0 <= row.ty_trong_muc_tieu <= 1.0:
+            raise ValueError("Target weight ranking khong hop le.")
+        if row.nhan not in {None, 0, 1}:
+            raise ValueError("Nhan ranking khong hop le.")
+        if row.loi_nhuan_tuong_doi is not None and not isfinite(row.loi_nhuan_tuong_doi):
+            raise ValueError("Relative return ranking phai huu han.")
+
+
 def metric_ranking_test(rankings: Iterable[DongXepHang]) -> dict[str, object]:
     rows = list(rankings)
+    _xac_thuc_ranking_metric(rows)
     by_day: dict[object, list[DongXepHang]] = defaultdict(list)
     for row in rows:
         by_day[row.ngay].append(row)
@@ -133,6 +182,7 @@ def metric_ranking_test(rankings: Iterable[DongXepHang]) -> dict[str, object]:
             "set_turnover": turnover, "so_ma_duoc_chon": len(selected),
         })
         previous = selected_set
+
     names = [
         "precision_at_k", "hit_rate_top_k", "loi_nhuan_tuong_doi_trung_binh_top_k",
         "decile_spread", "spearman_rank_ic", "set_turnover",

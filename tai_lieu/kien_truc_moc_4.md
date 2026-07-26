@@ -10,10 +10,10 @@ Module du kien:
 
 ```text
 nghien_cuu_moc_4/
-  mo_hinh.py universe.py do_phu.py dac_trung.py nhan.py
+  mo_hinh.py phong_ve.py universe.py do_phu.py dac_trung.py nhan.py
   walk_forward.py tien_xu_ly.py baseline.py logistic.py
   xep_hang.py adapter_mo_phong.py chi_so.py cong_bo.py
-  dong_lenh.py __main__.py
+  runner.py dong_lenh.py __main__.py
 ```
 
 ## 2. Cutoff point-in-time
@@ -457,6 +457,74 @@ Truoc du lieu that, doan 00 xac nhan universe/proxy, VNINDEX va lich benchmark, 
 
 PR #10 giu Draft. Khong force-push, khong merge, khong du lieu that, khong Moc 5.
 
-## 17. Trang thai trien khai fixture
+## 17. Runner dau-cuoi va CLI
 
-Da trien khai 16 module theo so do, 97 kiem thu Moc 4 va dependency `scikit-learn==1.9.0`. CI Python 3.12 chay compileall va toan bo unittest ngoai tuyen. Moi du lieu trong test la fixture; chua chay Tier A/Tier B, chua tai VN100/VNINDEX that va chua cong bo ket qua hieu qua.
+Ham `chay_nghien_cuu_moc_4(...)` la cua vao duy nhat cua pipeline nghien cuu. Dau vao toi thieu:
+
+```text
+cau_hinh.json
+OHLCV co phieu.csv
+benchmark.csv
+lich_benchmark.csv
+universe.csv
+corporate_actions_metadata.csv
+thu_muc_dau_ra
+ma_lan_chay
+git_commit
+```
+
+Runner chi doc tep cuc bo, khong goi mang. CLI goi truc tiep runner; che do `--kiem-tra-cau-hinh` duoc tach rieng.
+
+Thu tu bat bien:
+
+```text
+parse/validate → PIT → coverage → monthly features → labels → samples
+→ folds → baseline/logistic → test predictions → ranking/targets
+→ M3 backtests → metrics → 16 products → manifest → atomic publish
+```
+
+## 18. Calendar alignment cua feature
+
+Lich benchmark chinh thuc la dau vao rieng va khong duoc suy ra tu cac benchmark bar con ton tai. Tai T:
+
+- endpoint return/momentum la dung `calendar[index(T)-N]`;
+- MA_N va liquidity_N can du moi bar tren N phien benchmark ket thuc tai T;
+- volatility_N can du N+1 bar tren dung lich;
+- benchmark regime dung cung lich va endpoint;
+- stock/benchmark map theo ngay, khong theo vi tri bar con ton tai.
+
+Thieu bar bat buoc tao ly do co cau truc `thieu_bar_<side>_<feature>`, feature rong va dong bi loai neu feature do bat buoc. Them bar truoc cua so khong the chuyen dong thieu thanh hop le.
+
+## 19. Coverage schema
+
+`bao_cao_do_phu.json` cong bo khoang yeu cau/thuc te, tong ma universe/co du lieu, danh sach loi hoan toan/warm-up/gap/gia/volume/corporate actions, coverage theo ngay (`tu_so,mau_so,ty_le`), coverage theo ma (`so_phien_co,so_phien_yeu_cau,ty_le`), ngay thieu top_k, ly do loai, loi fold, nguon/phien ban va co so gia.
+
+## 20. Baseline va OOS adapter
+
+Momentum baseline dung `dong_luong_12_1` tren dung test samples da qua eligibility. Baseline va Logistic Regression dung cung test dates, universe, eligibility, top_k, chi phi va engine.
+
+Adapter bat buoc `muc_tieu_bang_0`. Target matrix day du theo `ngay_tai_can_bang × cac_ma_lien_quan`; ma khong duoc chon co target 0. Ngay khong co prediction van tao tai can bang ve tien mat. Moi chien luoc goi engine Moc 3 dung mot lan.
+
+## 21. Manifest va phong ve du lieu
+
+Manifest tu tinh SHA-256/size cho moi dau vao va 16 san pham. Metadata bat buoc gom Git/run/UTC/Python/uv/scikit-learn, nguon/phien ban, co so gia, muc dich, nam nhom cau hinh, canh bao va gioi han. Metadata rong/khuyet, input khong ton tai hoac payload sai hop dong deu rollback.
+
+Moi so trong OHLCV, feature, prediction, relative return, metric va san pham phai dat `math.isfinite`. CSV/JSON chua NaN/Inf bi tu choi truoc publication. Metric cuoi chi nhan test, khoa `(ngay,ma)` duy nhat va fold/model nhat quan.
+
+## 22. Kiem thu fixture
+
+Suite gom 146 test Mốc 4 va 121 test Mốc 0–3, tong 267 test. Cac nhom bo sung bao phu tam kich ban calendar alignment, coverage day du, nam kich ban OOS target/cash, manifest thieu tung metadata, baseline OOS, finite/duplicate/role validation va kich ban vang dau-cuoi.
+
+Kich ban vang:
+
+- tao dung 17 tep;
+- co fold, prediction va ranking ngoai mau;
+- kiem tra ngay khop la T+1 tren lich benchmark;
+- NAV va so lan tai can bang lien tuc;
+- input/product hashes trong manifest;
+- hai run co timestamp/git/input giong nhau tao byte giong nhau;
+- CLI chay cung pipeline tu tep cuc bo.
+
+## 23. Cua kiem soat
+
+Tier A/Tier B chua chay. VN100/VNINDEX, lich benchmark, co so gia va corporate actions that chua duoc phe duyet. Ket qua fixture chi xac minh ky thuat, khong duoc dung de tuyen bo hieu qua chien luoc. Khong LightGBM, SSI, Ready, merge hay Mốc 5.

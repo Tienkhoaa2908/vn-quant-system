@@ -11,7 +11,7 @@ He thong dinh luong co phieu Viet Nam. Moc 0–3 da dong; Moc 4 dang duoc trien 
 
 Khong thuoc Moc 4: LightGBM, deep learning, inverse volatility san xuat, tran 15% moi ma/25% moi nganh, ket noi SSI, doc tai khoan hay gui lenh.
 
-## Moc 4 — fixture ngoai tuyen
+## Moc 4 — pipeline dau-cuoi bang fixture ngoai tuyen
 
 Ma nam trong:
 
@@ -19,19 +19,60 @@ Ma nam trong:
 src/he_thong_dinh_luong/nghien_cuu_moc_4/
 ```
 
-Cac module tach rieng hop dong/cau hinh, universe, coverage, feature, nhan, walk-forward, tien xu ly, baseline, Logistic Regression, ranking, adapter Moc 3, metric, cong bo va CLI.
+Ham dieu phoi chinh:
+
+```python
+chay_nghien_cuu_moc_4(...)
+```
+
+Luồng runner chi doc tep cuc bo:
+
+```text
+cau hinh va dau vao
+→ PIT universe/benchmark metadata/corporate actions
+→ coverage
+→ feature cuoi thang theo lich benchmark chinh thuc
+→ nhan T+H
+→ samples va walk-forward folds
+→ momentum baseline va Logistic Regression
+→ prediction test, ranking va target weights
+→ hai backtest OOS lien tuc qua engine Moc 3
+→ model/ranking/backtest metrics
+→ 16 san pham + manifest
+→ cong bo nguyen tu
+```
+
+Bat bien chinh:
 
 - Cutoff PIT: `thoi_diem_cong_bo <= thoi_diem_tao_tin_hieu`; timestamp phai co mui gio.
-- Mau model chi sinh tai phien benchmark cuoi thang.
-- T+H la phien thu H sau T tren lich benchmark; thieu endpoint thi nhan rong, khong forward-fill/tim phien thay the.
-- Expanding monthly walk-forward co purge/embargo; test mot thang, khong chong lan.
+- Lich benchmark duoc truyen rieng. Moi cua so va endpoint `T-N` dung dung phien benchmark; khong nen thoi gian, forward-fill, tim phien thay the hoac lay bar cu de bu.
+- Thieu bat ky bar bat buoc trong MA, momentum, volatility, liquidity hay regime thi feature tuong ung rong; dong thieu feature bat buoc bi loai va ghi coverage.
+- T+H la phien thu H sau T tren lich benchmark; thieu stock/benchmark dung T/T+H thi nhan rong.
+- Expanding monthly walk-forward co purge/embargo; chi prediction test vao metric cuoi va backtest.
 - Dependency khoa `scikit-learn==1.9.0`; khong pandas, khong LightGBM.
-- Pipeline dung `StandardScaler` va Logistic Regression L2/lbfgs; C chon bang validation log loss, refit train+validation.
-- Chi prediction test vao metric cuoi, target weights va backtest OOS lien tuc.
-- Cong bo 17 tep bang staging, fsync, rename nguyen tu, rollback va SHA-256.
-- Da bo sung 97 test Moc 4; 121 test Moc 0–3 tiep tuc chay hoi quy.
+- Momentum baseline va Logistic Regression dung cung test dates, universe, eligibility, top_k, chi phi va engine.
+- Adapter bat buoc `che_do_ma_khong_xuat_hien=muc_tieu_bang_0`, phat target 0 cho ma roi top_k va bieu dien ngay tai can bang rong de ve tien mat.
+- Manifest tu tinh SHA-256 tung dau vao va tung san pham; metadata version/cau hinh/canh bao/gioi han la bat buoc.
+- NaN/Inf bi tu choi trong dau vao, feature, probability, relative return, metric va san pham.
+- Cong bo 17 tep bang staging, fsync, rename nguyen tu va rollback.
 
-CLI Moc 4 hien chi xac thuc cau hinh fixture ngoai tuyen:
+CLI chay dau-cuoi:
+
+```bash
+PYTHONPATH=src uv run --python 3.12 \
+  python -m he_thong_dinh_luong.nghien_cuu_moc_4 \
+  --cau-hinh duong_dan/cau_hinh.json \
+  --ohlcv duong_dan/ohlcv.csv \
+  --benchmark duong_dan/benchmark.csv \
+  --lich-benchmark duong_dan/lich_benchmark.csv \
+  --universe duong_dan/universe.csv \
+  --corporate-actions duong_dan/corporate_actions_metadata.csv \
+  --thu-muc-dau-ra duong_dan/ket_qua \
+  --ma-lan-chay ma_lan_chay_duy_nhat \
+  --git-commit <SHA-40-ky-tu>
+```
+
+Che do chi xac thuc cau hinh van duoc giu:
 
 ```bash
 PYTHONPATH=src uv run --python 3.12 \
@@ -39,7 +80,9 @@ PYTHONPATH=src uv run --python 3.12 \
   --kiem-tra-cau-hinh duong_dan/cau_hinh.json
 ```
 
-Chua chay Tier A/Tier B, chua tai VN100/VNINDEX that va chua cong bo ket qua hieu qua.
+Suite hien co 146 test Mốc 4 va 121 test hoi quy Mốc 0–3, tong 267 test ngoai tuyen. Kich ban vang chay runner hai lan byte-for-byte va chay CLI tren fixture; khong goi mang.
+
+Chua chay Tier A/Tier B, chua tai VN100/VNINDEX that, nguon that chua duoc phe duyet va khong duoc dien giai metric fixture nhu hieu qua chien luoc.
 
 ## Dau vao Moc 3
 

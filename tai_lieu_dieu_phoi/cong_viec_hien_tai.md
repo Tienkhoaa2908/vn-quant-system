@@ -1,38 +1,27 @@
 # Công việc hiện tại
 
-Cập nhật: 2026-07-25
+Cập nhật: 2026-07-26
 
 ## Đoạn phụ trách
 
-Đoạn `04` đã triển khai Mốc 4 bằng fixture ngoại tuyến trên PR #10; đoạn `00` tiếp tục rà soát và quyết định cửa dữ liệu thật.
+Đoạn `04` hoàn thiện Mốc 4 trên PR #10; đoạn `00` rà soát và quyết định cửa dữ liệu thật.
 
-## Nền bắt buộc
+## Đã hoàn tất bằng fixture ngoại tuyến
 
-- Kho: `Tienkhoaa2908/vn-quant-system`.
-- `main`/base: `24bf02a7cf0f18d5a0fe342356b8ea0e045b1ed6`.
-- Nhánh: `m4-dac_trung-xep_hang-hoc_may`.
-- PR #10 tiếp tục Draft.
-- Không force-push, không sửa trực tiếp `main`, không commit `du_lieu/`, không mở Mốc 5.
+1. Runner `chay_nghien_cuu_moc_4(...)` và CLI đầu-cuối từ tệp cục bộ.
+2. Lịch benchmark chính thức làm trục cho toàn bộ cửa sổ/endpoint feature; không forward-fill hoặc nén thời gian.
+3. Coverage schema đầy đủ theo yêu cầu.
+4. Momentum baseline và Logistic Regression dùng cùng OOS test set/engine/chi phí.
+5. Adapter bắt `muc_tieu_bang_0`, target 0 cho mã rời top_k và ngày rỗng về tiền mặt.
+6. Manifest bắt metadata, input/product SHA-256 và rollback.
+7. NaN/Inf, duplicate, role/fold/model validation fail closed.
+8. 146 test Mốc 4; toàn suite 267 test cùng 121 test hồi quy.
 
-## Đã hoàn tất trên fixture
+## Cửa tiếp theo thuộc đoạn 00
 
-1. Khóa kiến trúc monthly sample, OOS liên tục, metric top-K và fold một lớp.
-2. Khóa `scikit-learn==1.9.0` trong `pyproject.toml`/`uv.lock`.
-3. Triển khai 16 module Mốc 4, không sao chép engine Mốc 3.
-4. Triển khai PIT universe/coverage, feature, nhãn, walk-forward, Logistic, ranking, metric, adapter và publication.
-5. Bổ sung 97 test Mốc 4 theo lỗi nghiệp vụ.
-6. Compileall và toàn bộ unittest Python 3.12 đạt trên CI; 121 test hồi quy Mốc 0–3 tiếp tục đạt.
-
-## Công việc còn lại thuộc cửa đoạn 00
-
-- Rà soát diff, metric và sản phẩm của fixture.
-- Phê duyệt hoặc yêu cầu sửa PR #10; PR chưa được chuyển Ready.
-- Chỉ sau phê duyệt riêng mới xác nhận nguồn VN100/proxy, VNINDEX/lịch benchmark, cơ sở giá và corporate actions để chạy Tier A/Tier B.
+- Rà soát diff/CI/PR #10 trong trạng thái Draft.
+- Nguồn thật chỉ được xác nhận và chạy Tier A/Tier B sau phê duyệt riêng.
 
 ## Cấm hiện hành
 
-- Không chạy dữ liệu thật.
-- Không thêm LightGBM hoặc pandas.
-- Không chia vốn sản xuất.
-- Không kết nối SSI, đọc tài khoản hoặc gửi lệnh.
-- Không gộp PR và không mở Mốc 5.
+Không force-push, không Ready/merge, không dữ liệu thật, không LightGBM, không SSI và không mở Mốc 5. Không diễn giải fixture như hiệu quả chiến lược.
