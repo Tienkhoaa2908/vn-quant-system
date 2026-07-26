@@ -2,7 +2,7 @@ name: kiem_tra_tu_dong
 
 on:
   push:
-    branches: [main, m3-mo_phong-giao_dich]
+    branches: [main, m4-dac_trung-xep_hang-hoc_may]
   pull_request:
   workflow_dispatch:
 
@@ -18,9 +18,23 @@ jobs:
         run: uv python install 3.12
       - name: Dong bo moi truong
         run: uv sync --frozen --python 3.12
+      - name: Ghi nhan phien ban
+        run: |
+          {
+            uv --version
+            uv run --python 3.12 python --version
+            uv run --python 3.12 python -c "import sklearn; print('scikit-learn', sklearn.__version__)"
+          } | tee /tmp/phien_ban_ci.txt
       - name: Kiem tra cu phap
         run: PYTHONPATH=src uv run --python 3.12 python -m compileall -q src tests
       - name: Chay kiem thu ngoai tuyen
         env:
           NO_PROXY: "*"
         run: PYTHONPATH=src uv run --python 3.12 python -m unittest discover -s tests -p 'test_*.py' -v
+      - name: Tai thong tin phien ban
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phien-ban-ci
+          path: /tmp/phien_ban_ci.txt
+          if-no-files-found: error

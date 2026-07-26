@@ -1,65 +1,39 @@
 # Trạng thái dự án
 
-Cập nhật gần nhất: 2026-07-25
+Cập nhật gần nhất: 2026-07-26
 
 ## Kho mã nguồn
 
 - Kho: `Tienkhoaa2908/vn-quant-system`.
-- Nhánh chính: `main`.
-- Đầu `main`: `bb25ff16761b7c79e701fbd4f3a5af02f1644e07`.
-- Python mục tiêu: 3.12; công cụ môi trường: `uv`.
-- GitHub là nguồn sự thật về nhánh, commit, PR và CI.
+- Base Mốc 4: `24bf02a7cf0f18d5a0fe342356b8ea0e045b1ed6`.
+- Nhánh: `m4-dac_trung-xep_hang-hoc_may`.
+- Head nền vòng final tree: `8652067b99b689eca46636c2617231d7b87f0427`.
+- PR #10 tiếp tục Draft; không reset/rebase/squash/force-push/merge.
+- Python mục tiêu 3.12; `uv`; `scikit-learn==1.9.0`.
 
 ## Mốc 0–Mốc 3
 
-Trạng thái: **đã đóng hoàn toàn**.
+Đã đóng. 121 test ngoại tuyến và engine Mốc 3 tiếp tục là nền hồi quy bắt buộc.
 
-Mốc 3:
+## Mốc 4 — final tree đang hoàn thiện
 
-- PR triển khai số 7 đã gộp bằng merge commit `79a044d75f3a66e5c636f0a83613fc9af0cac3fc`.
-- PR điều phối số 8 đã gộp bằng merge commit `bb25ff16761b7c79e701fbd4f3a5af02f1644e07`.
-- CI sau gộp PR số 8:
-  - workflow `kiem_tra_tu_dong`;
-  - run number `185`;
-  - Run ID `30151712433`;
-  - Job ID `89663090052`;
-  - trigger `push`;
-  - branch `main`;
-  - checkout `bb25ff16761b7c79e701fbd4f3a5af02f1644e07`;
-  - `completed/success`.
-- 121 kiểm thử ngoại tuyến và xác minh kỹ thuật engine trên FPT, HPG, MBB đã đạt.
+Pipeline đầu-cuối bằng fixture ngoại tuyến hiện khóa thêm:
 
-## Giới hạn dữ liệu hiện tại
+- eligibility là AND fail closed của membership PIT, `gtgd_tb_20`, warm-up, feature, chất lượng dữ liệu, benchmark metadata PIT và open đúng T+1;
+- metric backtest chỉ tính trong `ngay_bat_dau_metric..oos_end`, không đưa tiền mặt thời train/warm-up vào OOS;
+- fold test rỗng hoặc không có prediction test thất bại và không tạo ranking/tái cân bằng;
+- corporate action giữa hai kỳ tái cân bằng vẫn áp dụng theo publication/effective cutoff, không phụ thuộc lịch tín hiệu;
+- coverage theo mã dùng mẫu số point-in-time và policy B loại dữ liệu lỗi có kiểm soát;
+- model audit tách `validation_selection` và `final_refit` cùng scaler/model ID riêng;
+- research mode từ chối run rỗng, sai benchmark, thiếu metadata hoặc coverage/universe dưới ngưỡng.
 
-- Bộ ba mã chỉ là xác minh kỹ thuật.
-- Chưa có lịch sử thành viên VN100 point-in-time thật được phê duyệt.
-- Chưa có universe nhiều năm được kiểm toán.
-- Cơ sở giá và corporate actions thật chưa được xác nhận đầy đủ.
-- Chưa có feature set sản xuất, nhãn, walk-forward hoặc mô hình học máy.
-- Không tích hợp SSI, không đọc tài khoản và không gửi lệnh.
+Suite cục bộ final tree: 187 test Mốc 4 + 121 test Mốc 0–3 = 308 test. Compileall và toàn suite đang đạt trên runtime ngoại tuyến hiện có; CI Python 3.12 phải xác nhận lại sau commit/push.
 
-## Mốc 4
+## Cửa kiểm soát
 
-Trạng thái: **đang chuẩn bị đặc tả; chưa mở triển khai**.
-
-- Nhánh điều phối: `dac_ta-moc-4`.
-- Base: `bb25ff16761b7c79e701fbd4f3a5af02f1644e07`.
-- Tài liệu dự thảo: `tai_lieu/dac_ta_moc_4.md`.
-- Nhánh chỉ được chứa tài liệu.
-- Chưa tạo nhánh `m4-dac_trung-xep_hang-hoc_may`.
-- Chưa viết mã Mốc 4.
-
-Các cửa phải phê duyệt:
-
-1. nguồn VN100 point-in-time hoặc universe proxy;
-2. mục tiêu lịch sử tối thiểu 5 năm, ưu tiên 7–10 năm khi chất lượng cho phép;
-3. warm-up và coverage;
-4. cơ sở giá và corporate actions;
-5. bộ feature MVP;
-6. nhãn lợi nhuận tương đối 20 phiên;
-7. walk-forward có purge/embargo;
-8. Logistic Regression trước LightGBM;
-9. ranking và lịch tái cân bằng;
-10. chỉ số đánh giá ngoài mẫu;
-11. sản phẩm và truy vết;
-12. tiêu chí xác minh universe mở rộng.
+- Tier A/Tier B chưa chạy.
+- Chưa tải dữ liệu thật; nguồn VN100/VNINDEX/lịch/cơ sở giá/corporate actions thật chưa được phê duyệt.
+- Metric fixture không chứng minh hiệu quả chiến lược.
+- Không LightGBM, SSI, đọc tài khoản hoặc gửi lệnh.
+- Không Ready, không merge và không mở Mốc 5.
+- Chưa tạo nhánh sạch; chỉ thực hiện khi đoạn 00 có lệnh sau khi phê duyệt final tree.
