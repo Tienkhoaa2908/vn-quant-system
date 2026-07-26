@@ -1,0 +1,82 @@
+name: chan_doan_payload_m4
+
+on:
+  push:
+    branches:
+      - m4-dac_trung-xep_hang-hoc_may
+
+permissions:
+  contents: write
+  issues: read
+
+jobs:
+  chan_doan:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: m4-dac_trung-xep_hang-hoc_may
+          fetch-depth: 0
+      - name: Tinh SHA va kiem tra archive
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          python - <<'PY'
+          import base64
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import tarfile
+          import urllib.request
+
+          repo = os.environ['REPOSITORY']
+          token = os.environ['GH_TOKEN']
+          request = urllib.request.Request(
+              f'https://api.github.com/repos/{repo}/issues/10/comments?per_page=100',
+              headers={
+                  'Authorization': f'Bearer {token}',
+                  'Accept': 'application/vnd.github+json',
+                  'X-GitHub-Api-Version': '2022-11-28',
+              },
+          )
+          with urllib.request.urlopen(request) as response:
+              comments = json.load(response)
+          pieces = {}
+          for item in comments:
+              body = item.get('body') or ''
+              if body.startswith('M4PAYLOAD ') and '\n' in body:
+                  marker, payload = body.split('\n', 1)
+                  pieces[marker.split()[1].split('/', 1)[0]] = payload.strip()
+          required = [f'{index:02d}' for index in range(10)] + ['10A', '10B', '11']
+          report = {'keys': sorted(pieces), 'missing': [key for key in required if key not in pieces]}
+          try:
+              encoded = ''.join(pieces[key] for key in required)
+              raw = base64.b64decode(encoded, validate=True)
+              report['encoded_length'] = len(encoded)
+              report['raw_length'] = len(raw)
+              report['sha256'] = hashlib.sha256(raw).hexdigest()
+              archive_path = Path('/tmp/m4_payload.tar.gz')
+              archive_path.write_bytes(raw)
+              with tarfile.open(archive_path, 'r:gz') as archive:
+                  report['members'] = [member.name for member in archive.getmembers()]
+              report['archive_valid'] = True
+          except Exception as exc:
+              report['archive_valid'] = False
+              report['error_type'] = type(exc).__name__
+              report['error'] = str(exc)
+          Path('tai_lieu/chan_doan_payload_moc_4.md').write_text(
+              '# Chan doan payload Moc 4\n\n```json\n' + json.dumps(report, ensure_ascii=False, indent=2) + '\n```\n',
+              encoding='utf-8',
+          )
+          PY
+      - name: Commit chan doan va xoa workflow tam
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm .github/workflows/chan_doan_payload_m4.yml
+          git add -A
+          git diff --cached --check
+          git commit -m "cap nhat chan doan SHA payload Moc 4"
+          git push origin HEAD:m4-dac_trung-xep_hang-hoc_may
