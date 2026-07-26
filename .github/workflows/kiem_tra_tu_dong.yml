@@ -9,7 +9,39 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
+  cap_nhat_lock:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/m4-dac_trung-xep-hang-hoc_may-sach-v2'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Lay nhanh can cap nhat
+        uses: actions/checkout@v4
+        with:
+          ref: m4-dac_trung-xep-hang-hoc_may-sach-v2
+          fetch-depth: 0
+      - name: Cai dat uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.32"
+      - name: Cai dat Python
+        run: uv python install 3.12
+      - name: Tai tao va commit uv.lock
+        shell: bash
+        run: |
+          uv lock --python 3.12
+          if git diff --quiet -- uv.lock; then
+            echo "uv.lock da dung; khong tao commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add uv.lock
+          git commit -m "cap nhat uv lock da nen tang do uv 0.11.32 sinh ra"
+          git push origin HEAD:m4-dac_trung-xep-hang-hoc_may-sach-v2
+
   kiem_tra:
     name: kiem_tra_${{ matrix.he_dieu_hanh }}
     strategy:
@@ -53,13 +85,6 @@ jobs:
           PYTHONPATH: src
           NO_PROXY: "*"
         run: uv run --python 3.12 python -m unittest discover -s tests -p 'test_*.py' -v
-      - name: Tai khoa do uv sinh ra
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: uv-lock-${{ matrix.he_dieu_hanh }}
-          path: uv.lock
-          if-no-files-found: error
       - name: Tai thong tin phien ban
         if: always()
         uses: actions/upload-artifact@v4
