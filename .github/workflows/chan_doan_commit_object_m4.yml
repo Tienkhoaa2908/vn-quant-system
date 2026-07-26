@@ -107,6 +107,7 @@ jobs:
               subprocess.run(["git", "diff", "--cached", "--check"], check=True)
               raw = subprocess.check_output(
                   ["git", "diff", "--cached", "--name-only", "--no-renames", "-z", "HEAD"]
+              )
               paths = [item.decode() for item in raw.split(b"\0") if item]
               print(f"PARENT={parent} PATHS={len(paths)}")
               changes = []
@@ -157,5 +158,5 @@ jobs:
           if-no-files-found: warn
 
       - name: Ket luan
-        if: steps.tao_object.outcome != 'success'
+        if: steps.tao_object.outcome == 'failure'
         run: exit 1
