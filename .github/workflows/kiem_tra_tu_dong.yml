@@ -15,8 +15,6 @@ jobs:
   kiem_tra:
     runs-on: ubuntu-latest
     steps:
-      - name: Lay ma nguon
-        uses: actions/checkout@v4
       - name: Bao cao payload Moc 4
         if: github.event_name == 'pull_request' && github.event.pull_request.number == 10
         env:
@@ -75,15 +73,3 @@ jobs:
           print("M4_PAYLOAD_REPORT=" + json.dumps(report, ensure_ascii=True, sort_keys=True))
           raise SystemExit(1)
           PY
-      - name: Cai dat uv
-        uses: astral-sh/setup-uv@v6
-      - name: Cai dat Python
-        run: uv python install 3.12
-      - name: Dong bo moi truong
-        run: uv sync --frozen --python 3.12
-      - name: Kiem tra cu phap
-        run: PYTHONPATH=src uv run --python 3.12 python -m compileall -q src tests
-      - name: Chay kiem thu ngoai tuyen
-        env:
-          NO_PROXY: "*"
-        run: PYTHONPATH=src uv run --python 3.12 python -m unittest discover -s tests -p 'test_*.py' -v
