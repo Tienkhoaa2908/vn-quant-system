@@ -1,6 +1,6 @@
 # vn-quant-system
 
-He thong dinh luong co phieu Viet Nam. Moc 0–3 da dong; Moc 4 dang duoc trien khai va ra soat tren PR so 10 o trang thai Draft.
+He thong dinh luong co phieu Viet Nam. Moc 0–3 da dong; Moc 4 dang duoc trien khai va ra soat tren PR so 13 o trang thai Draft.
 
 ## Pham vi hien tai
 
@@ -58,7 +58,7 @@ Bat bien chinh:
 - Coverage theo ma dung tap phien yeu cau PIT, khong tinh truoc ngay bat dau hop le hoac sau khi ma roi universe; gap chi xet trong tap phien yeu cau. Policy B loai dong/ma loi co kiem soat va ghi `ma_loi_gia`/`ma_loi_volume`.
 - Model audit phan biet `validation_selection` (fit train) va `final_refit` (fit train+validation), luu scaler, C, coefficient, intercept, n_iter, warning, candidate error, feature order, cutoff va scikit-learn version.
 - Che do `nghien_cuu` fail closed neu sai benchmark identity, thieu metadata PIT, khong co fold/prediction/tai can bang OOS, coverage/universe duoi nguong hoac hop dong gia/corporate actions khong dat. Run technical duoc tiep tuc voi canh bao.
-- Manifest tu tinh SHA-256 tung dau vao va tung san pham; metadata version/cau hinh/canh_bao/gioi_han la bat buoc.
+- Manifest tu tinh SHA-256 tung dau vao va tung san pham; metadata version/cau_hinh/canh_bao/gioi_han la bat buoc.
 - NaN/Inf bi tu choi trong dau vao, feature, probability, relative return, metric va san pham.
 - Cong bo 17 tep bang staging, fsync, rename nguyen tu va rollback.
 
@@ -89,6 +89,14 @@ PYTHONPATH=src uv run --python 3.12 \
 Suite hien co 187 test Mốc 4 va 121 test hoi quy Mốc 0–3, tong 308 test ngoai tuyen. Kich ban vang chay runner hai lan byte-for-byte va chay CLI tren fixture; khong goi mang.
 
 Chua chay Tier A/Tier B, chua tai VN100/VNINDEX that, nguon that chua duoc phe duyet va khong duoc dien giai metric fixture nhu hieu qua chien luoc.
+
+## Khoa dependency da nen tang
+
+Preflight Tier A tren Windows `win_amd64` phat hien `uv.lock` cu chi chua wheel manylinux cho NumPy, SciPy va scikit-learn; `uv sync --frozen --python 3.12` vi the dung voi ma `BLOCKED_DEPENDENCY_LOCK_LINUX_ONLY_ON_WINDOWS`. Day la loi lockfile, khong phai scikit-learn khong ho tro Windows.
+
+`[tool.uv]` khoa hai moi truong bat buoc: Linux x86_64 va Windows AMD64. Lock giu nguyen `scikit-learn==1.9.0`, `numpy==2.3.5`, `scipy==1.17.0`, `joblib==1.5.3`, `narwhals==2.0.1` va `threadpoolctl==3.6.0`, dong thoi chua wheel CPython 3.12 manylinux x86_64 va win_amd64 cho ba goi nhi phan. CI PR chay cung mot bo `uv lock --check`, frozen sync, compileall va unittest tren `ubuntu-24.04` va `windows-2025`.
+
+Sua loi nay khong thay doi logic feature/model/ranking/backtest. Tier A/Tier B van chua bat dau, chua co raw data that va PR #13 tiep tuc Draft.
 
 ## Dau vao Moc 3
 
@@ -195,7 +203,7 @@ PYTHONPATH=src uv run --python 3.12 \
   --ty_trong_muc_tieu du_lieu/ty_trong_muc_tieu.csv \
   --cau_hinh du_lieu/cau_hinh_moc_3.json \
   --su_kien_doanh_nghiep du_lieu/su_kien.csv \
-  --thu_muc_dau_ra du_lieu/backtest/<ma_lan_chay_moi>
+  --thu-muc-dau-ra du_lieu/backtest/<ma_lan_chay_moi>
 ```
 
 `--su_kien_doanh_nghiep` la tuy chon. Thu muc dau ra khong duoc ton tai truoc lan chay. Loi do CLI kiem soat duoc lam sach dong nhat trong stdout va `bao_cao_loi.json`; token, secret, password, API key va Bearer credential khong duoc lo.
@@ -252,4 +260,4 @@ So lieu, phuong phap va gioi han: `tai_lieu/ket_qua_xac_minh_that_moc_3.md`.
 - Co so gia `khong_dieu_chinh` chua duoc nguon xac nhan doc lap.
 - Baseline chi kiem tra engine, khong phai chien luoc san xuat.
 - Moc 4 chua chay du lieu that; chua co LightGBM, chia von san xuat hay SSI.
-- PR so 10 phai giu Draft; khong Ready, khong gop va khong mo Moc 5.
+- PR so 13 phai giu Draft; khong Ready, khong gop va khong mo Moc 5.

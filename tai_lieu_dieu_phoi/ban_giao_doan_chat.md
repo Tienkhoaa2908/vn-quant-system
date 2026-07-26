@@ -6,20 +6,16 @@ Cập nhật: 2026-07-26
 
 - Kho: `Tienkhoaa2908/vn-quant-system`.
 - Base: `24bf02a7cf0f18d5a0fe342356b8ea0e045b1ed6`.
-- Nhánh: `m4-dac_trung-xep_hang-hoc_may`.
-- Head được đoạn 00 rà soát trước vòng: `8652067b99b689eca46636c2617231d7b87f0427`.
-- PR #10 phải giữ Draft.
+- Nhánh: `m4-dac_trung-xep-hang-hoc-may-sach-v2`.
+- Head trước vòng: `bb731e6292abf04c78167b59c8488d795d74f493`.
+- PR #13 phải giữ Open, Draft, chưa merge.
 
-## Final tree vòng này
+## Lỗi và hướng sửa
 
-- Eligibility AND fail closed, thanh khoản PIT `gtgd_tb_20`, open đúng T+1; không tìm T+2.
-- OOS metric được cắt khỏi train/warm-up và dữ liệu sau `oos_end`; một vốn và một chuỗi liên tục.
-- Fold test rỗng/không prediction không được tính thành công hoặc tạo rebalance.
-- Corporate action giữa hai kỳ tín hiệu được áp dụng đúng effective date khi publication cutoff hợp lệ.
-- Coverage theo mã point-in-time, không phạt trước listing/entry hoặc sau exit; lỗi giá/volume theo policy B.
-- Audit phân biệt selection/refit scaler/model và công bố đầy đủ n_iter/convergence/candidate warning.
-- Research mode không công bố run toàn tiền mặt/rỗng như thành công.
+Windows Python 3.12/uv 0.11.32 không frozen-sync được vì lock cũ chỉ chứa wheel manylinux cho NumPy, SciPy và scikit-learn. Đây là lỗi lock platform-specific; PyPI có wheel win_amd64.
 
-## Kiểm thử và giới hạn
+Vòng sửa chỉ thêm required environments Linux/Windows, tái khóa cùng phiên bản và mở CI matrix Ubuntu/Windows. Không thay đổi logic Mốc 4 hoặc test nghiệp vụ.
 
-Suite cục bộ: 308 test = 187 Mốc 4 + 121 nền; 41 test mới. CI Python 3.12 phải chạy trên commit cuối và merge ref. Tier A/Tier B, dữ liệu thật và phê duyệt nguồn chưa diễn ra; metric fixture không chứng minh hiệu quả chiến lược. Không LightGBM, Ready, merge, Mốc 5 hoặc nhánh sạch trước lệnh đoạn 00.
+## Cửa hoàn tất
+
+Cả hai job phải checkout `refs/pull/13/merge`, đạt `uv lock --check`, frozen sync, compileall và 308 test với Python 3.12, uv 0.11.32, scikit-learn 1.9.0. Tier A/Tier B chưa chạy và không có dữ liệu thật.
