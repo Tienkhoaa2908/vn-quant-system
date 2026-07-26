@@ -33,15 +33,22 @@ Trạng thái: **đã hoàn thành và đã đóng hoàn toàn**.
 
 ## Mốc 4 — Dữ liệu nhiều năm, đặc trưng, xếp hạng và học máy cơ sở
 
-Trạng thái: **đang soạn và chờ phê duyệt đặc tả; chưa mở nhánh triển khai**.
+Trạng thái: **đặc tả đã phê duyệt và gộp; nhánh chuyên môn đã mở; chưa triển khai mã**.
 
-Tài liệu dự thảo:
+- Đặc tả: `tai_lieu/dac_ta_moc_4.md`.
+- PR đặc tả số 9 đã gộp bằng merge commit `24bf02a7cf0f18d5a0fe342356b8ea0e045b1ed6`.
+- CI sau gộp trên `main`:
+  - workflow `kiem_tra_tu_dong`;
+  - run `#187`;
+  - Run ID `30162993192`;
+  - Job ID `89691237408`;
+  - trigger `push`;
+  - checkout `24bf02a7cf0f18d5a0fe342356b8ea0e045b1ed6`;
+  - `completed/success`.
+- Nhánh chuyên môn: `m4-dac_trung-xep_hang-hoc_may`.
+- Base nhánh: `24bf02a7cf0f18d5a0fe342356b8ea0e045b1ed6`.
 
-```text
-tai_lieu/dac_ta_moc_4.md
-```
-
-Phạm vi dự kiến:
+Phạm vi đã phê duyệt:
 
 - VN100 point-in-time hoặc universe thanh khoản cao point-in-time được phê duyệt;
 - dữ liệu nhiều năm, mục tiêu ít nhất 5 năm và ưu tiên 7–10 năm khi chất lượng cho phép;
@@ -53,7 +60,7 @@ Phạm vi dự kiến:
 - ranking, `top_k` và backtest ngoài mẫu qua engine Mốc 3;
 - LightGBM chỉ sau quyết định riêng.
 
-Chưa được phép viết mã Mốc 4 trước khi PR đặc tả được phê duyệt, gộp và CI `main` đạt.
+Mã Mốc 4 chỉ được triển khai trên nhánh chuyên môn và PR phải giữ Draft đến khi đoạn 00 phê duyệt.
 
 ## Mốc 5 — Chia vốn
 

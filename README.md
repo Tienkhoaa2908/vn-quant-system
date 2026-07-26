@@ -1,14 +1,94 @@
 # vn-quant-system
 
-He thong dinh luong co phieu Viet Nam. Moc 0–2 da hoan thanh; Moc 3 dang duoc ra soat tren PR so 7 o trang thai draft.
+He thong dinh luong co phieu Viet Nam. Moc 0–3 da dong; Moc 4 dang duoc trien khai va ra soat tren PR so 10 o trang thai Draft.
 
 ## Pham vi hien tai
 
 - Moc 1: thu thap OHLCV ngay qua Vnstock Community 4.0.4/KBS, du lieu tho bat bien, chuan hoa, chat luong va SHA-256.
 - Moc 2: tap co phieu point-in-time, thanh khoan, MA250 va dong luong khong nhin truoc.
 - Moc 3: mo phong giao dich long-only, lenh DAY, tien mat, vi the, corporate actions MVP, so cai, NAV, chi so va dau ra bat bien.
+- Moc 4: universe point-in-time, feature va nhan monthly, walk-forward purge/embargo, momentum baseline, Logistic Regression, ranking, metric ngoai mau va adapter sang engine Moc 3.
 
-Khong thuoc Moc 3: Logistic Regression, LightGBM, walk-forward ML, inverse volatility san xuat, tran 15% moi ma/25% moi nganh, ket noi SSI, doc tai khoan hay gui lenh.
+Khong thuoc Moc 4: LightGBM, deep learning, inverse volatility san xuat, tran 15% moi ma/25% moi nganh, ket noi SSI, doc tai khoan hay gui lenh.
+
+## Moc 4 — pipeline dau-cuoi bang fixture ngoai tuyen
+
+Ma nam trong:
+
+```text
+src/he_thong_dinh_luong/nghien_cuu_moc_4/
+```
+
+Ham dieu phoi chinh:
+
+```python
+chay_nghien_cuu_moc_4(...)
+```
+
+Luồng runner chi doc tep cuc bo:
+
+```text
+cau hinh va dau vao
+→ PIT universe/benchmark metadata/corporate actions
+→ coverage
+→ feature cuoi thang theo lich benchmark chinh thuc
+→ nhan T+H
+→ samples va walk-forward folds
+→ momentum baseline va Logistic Regression
+→ prediction test, ranking va target weights
+→ hai backtest OOS lien tuc qua engine Moc 3
+→ model/ranking/backtest metrics
+→ 16 san pham + manifest
+→ cong bo nguyen tu
+```
+
+Bat bien chinh:
+
+- Cutoff PIT: `thoi_diem_cong_bo <= thoi_diem_tao_tin_hieu`; timestamp phai co mui gio.
+- Lich benchmark duoc truyen rieng. Moi cua so va endpoint `T-N` dung dung phien benchmark; khong nen thoi gian, forward-fill, tim phien thay the hoac lay bar cu de bu.
+- Thieu bat ky bar bat buoc trong MA, momentum, volatility, liquidity hay regime thi feature tuong ung rong; dong thieu feature bat buoc bi loai va ghi coverage.
+- T+H la phien thu H sau T tren lich benchmark; thieu stock/benchmark dung T/T+H thi nhan rong.
+- Expanding monthly walk-forward co purge/embargo; fold co test rong hoac khong tao prediction test bi fail closed va khong tao ranking/tai can bang. Chi prediction test vao metric cuoi va backtest.
+- Backtest khoa `oos_start`, `ngay_bat_dau_metric` va `oos_end`. Du lieu truoc OOS chi phuc vu warm-up/train/dinh gia can thiet; metric NAV/CAGR/Sharpe/turnover/cash ratio chi tinh trong cua so OOS, du lieu sau `oos_end` khong duoc anh huong.
+- Dependency khoa `scikit-learn==1.9.0`; khong pandas, khong LightGBM.
+- Eligibility tai T la phep AND fail closed cua membership PIT, thanh khoan PIT, warm-up, feature bat buoc, chat luong du lieu, benchmark metadata PIT va open dung T+1. Thanh khoan MVP dung `gtgd_tb_20 = mean(close * volume)` tren dung 20 phien benchmark ket thuc tai T, don vi dong/phien, cutoff tai T va nguong `nguong_gtgd_tb_toi_thieu`; thieu/khong dat ghi `khong_dat_thanh_khoan`. Thieu open dung T+1 ghi `thieu_open_t1`, khong tim T+2.
+- Momentum baseline va Logistic Regression dung cung test dates, universe, eligibility, top_k, chi phi va engine.
+- Adapter bat buoc `che_do_ma_khong_xuat_hien=muc_tieu_bang_0`, phat target 0 cho ma roi top_k va bieu dien ngay tai can bang rong de ve tien mat.
+- Corporate action duoc chon theo timestamp cong bo va ngay hieu luc trong cua so backtest, khong phu thuoc co ngay tin hieu nam giua cong bo va hieu luc; khong ap dung hoi to, su kien trung va gia dieu chinh kem su kien bi tu choi.
+- Coverage theo ma dung tap phien yeu cau PIT, khong tinh truoc ngay bat dau hop le hoac sau khi ma roi universe; gap chi xet trong tap phien yeu cau. Policy B loai dong/ma loi co kiem soat va ghi `ma_loi_gia`/`ma_loi_volume`.
+- Model audit phan biet `validation_selection` (fit train) va `final_refit` (fit train+validation), luu scaler, C, coefficient, intercept, n_iter, warning, candidate error, feature order, cutoff va scikit-learn version.
+- Che do `nghien_cuu` fail closed neu sai benchmark identity, thieu metadata PIT, khong co fold/prediction/tai can bang OOS, coverage/universe duoi nguong hoac hop dong gia/corporate actions khong dat. Run technical duoc tiep tuc voi canh bao.
+- Manifest tu tinh SHA-256 tung dau vao va tung san pham; metadata version/cau hinh/canh_bao/gioi_han la bat buoc.
+- NaN/Inf bi tu choi trong dau vao, feature, probability, relative return, metric va san pham.
+- Cong bo 17 tep bang staging, fsync, rename nguyen tu va rollback.
+
+CLI chay dau-cuoi:
+
+```bash
+PYTHONPATH=src uv run --python 3.12 \
+  python -m he_thong_dinh_luong.nghien_cuu_moc_4 \
+  --cau-hinh duong_dan/cau_hinh.json \
+  --ohlcv duong_dan/ohlcv.csv \
+  --benchmark duong_dan/benchmark.csv \
+  --lich-benchmark duong_dan/lich_benchmark.csv \
+  --universe duong_dan/universe.csv \
+  --corporate-actions duong_dan/corporate_actions_metadata.csv \
+  --thu-muc-dau-ra duong_dan/ket_qua \
+  --ma-lan-chay ma_lan_chay_duy_nhat \
+  --git-commit <SHA-40-ky-tu>
+```
+
+Che do chi xac thuc cau hinh van duoc giu:
+
+```bash
+PYTHONPATH=src uv run --python 3.12 \
+  python -m he_thong_dinh_luong.nghien_cuu_moc_4 \
+  --kiem-tra-cau-hinh duong_dan/cau_hinh.json
+```
+
+Suite hien co 187 test Mốc 4 va 121 test hoi quy Mốc 0–3, tong 308 test ngoai tuyen. Kich ban vang chay runner hai lan byte-for-byte va chay CLI tren fixture; khong goi mang.
+
+Chua chay Tier A/Tier B, chua tai VN100/VNINDEX that, nguon that chua duoc phe duyet va khong duoc dien giai metric fixture nhu hieu qua chien luoc.
 
 ## Dau vao Moc 3
 
@@ -153,11 +233,11 @@ PYTHONPATH=src uv run --python 3.12 \
   python -m unittest discover -s tests -p 'test_*.py' -v
 ```
 
-Bo kiem thu Moc 3 tach rieng cac ca co tuc, suc mua, so cai, eligibility, bien chi phi, bao mat va don vi, dong thoi giu dong ho T/T+1, corporate actions, chi so, cong bo/rollback, tai lap va kich ban vang. CI khong goi mang va khong goi Vnstock.
+Bo kiem thu Moc 4 tach rieng theo loi nghiep vu va giu toan bo 121 test Moc 0–3. CI khong goi mang va khong goi Vnstock.
 
 ## Xac minh ky thuat tren du lieu that
 
-Lan chay `xac_minh_fpt_hpg_mbb_20260725T074736Z` da xac minh engine tren FPT, HPG va MBB voi 287 phien moi ma, tong 861 dong sau khi ghep gia Moc 1 voi trang thai Moc 2. Engine tao 287 dong NAV, 287 dong so cai, 6/6 lenh khop, khong co lenh het han/tu choi, dong het ba vi the, tien mat khong am, doi soat bang `0.0000000`, tao dung 9 san pham va xac minh SHA-256 manifest.
+Lan chay `xac_minh_fpt_hpg_mbb_20260725T074736Z` da xac minh engine Moc 3 tren FPT, HPG va MBB voi 287 phien moi ma, tong 861 dong sau khi ghep gia Moc 1 voi trang thai Moc 2. Engine tao 287 dong NAV, 287 dong so cai, 6/6 lenh khop, khong co lenh het han/tu choi, dong het ba vi the, tien mat khong am, doi soat bang `0.0000000`, tao dung 9 san pham va xac minh SHA-256 manifest.
 
 Ket qua chi la xac minh ky thuat. Ty trong 30% moi ma la kich ban kiem tra; lan chay khong dung baseline MA250-dong-luong, khong co corporate actions that, va khong duoc dien giai loi nhuan am hay duong nhu danh gia chien luoc.
 
@@ -171,5 +251,5 @@ So lieu, phuong phap va gioi han: `tai_lieu/ket_qua_xac_minh_that_moc_3.md`.
 - Snapshot membership chua phai lich su thanh vien that; nguong thanh khoan chua phai cau hinh san xuat.
 - Co so gia `khong_dieu_chinh` chua duoc nguon xac nhan doc lap.
 - Baseline chi kiem tra engine, khong phai chien luoc san xuat.
-- Chua co ML, walk-forward, inverse volatility hoac gioi han nganh.
-- PR so 7 phai giu draft; khong Ready, khong gop va khong mo Moc 4 khi chua co phan quyet cua doan 00.
+- Moc 4 chua chay du lieu that; chua co LightGBM, chia von san xuat hay SSI.
+- PR so 10 phai giu Draft; khong Ready, khong gop va khong mo Moc 5.
