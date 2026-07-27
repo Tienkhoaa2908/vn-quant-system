@@ -5,13 +5,11 @@ Cập nhật: 2026-07-27
 ## Nền
 
 - Kho: `Tienkhoaa2908/vn-quant-system`.
-- Base: `24bf02a7cf0f18d5a0fe342356b8ea0e045b1ed6`.
-- Source kỹ thuật cuối: `5aec6ace8423fbf30442aa77db6ff63adb3c854e`.
-- Branch final: `m4-dac_trung-xep-hang-hoc_may-sach-final`.
-- Head trước correction tài liệu: `07bc48075be5e44cd410ff8fc2ef02828fc8fd73`.
-- Commit thứ tư có đúng source tree: `8452cfb8ddc521c80d7f1128acd72039b1fca0eb`.
-- PR #14 phải giữ Open, Draft, chưa merge.
-- PR #13 là PR nguồn, tiếp tục Open, Draft, chưa merge.
+- Main hien hanh: `67d09c85a3f3fef855b536172e43966a3269d5ce`.
+- PR #16 da merge bang merge commit `67d09c85a3f3fef855b536172e43966a3269d5ce`.
+- CI post-merge main #355 / Run ID `30281747970` da completed/success tren Ubuntu va Windows.
+- PR #13 va PR #14 da closed/unmerged do PR #16 thay the.
+- Mốc 4 complete; Mốc 5 chua mo.
 
 ## Trạng thái kỹ thuật
 
@@ -27,7 +25,7 @@ Commit thứ năm của PR #14 đã thay các tài liệu tích lũy bằng bả
 
 ## Cửa tiếp theo
 
-Chờ CI merge ref PR #14 xanh trên Ubuntu và Windows sau commit correction. Sau đó báo đoạn 00 để xác minh final tree; không tự chạy Tier A/Tier B, không Ready/merge và không mở Mốc 5.
+PR dieu phoi hau Moc 4 chi cap nhat nam tai lieu, phai giu Draft/Open/chua merge. Khong co technical drift, khong chay lai Tier A/du lieu that, khong Tier B, LightGBM, SSI va khong mo Moc 5.
 
 ## Cap nhat QD-0061: contract benchmark close-only
 
@@ -86,13 +84,16 @@ Pipeline chay dung mot lan. External verifier ban dau tao false blocker `G2B2_NO
 - Khong LightGBM, SSI hoac Moc 5.
 - NAV, AUC va Sharpe neu duoc ghi chi la observed technical outputs; khong duoc mo ta la tot, hieu qua, vuot troi hoac dung de khuyen nghi dau tu.
 
-### Trang thai dieu phoi
+### Trang thai dieu phoi sau QD-0064
 
-- PR canonical: `#16`.
-- Branch canonical: `m4-dac_trung-xep-hang-hoc_may-sach-final-v2`.
-- Head truoc final-documentation commit: `27077ed1066b0c5813d9bb5276a6c618633fe345`.
-- CI `#353`, Run ID `30264618547`, la current-head baseline truoc final-documentation commit; sau push no khong con la current-head evidence.
-- Tier A technical validation complete; buoc hien tai la final documentation va current-head CI.
-- PR #13 va PR #14 tiep tuc Open/Draft cho toi khi CI cuoi cua PR #16 duoc xac minh.
-- PR #16 tiep tuc Open/Draft, chua Ready va chua merge.
-- Tier B va Moc 5 chua mo.
+- `MOC_4_COMPLETE`: implementation Moc 4 va Tier A technical validation da hoan tat.
+- `PR16_MERGED`: PR #16 da merge bang merge commit `67d09c85a3f3fef855b536172e43966a3269d5ce`.
+- `MAIN_CI_355_SUCCESS`: workflow `kiem_tra_tu_dong`, run #355, Run ID `30281747970`, event `push`, branch `main`, `completed/success`.
+- Ubuntu Job `90029586084` va Windows Job `90029585961` deu success; artifacts `phien-ban-ci-ubuntu` va `phien-ban-ci-windows` ton tai; uv `0.11.32`, Python `3.12.13`, scikit-learn `1.9.0`.
+- `PR13_CLOSED_UNMERGED`: PR #13 da dong, khong merge, do PR #16 thay the.
+- `PR14_CLOSED_UNMERGED`: PR #14 da dong, khong merge, do PR #16 thay the.
+- Tier A chi la technical validation; universe `FPT/HPG/MBB` la synthetic technical control, khong phai VN100 PIT.
+- `price_basis_confirmed=false`; corporate-action inventory van partial; corporate actions khong duoc ap dung trong Tier A.
+- Khong research claim; NAV/AUC/Sharpe khong duoc dien giai thanh hieu qua dau tu, alpha, kha nang giao dich that hay khuyen nghi dau tu.
+- Tier B chua chay; khong LightGBM, SSI.
+- `MOC_5_NOT_OPENED`.

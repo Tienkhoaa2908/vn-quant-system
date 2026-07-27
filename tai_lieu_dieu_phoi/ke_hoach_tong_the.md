@@ -33,42 +33,28 @@ Trạng thái: **đã hoàn thành và đã đóng hoàn toàn**.
 
 ## Mốc 4 — Dữ liệu nhiều năm, đặc trưng, xếp hạng và học máy cơ sở
 
-Trạng thái: **final tree kỹ thuật đã được đoạn 00 phê duyệt; PR clean-history #14 đang Draft và sửa blocker tài liệu tích lũy**.
+Trạng thái: **đã hoàn thành, đã merge và đã vượt CI post-merge trên main**.
 
 - Đặc tả: `tai_lieu/dac_ta_moc_4.md`.
-- PR đặc tả số 9 đã gộp bằng merge commit `24bf02a7cf0f18d5a0fe342356b8ea0e045b1ed6`.
-- CI sau gộp trên `main`:
+- PR #16 đã merge bằng merge commit `67d09c85a3f3fef855b536172e43966a3269d5ce`.
+- CI post-merge trên `main`:
   - workflow `kiem_tra_tu_dong`;
-  - run `#187`;
-  - Run ID `30162993192`;
-  - Job ID `89691237408`;
-  - trigger `push`;
-  - checkout `24bf02a7cf0f18d5a0fe342356b8ea0e045b1ed6`;
-  - `completed/success`.
-- Source kỹ thuật cuối: `5aec6ace8423fbf30442aa77db6ff63adb3c854e`.
-- Branch clean-history: `m4-dac_trung-xep-hang-hoc_may-sach-final`.
-- PR chính thức: #14, Open, Draft, chưa merge.
-- PR nguồn #13 tiếp tục Open, Draft, chưa merge.
-- CI source run #334: Ubuntu Job `89890344314`, Windows Job `89890344310`, success.
-- CI PR #14 trước correction tài liệu: run #335, Run ID `30241263742`, Ubuntu Job `89898799819`, Windows Job `89898799861`, success.
-- Lock đa nền tảng Linux x86_64/Windows AMD64; Python 3.12.13, uv 0.11.32, scikit-learn 1.9.0.
-- Publication theo capability: file fsync hai nền tảng; directory fsync POSIX; Windows unsupported; atomic replace và rollback giữ nguyên.
-- 320 test discovery.
-- Tier A/Tier B chưa chạy; không có dữ liệu thật trong repository.
+  - run `#355`;
+  - Run ID `30281747970`;
+  - event `push`;
+  - head `67d09c85a3f3fef855b536172e43966a3269d5ce`;
+  - Ubuntu Job `90029586084`, success;
+  - Windows Job `90029585961`, success;
+  - artifacts `phien-ban-ci-ubuntu`, `phien-ban-ci-windows`;
+  - uv `0.11.32`, Python `3.12.13`, scikit-learn `1.9.0`.
+- PR #13 và PR #14 đã đóng, không merge, do PR #16 thay thế.
+- Mốc 4 implementation và Tier A technical validation đã hoàn tất.
+- Tier A chỉ là technical validation; universe `FPT/HPG/MBB` là synthetic technical control, không phải VN100 PIT.
+- `price_basis_confirmed=false`; corporate-action inventory partial; benchmark close-only.
+- Không research claim; NAV/AUC/Sharpe không phải bằng chứng hiệu quả đầu tư.
+- Tier B chưa chạy; không LightGBM hoặc SSI.
 
-Phạm vi đã phê duyệt:
-
-- VN100 point-in-time hoặc universe thanh khoản cao point-in-time được phê duyệt;
-- dữ liệu nhiều năm, mục tiêu ít nhất 5 năm và ưu tiên 7–10 năm khi chất lượng cho phép;
-- kiểm soát survivorship bias, look-ahead, mã mới niêm yết và warm-up MA250;
-- feature giá, xu hướng, động lượng, biến động, thanh khoản và market regime;
-- nhãn lợi nhuận tương đối 20 phiên;
-- walk-forward có purge/embargo;
-- baseline momentum và Logistic Regression;
-- ranking, `top_k` và backtest ngoài mẫu qua engine Mốc 3;
-- LightGBM chỉ sau quyết định riêng.
-
-Mã Mốc 4 chỉ được triển khai trên nhánh chuyên môn và PR phải giữ Draft đến khi đoạn 00 phê duyệt. Vòng hiện tại chỉ sửa tài liệu tích lũy; không Ready, merge hoặc chạy Tier A.
+Phạm vi kỹ thuật đã triển khai giữ nguyên: dữ liệu nhiều năm, kiểm soát PIT/look-ahead, feature, nhãn lợi nhuận tương đối, walk-forward purge/embargo, momentum baseline, Logistic Regression, ranking, `top_k`, backtest OOS và publication nguyên tử. Không có thay đổi kỹ thuật trong PR điều phối hậu Mốc 4.
 
 ## Mốc 5 — Chia vốn
 
@@ -95,9 +81,9 @@ Co phieu tiep tuc dung `ThanhOHLCV` strict. Benchmark dung `ThanhBenchmarkDongCu
 
 Canonical PR la #16 tren nhanh `m4-dac_trung-xep-hang-hoc_may-sach-final-v2`. Head truoc correction la `2efa627c65cb5387bcc4aa77f4063070812d6aa6`; close-only QD-0061 va CI #351 da dat. Giai doan 2A da hoan tat; blocker hien tai chi la generic runner hard-code reporting/provenance khong thuoc kha nang tu xac minh. Correction QD-0062 tach policy khoi runtime fact, khong chay lai Tier A pipeline va khong mo Giai doan 2B, Tier B hay Moc 5.
 
-## Moc kiem soat QD-0063 trong ke hoach tong the
+## Moc kiem soat QD-0064 trong ke hoach tong the
 
-Tier A technical validation complete la diem dung truoc PR finalization. Ke hoach tiep theo chi duoc thay doi sau khi CI current-head cua PR #16 dat; PR #13/#14 van Open/Draft trong luc cho xac minh.
+Moc 4 da complete, PR #16 da merge va CI post-merge main #355 da dat. Day la diem dung dieu phoi. Tier B chua chay va Moc 5 chua mo.
 
 ### Bang chung Tier A hien hanh
 
@@ -142,13 +128,16 @@ Pipeline chay dung mot lan. External verifier ban dau tao false blocker `G2B2_NO
 - Khong LightGBM, SSI hoac Moc 5.
 - NAV, AUC va Sharpe neu duoc ghi chi la observed technical outputs; khong duoc mo ta la tot, hieu qua, vuot troi hoac dung de khuyen nghi dau tu.
 
-### Trang thai dieu phoi
+### Trang thai dieu phoi sau QD-0064
 
-- PR canonical: `#16`.
-- Branch canonical: `m4-dac_trung-xep-hang-hoc_may-sach-final-v2`.
-- Head truoc final-documentation commit: `27077ed1066b0c5813d9bb5276a6c618633fe345`.
-- CI `#353`, Run ID `30264618547`, la current-head baseline truoc final-documentation commit; sau push no khong con la current-head evidence.
-- Tier A technical validation complete; buoc hien tai la final documentation va current-head CI.
-- PR #13 va PR #14 tiep tuc Open/Draft cho toi khi CI cuoi cua PR #16 duoc xac minh.
-- PR #16 tiep tuc Open/Draft, chua Ready va chua merge.
-- Tier B va Moc 5 chua mo.
+- `MOC_4_COMPLETE`: implementation Moc 4 va Tier A technical validation da hoan tat.
+- `PR16_MERGED`: PR #16 da merge bang merge commit `67d09c85a3f3fef855b536172e43966a3269d5ce`.
+- `MAIN_CI_355_SUCCESS`: workflow `kiem_tra_tu_dong`, run #355, Run ID `30281747970`, event `push`, branch `main`, `completed/success`.
+- Ubuntu Job `90029586084` va Windows Job `90029585961` deu success; artifacts `phien-ban-ci-ubuntu` va `phien-ban-ci-windows` ton tai; uv `0.11.32`, Python `3.12.13`, scikit-learn `1.9.0`.
+- `PR13_CLOSED_UNMERGED`: PR #13 da dong, khong merge, do PR #16 thay the.
+- `PR14_CLOSED_UNMERGED`: PR #14 da dong, khong merge, do PR #16 thay the.
+- Tier A chi la technical validation; universe `FPT/HPG/MBB` la synthetic technical control, khong phai VN100 PIT.
+- `price_basis_confirmed=false`; corporate-action inventory van partial; corporate actions khong duoc ap dung trong Tier A.
+- Khong research claim; NAV/AUC/Sharpe khong duoc dien giai thanh hieu qua dau tu, alpha, kha nang giao dich that hay khuyen nghi dau tu.
+- Tier B chua chay; khong LightGBM, SSI.
+- `MOC_5_NOT_OPENED`.
