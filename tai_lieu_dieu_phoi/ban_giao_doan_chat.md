@@ -97,3 +97,50 @@ Pipeline chay dung mot lan. External verifier ban dau tao false blocker `G2B2_NO
 - Khong research claim; NAV/AUC/Sharpe khong duoc dien giai thanh hieu qua dau tu, alpha, kha nang giao dich that hay khuyen nghi dau tu.
 - Tier B chua chay; khong LightGBM, SSI.
 - `MOC_5_NOT_OPENED`.
+
+## Ban giao QD-0065 — Dac ta Moc 5
+
+Trang thai phan nay thay the `MOC_5_NOT_OPENED` o lich su phia tren.
+
+### Nền bắt buộc
+
+- Repository: `Tienkhoaa2908/vn-quant-system`.
+- Base main: `e59dca55fa37d88bd0e0f6e8e78bc6d282e4996b`.
+- Branch: `dac_ta-moc-5`.
+- PR phải Draft/Open, chưa Ready và chưa merge.
+- Không sửa/chạy lại Mốc 4; không Tier B, LightGBM, SSI integration hoặc tự động giao dịch.
+
+### Tài liệu và quyết định đã khóa
+
+- `tai_lieu/dac_ta_moc_5.md`.
+- `tai_lieu/kien_truc_moc_5.md`.
+- `DECISIONS.md` / QD-0065.
+- Input contract từ Mốc 4 cùng sector PIT, volatility 60 returns, VNINDEX regime, NAV/cash/holdings.
+- Inverse volatility; ticker cap 15%; sector cap 25%; cash 10% RISK_ON / 50% RISK_OFF.
+- Feasibility fail closed và deterministic water-filling.
+- Decimal exact sum, stable ordering, SHA-256, provenance và immutable publication.
+- Proposed orders chỉ `MANUAL_ENTRY_ONLY`; người dùng tự nhập lệnh vào SSI.
+
+### Fail-closed trọng yếu
+
+Missing/ambiguous sector PIT, invalid volatility, constraints infeasible, stale signal, identity mismatch, negative cash/holdings, leverage hoặc invalid regime chặn allocation. Mã mới thiếu 60-return history chỉ được controlled exclusion; nếu phần còn lại không khả thi thì toàn run bị chặn. Missing price/lot chặn order layer và không sinh quantity hành động.
+
+### Quyết định còn mở
+
+1. Sector PIT source/taxonomy/version canonical.
+2. Reference price và lot-size PIT source canonical.
+3. Fee/tax/slippage values cho proposal vận hành.
+4. Canonical calendar source cho execution date.
+
+### Báo cáo đoạn 00 bắt buộc
+
+- branch;
+- final head commit;
+- Draft PR URL;
+- toàn bộ file thay đổi;
+- toàn bộ quyết định còn mở;
+- CI current-head;
+- xác nhận PR tiếp tục Draft/Open/chưa merge;
+- xác nhận không implementation Mốc 5, không SSI integration và không thay đổi Mốc 4.
+
+Sau báo cáo phải dừng. Không mở implementation Mốc 5.
