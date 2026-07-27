@@ -309,3 +309,11 @@ Python Windows khong ho tro mo directory bang `os.open(..., O_RDONLY)` theo hop 
 QD-0060 duoc khoa tren final source `5aec6ace8423fbf30442aa77db6ff63adb3c854e`. CI ky thuat tham chieu la run #334: Ubuntu Job `89890344314` va Windows Job `89890344310` deu `completed/success`, voi 320 test duoc discovery. Day la cua ky thuat truoc PR clean-history; Tier A/Tier B van chua chay.
 
 Trang thai ap dung: source ky thuat `5aec6ace8423fbf30442aa77db6ff63adb3c854e` da dat CI run #334 tren Ubuntu/Windows voi 320 test discovery. PR clean-history #14 tren nhanh `m4-dac_trung-xep-hang-hoc_may-sach-final` giu Open/Draft/chua merge; PR #13 giu Open/Draft nhu PR nguon. Vong correction tai lieu chi phuc hoi noi dung tich luy, khong thay doi code, workflow, dependency hoac test; Tier A/Tier B chua chay.
+
+## QD-0061: Benchmark Moc 4 chi dung gia dong cua
+
+Audit Tier A Giai doan 2A cua run `m4_tier_a_20260727T081753Z_e2c866db` ket luan `D.OFFICIAL_VALUES_UNAVAILABLE`, `SEMANTICS_DEFINITION_NOT_FOUND` va khoa quyet dinh `CLOSE_ONLY_BENCHMARK_CONTRACT`. Raw VNINDEX KBS `vnstock==4.0.4` co SHA-256 `a6ec1ab2d13cf620116ac5688c2cfd5e632a1bab72e3c1bde98df00a73ac616f` cung ho so audit duoc giu bat bien; khong co correction overlay, replacement value, ep max/min, loai phien hay noi suy.
+
+`ThanhOHLCV` cua co phieu tiep tuc giu invariant OHLCV strict. Benchmark dung kieu `ThanhBenchmarkDongCua` va CSV canonical gom dung `ma,ngay,gia_dong_cua,nguon,phien_ban,co_so_gia`; khong mang open/high/low/volume. Feature va label benchmark chi duoc doc `gia_dong_cua`. Manifest va bao cao phai cong bo `benchmark_contract=close_only`, canh bao `BENCHMARK_CLOSE_ONLY` va `BENCHMARK_OHLC_SEMANTICS_CHUA_XAC_NHAN`, khong tuyen bo co so gia co phieu da duoc xac nhan.
+
+PR canonical la #16 tren nhanh `m4-dac_trung-xep-hang-hoc_may-sach-final-v2`. G2A da hoan tat; vong hien tai chi sua contract close-only va kiem thu ky thuat. CI #347 chi la baseline cua head truoc QD-0061. Tier A pipeline, normalization, Tier B va Moc 5 chua chay.

@@ -38,6 +38,8 @@ from .mo_hinh import (
     DuDoan,
     FoldWalkForward,
     MauMoHinh,
+    ThanhBenchmarkDongCua,
+    ThanhCoGiaDongCua,
     ThanhOHLCV,
     xac_thuc_co_so_gia_va_su_kien,
 )
@@ -62,6 +64,14 @@ class _DocOHLCV:
     ma_loi_volume: tuple[str, ...]
     khoa_loi_gia: tuple[tuple[str, date], ...]
     khoa_loi_volume: tuple[tuple[str, date], ...]
+
+
+@dataclass(frozen=True)
+class _DocBenchmarkDongCua:
+    rows: tuple[ThanhBenchmarkDongCua, ...]
+    nguon: str
+    phien_ban: str
+    co_so_gia: str
 
 
 @dataclass(frozen=True)
@@ -140,8 +150,8 @@ def _unique(values: Iterable[str], name: str) -> str:
     return found[0]
 
 
-def _doc_ohlcv(path: Path, *, benchmark: bool = False) -> _DocOHLCV:
-    """Doc OHLCV theo policy B: stock loi bi loai co kiem soat; benchmark fail closed."""
+def _doc_ohlcv(path: Path) -> _DocOHLCV:
+    """Doc OHLCV co phieu; loi gia/volume bi loai co kiem soat nhu hop dong cu."""
     raw_rows, fields = _read_csv(path)
     required = {
         "ma", "ngay", "gia_mo_cua", "gia_cao_nhat", "gia_thap_nhat",
@@ -184,8 +194,6 @@ def _doc_ohlcv(path: Path, *, benchmark: bool = False) -> _DocOHLCV:
         except ValueError as exc:
             price_errors.add(symbol)
             price_error_keys.add(key)
-            if benchmark:
-                raise ValueError(f"OHLCV benchmark loi gia tai {symbol}, {day}: {exc}") from exc
             continue
         try:
             volume = _parse_int(raw.get("khoi_luong"), "khoi_luong")
@@ -194,8 +202,6 @@ def _doc_ohlcv(path: Path, *, benchmark: bool = False) -> _DocOHLCV:
         except ValueError as exc:
             volume_errors.add(symbol)
             volume_error_keys.add(key)
-            if benchmark:
-                raise ValueError(f"OHLCV benchmark loi volume tai {symbol}, {day}: {exc}") from exc
             continue
         try:
             item = ThanhOHLCV(
@@ -206,12 +212,8 @@ def _doc_ohlcv(path: Path, *, benchmark: bool = False) -> _DocOHLCV:
         except ValueError as exc:
             price_errors.add(symbol)
             price_error_keys.add(key)
-            if benchmark:
-                raise ValueError(f"OHLCV benchmark loi gia tai {symbol}, {day}: {exc}") from exc
             continue
         rows.append(item)
-    if benchmark and not rows:
-        raise ValueError("Benchmark khong co bar hop le.")
     return _DocOHLCV(
         tuple(sorted(rows, key=lambda row: (row.ma, row.ngay))),
         _unique(sources, "nguon OHLCV"), _unique(versions, "phien_ban OHLCV"),
@@ -220,13 +222,72 @@ def _doc_ohlcv(path: Path, *, benchmark: bool = False) -> _DocOHLCV:
     )
 
 
-def _xac_thuc_benchmark_identity(rows: Sequence[ThanhOHLCV], expected_symbol: str) -> str:
+def _xac_thuc_benchmark_identity(rows: Sequence[ThanhCoGiaDongCua], expected_symbol: str) -> str:
     symbols = sorted({row.ma for row in rows})
     if symbols != [expected_symbol]:
         raise ValueError(
             f"Benchmark file phai co dung mot ma {expected_symbol}; nhan duoc {symbols}."
         )
     return symbols[0]
+
+
+def _doc_benchmark_dong_cua(
+    path: Path,
+    *,
+    expected_symbol: str,
+) -> _DocBenchmarkDongCua:
+    """Doc benchmark canonical close-only va fail closed tren schema/identity."""
+    raw_rows, fields = _read_csv(path)
+    expected_fields = (
+        "ma", "ngay", "gia_dong_cua", "nguon", "phien_ban", "co_so_gia",
+    )
+    if fields != expected_fields:
+        missing = sorted(set(expected_fields) - set(fields))
+        extra = sorted(set(fields) - set(expected_fields))
+        details: list[str] = []
+        if missing:
+            details.append("thieu cot: " + ", ".join(missing))
+        if extra:
+            details.append("cot ngoai hop dong: " + ", ".join(extra))
+        if not missing and not extra:
+            details.append("thu tu cot khong dung schema canonical")
+        raise ValueError("Benchmark close-only sai schema: " + "; ".join(details) + ".")
+    if not raw_rows:
+        raise ValueError("Benchmark close-only rong.")
+    rows: list[ThanhBenchmarkDongCua] = []
+    seen: set[tuple[str, date]] = set()
+    sources: list[str] = []
+    versions: list[str] = []
+    bases: list[str] = []
+    for number, raw in enumerate(raw_rows, 2):
+        symbol = str(raw.get("ma", "")).strip().upper()
+        if not symbol:
+            raise ValueError(f"Ma benchmark rong tai dong {number}.")
+        day = _parse_date(raw.get("ngay"), f"benchmark.ngay dong {number}")
+        key = (symbol, day)
+        if key in seen:
+            raise ValueError(f"Benchmark trung ma/ngay: {symbol}, {day}.")
+        seen.add(key)
+        source = str(raw.get("nguon", "")).strip()
+        version = str(raw.get("phien_ban", "")).strip()
+        basis = str(raw.get("co_so_gia", "")).strip()
+        item = ThanhBenchmarkDongCua(
+            ma=symbol, ngay=day,
+            gia_dong_cua=_parse_float(raw.get("gia_dong_cua"), "gia_dong_cua benchmark"),
+            nguon=source, phien_ban=version, co_so_gia=basis,
+        )
+        rows.append(item)
+        sources.append(source)
+        versions.append(version)
+        bases.append(basis)
+    ordered = tuple(sorted(rows, key=lambda row: (row.ma, row.ngay)))
+    _xac_thuc_benchmark_identity(ordered, expected_symbol)
+    return _DocBenchmarkDongCua(
+        rows=ordered,
+        nguon=_unique(sources, "nguon benchmark"),
+        phien_ban=_unique(versions, "phien_ban benchmark"),
+        co_so_gia=_unique(bases, "co_so_gia benchmark"),
+    )
 
 
 def _doc_calendar(path: Path) -> tuple[date, ...]:

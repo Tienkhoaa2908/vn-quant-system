@@ -30,7 +30,7 @@ def tao_fixture_runner(root: Path, *, count: int = 520) -> dict[str, Path]:
     dates = weekdays(date(2024, 1, 2), count)
     calendar = root / "lich_benchmark.csv"
     write_csv(calendar, ["ngay"], [{"ngay": day.isoformat()} for day in dates])
-    fields = [
+    stock_fields = [
         "ma", "ngay", "gia_mo_cua", "gia_cao_nhat", "gia_thap_nhat",
         "gia_dong_cua", "khoi_luong", "nguon", "phien_ban", "co_so_gia",
     ]
@@ -54,19 +54,20 @@ def tao_fixture_runner(root: Path, *, count: int = 520) -> dict[str, Path]:
                 "nguon": "fixture_stock", "phien_ban": "v1", "co_so_gia": "gia_dieu_chinh",
             })
     stock = root / "ohlcv.csv"
-    write_csv(stock, fields, stock_rows)
+    write_csv(stock, stock_fields, stock_rows)
+    benchmark_fields = [
+        "ma", "ngay", "gia_dong_cua", "nguon", "phien_ban", "co_so_gia",
+    ]
     benchmark_rows: list[dict[str, object]] = []
     for index, day in enumerate(dates):
         close = 1000 + 0.2 * index + 2.0 * math.sin(index / 20.0)
         benchmark_rows.append({
             "ma": "VNINDEX", "ngay": day.isoformat(),
-            "gia_mo_cua": f"{close - 0.3:.8f}", "gia_cao_nhat": f"{close + 1.0:.8f}",
-            "gia_thap_nhat": f"{close - 1.0:.8f}", "gia_dong_cua": f"{close:.8f}",
-            "khoi_luong": 1000000 + index, "nguon": "fixture_benchmark",
+            "gia_dong_cua": f"{close:.8f}", "nguon": "fixture_benchmark",
             "phien_ban": "v1", "co_so_gia": "gia_dieu_chinh",
         })
     benchmark = root / "benchmark.csv"
-    write_csv(benchmark, fields, benchmark_rows)
+    write_csv(benchmark, benchmark_fields, benchmark_rows)
     universe = root / "universe.csv"
     write_csv(
         universe,

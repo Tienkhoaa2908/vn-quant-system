@@ -29,6 +29,7 @@ from .do_phu import DongLoai, bao_cao_do_phu
 from .eligibility import danh_gia_eligibility, phien_t1_chinh_thuc
 from .logistic import du_doan_test, huan_luyen_logistic
 from .mo_hinh import (
+    BENCHMARK_CONTRACT,
     BanGhiPointInTime,
     BanGhiUniverse,
     CauHinhMoc4,
@@ -68,7 +69,7 @@ class KetQuaNghienCuuMoc4:
 
 
 from .runner_io import (
-    _DocOHLCV, _DocPIT, _read_csv, _parse_date, _parse_datetime, _parse_bool, _parse_float, _parse_int, _unique, _doc_ohlcv, _xac_thuc_benchmark_identity, _doc_calendar, _doc_universe, _doc_pit, _signal_time, _json_ready, _json_text, _csv_text,
+    _DocBenchmarkDongCua, _DocOHLCV, _DocPIT, _read_csv, _parse_date, _parse_datetime, _parse_bool, _parse_float, _parse_int, _unique, _doc_ohlcv, _doc_benchmark_dong_cua, _xac_thuc_benchmark_identity, _doc_calendar, _doc_universe, _doc_pit, _signal_time, _json_ready, _json_text, _csv_text,
 )
 from .runner_core import (
     _samples, _m3_price_rows, _m3_config, _m3_events, _uv_version, _backtest_metrics, _processed_rows, _model_audit_rows, _oos_window, _benchmark_metadata_ok, _phien_yeu_cau_coverage_pit, _ma_co_gap_pit, _research_fail_closed, _product_rows_targets,
@@ -111,14 +112,18 @@ def chay_nghien_cuu_moc_4(
     m4_mapping["thu_muc_dau_ra"] = str(m4_mapping.get("thu_muc_dau_ra", "."))
     config = CauHinhMoc4.tu_mapping(m4_mapping)
     stock_doc = _doc_ohlcv(paths["ohlcv"])
-    benchmark_doc = _doc_ohlcv(paths["benchmark"], benchmark=True)
+    benchmark_doc = _doc_benchmark_dong_cua(
+        paths["benchmark"], expected_symbol=config.benchmark,
+    )
     calendar = _doc_calendar(paths["lich_benchmark"])
     universe_records, universe_source, universe_version = _doc_universe(paths["universe"])
     pit_doc = _doc_pit(paths["corporate_actions"])
     benchmark_source = benchmark_doc.nguon
     benchmark_version = benchmark_doc.phien_ban
-    _xac_thuc_benchmark_identity(benchmark_doc.rows, config.benchmark)
-    if any(row.co_so_gia != config.co_so_gia for row in [*stock_doc.rows, *benchmark_doc.rows]):
+    if (
+        any(row.co_so_gia != config.co_so_gia for row in stock_doc.rows)
+        or benchmark_doc.co_so_gia != config.co_so_gia
+    ):
         raise ValueError("Co so gia OHLCV/benchmark khong khop cau hinh.")
 
     sample_dates = phien_cuoi_thang(calendar)
@@ -427,11 +432,24 @@ def chay_nghien_cuu_moc_4(
     limitations = [
         "TIER_A_TIER_B_CHUA_CHAY",
         "NGUON_DU_LIEU_THAT_CHUA_DUOC_PHE_DUYET",
+        "BENCHMARK_EXACT_OFFICIAL_OHLC_CHUA_CO",
+        "BENCHMARK_RAW_SOURCE_GIU_BAT_BIEN",
+        "KHONG_CORRECTION_OVERLAY",
         "KHONG_DUOC_TUYEN_BO_HIEU_QUA_CHIEN_LUOC",
         "KHONG_LIGHTGBM_KHONG_SSI_KHONG_MOC_5",
     ]
     report = {
-        "ma_lan_chay": ma_lan_chay, "so_fold": len(folds),
+        "ma_lan_chay": ma_lan_chay,
+        "benchmark_contract": BENCHMARK_CONTRACT,
+        "benchmark_policy": {
+            "features_va_labels_chi_dung_close": True,
+            "open_high_low_volume_duoc_dung": False,
+            "correction_overlay": False,
+            "raw_source_giu_bat_bien": True,
+            "exact_official_ohlc_da_co": False,
+            "chi_kiem_tra_ky_thuat": True,
+        },
+        "so_fold": len(folds),
         "oos_start": oos_start, "ngay_bat_dau_metric": metric_start, "oos_end": oos_end,
         "so_fold_thanh_cong": successful_fold_count,
         "so_du_doan_test_logistic": len(logistic_test),
@@ -514,6 +532,15 @@ def chay_nghien_cuu_moc_4(
         "thoi_diem_utc": timestamp.astimezone(UTC).isoformat().replace("+00:00", "Z"),
         "python_version": platform.python_version(), "uv_version": _uv_version(),
         "scikit_learn_version": sklearn.__version__,
+        "benchmark_contract": BENCHMARK_CONTRACT,
+        "benchmark_policy": {
+            "features_va_labels_chi_dung_close": True,
+            "open_high_low_volume_duoc_dung": False,
+            "correction_overlay": False,
+            "raw_source_giu_bat_bien": True,
+            "exact_official_ohlc_da_co": False,
+            "chi_kiem_tra_ky_thuat": True,
+        },
         "nguon_ohlcv": stock_doc.nguon, "phien_ban_ohlcv": stock_doc.phien_ban,
         "nguon_universe": universe_source, "phien_ban_universe": universe_version,
         "nguon_benchmark": benchmark_source, "phien_ban_benchmark": benchmark_version,
@@ -522,6 +549,7 @@ def chay_nghien_cuu_moc_4(
             "feature_order": list(config.feature_order),
             "feature_bat_buoc": list(config.feature_bat_buoc),
             "tan_suat": "cuoi_thang", "lich": "benchmark_chinh_thuc",
+            "benchmark": "chi_dung_gia_dong_cua",
             "thanh_khoan": {
                 "cong_thuc": "mean(close*volume) tren 20 phien benchmark ket thuc tai T",
                 "cua_so_phien": config.cua_so_thanh_khoan,
@@ -530,7 +558,10 @@ def chay_nghien_cuu_moc_4(
             },
             "open_t1": "open dung phien benchmark T+1; khong tim phien xa hon",
         },
-        "cau_hinh_label": {"horizon": config.label_horizon, "lich": "benchmark_chinh_thuc"},
+        "cau_hinh_label": {
+            "horizon": config.label_horizon, "lich": "benchmark_chinh_thuc",
+            "benchmark": "chi_dung_gia_dong_cua",
+        },
         "cau_hinh_fold": {
             "expanding": True, "purge_phien": config.purge_phien,
             "embargo_phien": config.embargo_phien,

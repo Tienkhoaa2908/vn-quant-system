@@ -4,12 +4,12 @@ from __future__ import annotations
 from datetime import date
 from typing import Iterable
 
-from .mo_hinh import DongNhan, ThanhOHLCV
+from .mo_hinh import DongNhan, ThanhCoGiaDongCua, ThanhOHLCV
 
 
 def tao_nhan(
     du_lieu_co_phieu: Iterable[ThanhOHLCV],
-    du_lieu_benchmark: Iterable[ThanhOHLCV],
+    du_lieu_benchmark: Iterable[ThanhCoGiaDongCua],
     *,
     cac_ngay_tin_hieu: Iterable[date],
     label_horizon: int = 20,

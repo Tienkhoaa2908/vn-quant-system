@@ -5,9 +5,9 @@ from collections import defaultdict
 from datetime import date
 from math import sqrt
 from statistics import fmean
-from typing import Iterable, Sequence
+from typing import Iterable, Sequence, TypeVar
 
-from .mo_hinh import DongFeature, ThanhOHLCV
+from .mo_hinh import DongFeature, ThanhCoGiaDongCua, ThanhOHLCV
 from .phong_ve import xac_thuc_so_huu_han
 
 FEATURE_ORDER_MAC_DINH = (
@@ -19,6 +19,8 @@ FEATURE_ORDER_MAC_DINH = (
     "gtgd_hien_tai_tren_tb60", "so_phien_volume_0_60", "vnindex_tren_ma250",
     "vnindex_momentum_60", "vnindex_bien_dong_20", "vnindex_bien_dong_60",
 )
+
+_BAR_DONG_CUA = TypeVar("_BAR_DONG_CUA", bound=ThanhCoGiaDongCua)
 
 
 def _lich_chinh_thuc(lich_benchmark: Iterable[date]) -> tuple[date, ...]:
@@ -54,7 +56,7 @@ def _returns(closes: Sequence[float]) -> list[float]:
     return [closes[i] / closes[i - 1] - 1.0 for i in range(1, len(closes))]
 
 
-def _validate_bars(rows: Sequence[ThanhOHLCV]) -> None:
+def _validate_bars(rows: Sequence[ThanhCoGiaDongCua]) -> None:
     keys = [(r.ma, r.ngay) for r in rows]
     if len(keys) != len(set(keys)):
         raise ValueError("OHLCV trung ma/ngay.")
@@ -70,7 +72,7 @@ def _endpoint(calendar: Sequence[date], index: int, offset: int) -> date | None:
     return calendar[target] if target >= 0 else None
 
 
-def _bars_exact(mapping: dict[date, ThanhOHLCV], dates: Sequence[date]) -> list[ThanhOHLCV] | None:
+def _bars_exact(mapping: dict[date, _BAR_DONG_CUA], dates: Sequence[date]) -> list[_BAR_DONG_CUA] | None:
     rows = [mapping.get(day) for day in dates]
     return None if any(row is None for row in rows) else [row for row in rows if row is not None]
 
@@ -81,7 +83,7 @@ def _feature_calendar_aligned(
     T: date,
     calendar: Sequence[date],
     stock_map: dict[date, ThanhOHLCV],
-    benchmark_map: dict[date, ThanhOHLCV],
+    benchmark_map: dict[date, ThanhCoGiaDongCua],
 ) -> tuple[dict[str, float | bool | int | None], tuple[str, ...]]:
     index = {day: i for i, day in enumerate(calendar)}[T]
     values: dict[str, float | bool | int | None] = {name: None for name in FEATURE_ORDER_MAC_DINH}
@@ -201,7 +203,7 @@ def _feature_calendar_aligned(
 
 def tao_feature_cuoi_thang(
     du_lieu_co_phieu: Iterable[ThanhOHLCV],
-    du_lieu_benchmark: Iterable[ThanhOHLCV],
+    du_lieu_benchmark: Iterable[ThanhCoGiaDongCua],
     *,
     lich_benchmark: Iterable[date] | None = None,
     feature_bat_buoc: Sequence[str] = FEATURE_ORDER_MAC_DINH,

@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping, Protocol, Sequence
 
 from .phong_ve import xac_thuc_cau_truc_huu_han, xac_thuc_so_huu_han
 
@@ -13,6 +13,17 @@ TAN_SUAT_MAU_HOP_LE = {"cuoi_thang"}
 CO_SO_GIA_HOP_LE = {"gia_dieu_chinh", "gia_khong_dieu_chinh"}
 VAI_TRO_HOP_LE = {"train", "validation", "refit_train_validation", "test"}
 VAI_TRO_DU_DOAN_HOP_LE = {"validation", "test"}
+BENCHMARK_CONTRACT = "close_only"
+CANH_BAO_BENCHMARK_CLOSE_ONLY = "BENCHMARK_CLOSE_ONLY"
+CANH_BAO_BENCHMARK_SEMANTICS = "BENCHMARK_OHLC_SEMANTICS_CHUA_XAC_NHAN"
+
+
+class ThanhCoGiaDongCua(Protocol):
+    """Giao dien toi thieu cho feature/label chi doc gia dong cua."""
+
+    ma: str
+    ngay: date
+    gia_dong_cua: float
 
 
 def xac_thuc_timestamp(value: datetime, ten: str) -> datetime:
@@ -197,6 +208,7 @@ class CauHinhMoc4:
             warnings.append("CO_SO_GIA_CHUA_XAC_NHAN")
         if self.co_so_gia == "gia_khong_dieu_chinh" and not self.corporate_actions_day_du:
             warnings.append("CORPORATE_ACTIONS_CHUA_DAY_DU")
+        warnings.extend((CANH_BAO_BENCHMARK_CLOSE_ONLY, CANH_BAO_BENCHMARK_SEMANTICS))
         return tuple(warnings)
 
     def thanh_mapping(self) -> dict[str, object]:
@@ -255,6 +267,31 @@ class ThanhOHLCV:
             raise ValueError("gia_cao_nhat khong hop le.")
         if self.gia_thap_nhat > min(self.gia_mo_cua, self.gia_dong_cua, self.gia_cao_nhat):
             raise ValueError("gia_thap_nhat khong hop le.")
+
+
+@dataclass(frozen=True)
+class ThanhBenchmarkDongCua:
+    """Thanh benchmark canonical khong mang OHLC/volume chua xac nhan."""
+
+    ma: str
+    ngay: date
+    gia_dong_cua: float
+    nguon: str
+    phien_ban: str
+    co_so_gia: str
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.ma, str) or not self.ma or self.ma != self.ma.upper():
+            raise ValueError("ma benchmark phai la chu hoa khong rong.")
+        if not isinstance(self.ngay, date):
+            raise TypeError("ngay benchmark phai la date.")
+        close = xac_thuc_so_huu_han(self.gia_dong_cua, "gia_dong_cua benchmark")
+        if close <= 0.0:
+            raise ValueError("gia_dong_cua benchmark phai la so duong.")
+        for ten in ("nguon", "phien_ban", "co_so_gia"):
+            value = getattr(self, ten)
+            if not isinstance(value, str) or not value.strip():
+                raise ValueError(f"Benchmark thieu {ten}.")
 
 
 @dataclass(frozen=True)
