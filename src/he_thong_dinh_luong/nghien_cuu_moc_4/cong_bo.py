@@ -37,12 +37,25 @@ def _bytes(value: str | bytes) -> bytes:
     raise TypeError("San pham chi duoc la str hoac bytes.")
 
 
-def _fsync_dir(path: Path) -> None:
-    fd = os.open(path, os.O_RDONLY)
+def _fsync_dir(path: Path) -> bool:
+    """Fsync directory tren POSIX; bao unsupported tren Windows.
+
+    File fsync va atomic replace van duoc thuc hien tren moi nen tang. Python
+    tren Windows khong ho tro mo directory bang ``os.open(..., O_RDONLY)``;
+    ham vi vay tra ``False`` thay vi gia lap directory fsync thanh cong.
+    """
+    if os.name == "nt":
+        return False
+
+    flags = os.O_RDONLY
+    if hasattr(os, "O_DIRECTORY"):
+        flags |= os.O_DIRECTORY
+    fd = os.open(path, flags)
     try:
         os.fsync(fd)
     finally:
         os.close(fd)
+    return True
 
 
 def _validate_finite(value: object, path: str = "root") -> None:

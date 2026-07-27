@@ -1,19 +1,23 @@
 # Công việc hiện tại
 
-Cập nhật: 2026-07-26
+Cập nhật: 2026-07-27
 
 ## Mục tiêu vòng
 
-Sửa `BLOCKED_DEPENDENCY_LOCK_LINUX_ONLY_ON_WINDOWS` trên PR #13 bằng một commit nối tiếp, không sửa lịch sử.
+Sửa `BLOCKED_WINDOWS_DIRECTORY_FSYNC` trên PR #13 bằng commit nối tiếp, không viết lại lịch sử và không dùng workflow để commit/push.
 
 ## Phạm vi
 
-1. Giữ `package = false` và thêm `required-environments` cho Linux x86_64, Windows AMD64.
-2. Giữ nguyên scikit-learn 1.9.0 cùng NumPy 2.3.5, SciPy 1.17.0, joblib 1.5.3, narwhals 2.0.1 và threadpoolctl 3.6.0.
-3. Lock phải chứa wheel CPython 3.12 manylinux x86_64 và win_amd64 cho NumPy, SciPy, scikit-learn.
-4. CI dùng uv 0.11.32 và chạy `uv lock --check`, frozen sync, compileall, 308 test trên Ubuntu/Windows.
-5. Cập nhật tài liệu và mô tả PR #13 sau khi CI đạt.
+1. `_fsync_dir` trả `False` trên Windows mà không gọi `os.open` trên directory.
+2. POSIX dùng `O_RDONLY | O_DIRECTORY` khi có, fsync descriptor, đóng descriptor trong `finally` và propagate lỗi.
+3. Giữ file fsync cho 16 sản phẩm cùng manifest, staging cùng parent, một `os.replace`, rollback và chống ghi đè.
+4. Thêm test portability dùng filesystem thật kết hợp mock hẹp theo capability.
+5. Giữ nguyên lock/dependency và CI matrix Ubuntu/Windows.
+
+## Cửa hoàn tất
+
+Cả hai job phải checkout `refs/pull/13/merge`, đạt lock check, frozen sync, version gate, compileall và toàn bộ suite cũ cộng test mới. Sau CI xanh chỉ báo đoạn 00; không chạy Tier A.
 
 ## Cấm hiện hành
 
-Không sửa logic Mốc 4, fixture nghiệp vụ, dữ liệu thật hoặc dependency version; không force-push/rebase/squash; không Tier A/Tier B, Ready, merge, LightGBM hoặc Mốc 5.
+Không sửa feature, label, folds, Logistic Regression, ranking, adapter, backtest Mốc 3, eligibility, coverage nghiệp vụ, dependency version hoặc dữ liệu thật; không force-push/rebase/squash; không Tier A/Tier B, Ready, merge, LightGBM hoặc Mốc 5.

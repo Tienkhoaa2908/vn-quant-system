@@ -1,23 +1,24 @@
 # Trạng thái dự án
 
-Cập nhật gần nhất: 2026-07-26
+Cập nhật gần nhất: 2026-07-27
 
 ## Kho mã nguồn
 
 - Kho: `Tienkhoaa2908/vn-quant-system`.
 - Base Mốc 4: `24bf02a7cf0f18d5a0fe342356b8ea0e045b1ed6`.
-- Nhánh chính thức: `m4-dac_trung-xep-hang-hoc-may-sach-v2`.
-- Head trước vòng sửa lock: `bb731e6292abf04c78167b59c8488d795d74f493`.
-- PR #13 tiếp tục Open, Draft, chưa merge.
+- Nhánh chính thức: `m4-dac_trung-xep-hang-hoc_may-sach-v2`.
+- Head nền vóng portability: `d0886947cf33ebe7fc2b4eae99676218b1b01c11`.
+- PR #13 tiếp tục Open, Draft, chưa merge và mergeable.
 
-## Sửa dependency lock đa nền tảng
+## Portability công bố Mốc 4
 
-Preflight Tier A trên Windows xác nhận lock cũ chỉ có wheel Linux cho NumPy, SciPy và scikit-learn. Vòng hiện tại chỉ sửa `pyproject.toml`, `uv.lock`, CI và tài liệu: khai báo Linux x86_64/Windows AMD64, giữ nguyên toàn bộ phiên bản dependency và chạy cùng 308 test trên Ubuntu/Windows.
+Dependency lock đa nền tảng đã đạt frozen sync trên Ubuntu và Windows. Blocker côn lại là directory fsync: POSIX tiếp tục mở directory với `O_DIRECTORY` khi có, fsync và propagate lỗi; Windows không gọi `os.open` trên directory và báo capability unsupported. File fsync cho 16 sản phẩm cùng manifest, atomic replace, chống ghi đè và rollback staging được giữ nguyên.
 
-Không thay đổi logic feature, model, ranking, backtest hoặc fixture nghiệp vụ.
+Bổ sung test riêng cho file fsync, POSIX error propagation, Windows unsupported capability, publication 17 file, manifest hash, one-shot replace, cùng parent filesystem, rollback, tính tái lập và dọn staging.
 
 ## Cửa kiểm soát
 
+- CI cuối phải xanh trên `ubuntu-24.04` và `windows-2025` tại merge ref PR #13.
 - Tier A/Tier B chưa chạy; chưa có raw data thật.
+- Không thay đổi feature, label, folds, model, ranking, adapter, backtest hoặc dependency version.
 - Không LightGBM, SSI, Ready, merge hoặc Mốc 5.
-- CI matrix phải đạt trên merge ref PR #13 trước khi báo hoàn tất.
