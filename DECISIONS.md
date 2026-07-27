@@ -404,3 +404,27 @@ Trang thai khoa hien hanh:
 Gioi han bat buoc khong thay doi: Tier A chi la technical validation, khong phai research validation; universe chi gom `FPT/HPG/MBB` va la synthetic technical control, khong phai VN100 point-in-time; `price_basis_confirmed=false`; operational mode `gia_dieu_chinh` khong phai empirical confirmation; corporate-action inventory van partial va corporate actions khong duoc ap dung trong Tier A; benchmark van close-only va exact official VNINDEX OHLC chua co.
 
 Khong co research claim, khong ket luan alpha, hieu qua dau tu hoac kha nang giao dich that. NAV, AUC va Sharpe chi la observed technical outputs, khong duoc dien giai thanh hieu qua dau tu hay khuyen nghi dau tu. Tier B chua chay; khong LightGBM, SSI; Moc 5 chua mo.
+
+## QD-0065: Khoa dac ta Moc 5 ve chia von va danh muc muc tieu
+
+Moc 5 duoc mo o muc dac ta tren base main `e59dca55fa37d88bd0e0f6e8e78bc6d282e4996b`, nhanh `dac_ta-moc-5`. Vong nay chi sua tai lieu; khong co implementation, khong sua hoac chay lai Moc 4, khong Tier B, LightGBM, SSI API hay auto-trading.
+
+Hop dong Moc 5 nhan ngay/timestamp tin hieu, ticker, rank, probability/score va target-selection flag tu publication bat bien Moc 4; sector point-in-time; dung 60 daily returns ket thuc tai T de tinh sample volatility; VNINDEX regime; NAV/cash/holdings hien tai; gia tham chieu va lot-size chi cho proposed-order layer. Identity, cutoff va SHA-256 phai khop; stale signal, sector PIT thieu/ambiguous, volatility invalid, constraints bat kha thi, holdings mismatch, cash/position am hoac leverage deu fail closed.
+
+Allocation core khoa inverse-volatility, ticker cap `0.15` NAV, sector cap `0.25` NAV, cash target `0.10` khi `RISK_ON` va `0.50` khi `RISK_OFF`, feasibility upper bound va water-filling lap xac dinh. Mã moi thieu 60 returns chi duoc controlled exclusion `VOL_INSUFFICIENT_HISTORY`; khong impute. Neu tap con lai khong du equity capacity thi run bi chan.
+
+Tinh toan va cong bo tien/trong so dung Decimal; public weight quantum `0.000000000001`, ROUND_FLOOR cho ticker va toan bo rounding residual vao cash. Tong final weights cong cash phai dung 1; ticker/sector cap va no-leverage la invariant exact. Stable ordering, ticker tie-break, canonical CSV/JSON, SHA-256, provenance va immutable publication la bat buoc.
+
+Final target weights khong bi lot-size hoac gia tham chieu sua nguoc. Proposed orders chi la `MANUAL_ENTRY_ONLY`, khong co credential, network, SSI endpoint hoac quyen gui lenh. Missing price/lot hay order cash infeasible chan rieng order layer va khong sinh action quantity. Nguoi dung tu kiem tra va tu nhap lenh vao SSI.
+
+San pham bat buoc gom allocation inputs, raw weights, capped weights, sector exposure, cash target, final target weights, proposed orders, validation report va manifest. Acceptance khoa exact sum, cap, no-look-ahead, determinism, fail-closed infeasibility, no leverage va no SSI integration.
+
+Cac gate van hanh con mo: nguon/taxonomy sector PIT canonical; nguon gia va lot-size canonical; gia tri phi/thue/slippage cho proposal; nguon lich canonical xac nhan execution date. Khong duoc tu suy doan cac gate nay trong implementation hoac data run.
+
+Trang thai hien hanh:
+
+- `MOC_5_SPEC_OPEN`;
+- `MOC_5_IMPLEMENTATION_NOT_STARTED`;
+- `MOC_5_DRAFT_PR_REQUIRED`;
+- `NO_SSI_INTEGRATION`;
+- `NO_READY_NO_MERGE`.
