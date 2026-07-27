@@ -113,3 +113,35 @@ Pipeline chay dung mot lan. External verifier ban dau tao false blocker `G2B2_NO
 - Khong research claim; NAV/AUC/Sharpe khong duoc dien giai thanh hieu qua dau tu, alpha, kha nang giao dich that hay khuyen nghi dau tu.
 - Tier B chua chay; khong LightGBM, SSI.
 - `MOC_5_NOT_OPENED`.
+
+## Cap nhat trang thai 2026-07-28 — QD-0065
+
+Trang thai nay thay the cac dong `MOC_5_NOT_OPENED` o cac phan lich su.
+
+### Kho va nhanh hien hanh
+
+- Base main bat buoc: `e59dca55fa37d88bd0e0f6e8e78bc6d282e4996b`.
+- Nhanh dac ta: `dac_ta-moc-5`.
+- Tai lieu moi: `tai_lieu/dac_ta_moc_5.md` va `tai_lieu/kien_truc_moc_5.md`.
+- `DECISIONS.md` da noi QD-0065.
+- Moc 4 giu bat bien; khong chay lai pipeline, Tier A hoac du lieu that.
+
+### Trang thai Moc 5
+
+- `MOC_5_SPEC_OPEN`.
+- `MOC_5_IMPLEMENTATION_NOT_STARTED`.
+- Allocation math da khoa: inverse volatility 60 returns, cap 15% moi ma, 25% moi sector, cash 10%/50% theo VNINDEX MA250, feasibility va deterministic water-filling.
+- Decimal, stable ordering, SHA-256, provenance va immutable publication bat buoc.
+- Proposed orders chi `MANUAL_ENTRY_ONLY`; khong SSI API, credential, network hoac auto-trading.
+- PR phai Draft/Open, chua Ready va chua merge.
+
+### Open data/config gates
+
+1. Sector PIT source/taxonomy/version canonical.
+2. Reference price va lot-size PIT source canonical.
+3. Fee/tax/slippage values cho proposal van hanh.
+4. Canonical execution calendar source.
+
+### Pham vi file
+
+Chi dac ta, kien truc, `DECISIONS.md` va tai lieu dieu phoi duoc phep thay doi. `src/`, `tests/`, workflow, dependency va lockfile phai khong doi.
