@@ -383,3 +383,24 @@ Pipeline chay dung mot lan. External verifier ban dau tao false blocker `G2B2_NO
 - PR #13 va PR #14 tiep tuc Open/Draft cho toi khi CI cuoi cua PR #16 duoc xac minh.
 - PR #16 tiep tuc Open/Draft, chua Ready va chua merge.
 - Tier B va Moc 5 chua mo.
+
+## QD-0064: Moc 4 da merge va vuot CI post-merge tren main
+
+PR #16 da merge vao `main` bang merge commit `67d09c85a3f3fef855b536172e43966a3269d5ce`. Merge method la merge commit, khong phai squash hay rebase.
+
+Post-merge CI cua workflow `kiem_tra_tu_dong` da chay bang event `push` tren branch `main`, dung head `67d09c85a3f3fef855b536172e43966a3269d5ce`: run number `355`, Run ID `30281747970`, `completed/success`. Ubuntu Job `90029586084` va Windows Job `90029585961` deu `completed/success`. Hai artifact `phien-ban-ci-ubuntu` va `phien-ban-ci-windows` ton tai; moi truong ghi nhan uv `0.11.32`, Python `3.12.13`, scikit-learn `1.9.0`.
+
+Moc 4 implementation va Tier A technical validation da hoan tat. PR #13 va PR #14 da dong, khong merge, do PR #16 thay the.
+
+Trang thai khoa hien hanh:
+
+- `MOC_4_COMPLETE`;
+- `PR16_MERGED`;
+- `MAIN_CI_355_SUCCESS`;
+- `PR13_CLOSED_UNMERGED`;
+- `PR14_CLOSED_UNMERGED`;
+- `MOC_5_NOT_OPENED`.
+
+Gioi han bat buoc khong thay doi: Tier A chi la technical validation, khong phai research validation; universe chi gom `FPT/HPG/MBB` va la synthetic technical control, khong phai VN100 point-in-time; `price_basis_confirmed=false`; operational mode `gia_dieu_chinh` khong phai empirical confirmation; corporate-action inventory van partial va corporate actions khong duoc ap dung trong Tier A; benchmark van close-only va exact official VNINDEX OHLC chua co.
+
+Khong co research claim, khong ket luan alpha, hieu qua dau tu hoac kha nang giao dich that. NAV, AUC va Sharpe chi la observed technical outputs, khong duoc dien giai thanh hieu qua dau tu hay khuyen nghi dau tu. Tier B chua chay; khong LightGBM, SSI; Moc 5 chua mo.
