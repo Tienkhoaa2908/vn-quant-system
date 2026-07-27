@@ -175,3 +175,127 @@ Cau hinh bat buoc khai bao `don_vi_gia` va `don_vi_tien`, chi ho tro `dong/dong`
 ## QD-0035: Lam sach loi dung chung
 
 `lam_sach_loi` la ham duy nhat cho `bao_cao_loi.json`, stdout va moi log loi do CLI kiem soat. Token, secret, password, API key va Bearer credential bi thay bang `[DA_AN]` truoc khi cong bo.
+
+## QD-0036: Cutoff point-in-time theo timestamp tin hieu
+
+Moi universe record, corporate action, benchmark metadata va event point-in-time chi duoc dung khi:
+
+```text
+thoi_diem_cong_bo <= thoi_diem_tao_tin_hieu
+```
+
+Hai timestamp phai co mui gio. Cong bo truoc tin hieu cung ngay duoc dung; cong bo sau tin hieu cung ngay bi loai; timestamp thieu mui gio bi tu choi.
+
+## QD-0037: Mau model chi tai phien benchmark cuoi thang
+
+```text
+tan_suat_mau_mo_hinh = cuoi_thang
+```
+
+Train, validation va test chi gom phien benchmark cuoi cung cua thang. MVP khong dung mau ngay thuong.
+
+## QD-0038: Nhan T+H theo lich benchmark
+
+T+H la phien thi truong thu H sau T tren lich benchmark/VNINDEX. Khong dung bar thu H con ton tai cua tung ma. Thieu stock hoac benchmark dung T/T+H thi nhan rong; khong forward-fill va khong tim phien thay the.
+
+## QD-0039: Walk-forward expanding monthly
+
+Test moi fold dung mot thang va khong chong lan. Purge train–validation toi thieu bang horizon; embargo validation–test theo lich benchmark. Mau chi vao train/validation/refit khi `ngay_ket_thuc_nhan` khong sau cutoff cua tap. Test khong chon feature, C, threshold, preprocessing hoac refit.
+
+## QD-0040: Logistic Regression MVP
+
+Dependency khoa `scikit-learn==1.9.0`. Pipeline dung `StandardScaler(with_mean=True, with_std=True)` va Logistic Regression L2, `lbfgs`, `max_iter=1000`, `class_weight=None`, `C_grid=[0.1,1.0,10.0]`, seed `20260725`. Khong pandas va khong LightGBM.
+
+C duoc chon bang validation log loss; hoa chon C nho hon. ConvergenceWarning lam candidate/refit khong hop le. Train/refit mot lop lam fold fail closed; validation mot lop van tinh log loss voi `labels=[0,1]`, AUC null.
+
+## QD-0041: Model clock va san pham theo fold
+
+Moi model ghi `thoi_diem_huan_luyen`, `thoi_diem_tao_tin_hieu`, `cutoff_feature`, `cutoff_nhan` va phai dat:
+
+```text
+thoi_diem_huan_luyen <= thoi_diem_tao_tin_hieu
+```
+
+Feature sau tien xu ly va prediction ghi fold/model/vai tro. Chi prediction test vao metric cuoi, ranking, target weights va backtest.
+
+## QD-0042: Ranking, top-K va metric
+
+Probability sap giam, tie-break ma tang, moi ma duoc chon co `1/top_k`, phan thieu la tien mat. Precision@K, hit rate, average relative return top-K, decile spread, Spearman average-rank IC va set turnover duoc tinh theo ngay test truoc, sau do trung binh khong trong so tren ngay non-null; khong mean-of-fold-means.
+
+Calibration dung 10 bin equal-width, bo bin rong va khong co probability calibrator.
+
+## QD-0043: OOS la mot chuoi backtest lien tuc
+
+Khoang test khong chong lan; `(ngay,ma)` prediction test va `(ngay_tin_hieu,ma)` target weight phai duy nhat. Target weights test duoc ghep theo thoi gian. Engine Moc 3 duoc goi mot lan, von khoi tao mot lan; khong cong hoac trung binh NAV cua fold rieng.
+
+## QD-0044: Muc dich lan chay
+
+`kiem_tra_ky_thuat` duoc phep khi co so gia chua xac nhan nhung bat buoc canh bao va cam ket khong ket luan hieu qua. `nghien_cuu` fail closed neu co so gia/corporate actions/metadata PIT khong dat hop dong; khong tu ha muc dich.
+
+## QD-0045: Cong bo Moc 4 va cua du lieu that
+
+Moc 4 cong bo 17 tep bang staging, fsync, atomic rename, rollback va SHA-256; khong ghi de va khong tron thanh cong/that bai. Toan bo trien khai hien tai chi dung fixture ngoai tuyen. Tier A/Tier B va du lieu that chi duoc chay sau phe duyet rieng cua doan 00.
+
+## QD-0046: Feature can theo lich benchmark chinh thuc
+
+Lich benchmark la dau vao rieng. Moi cua so MA/volatility/liquidity va moi endpoint `T-N` duoc xac dinh tren lich nay. Thieu bar dung phien lam feature tuong ung rong; khong forward-fill, tim phien thay the, nen thoi gian hoac lay them bar cu de bu.
+
+## QD-0047: Runner dau-cuoi la cua vao nghien cuu Moc 4
+
+`chay_nghien_cuu_moc_4(...)` doc cac tep cuc bo, dieu phoi PIT, coverage, feature, label, folds, baseline, Logistic Regression, ranking, target weights, engine Moc 3, metrics va publication. CLI chay cung runner; khong co loi goi mang.
+
+## QD-0048: Tai can bang rong phai dong vi the cu
+
+Backtest Moc 4 bat buoc `che_do_ma_khong_xuat_hien=muc_tieu_bang_0`. Moi ngay tai can bang duoc bieu dien ke ca khi khong co ma hop le; ma roi top_k hoac mat eligibility nhan target 0. Engine Moc 3 chay mot chuoi lien tuc va von chi khoi tao mot lan.
+
+## QD-0049: Momentum baseline la mot chien luoc OOS day du
+
+Baseline dung `dong_luong_12_1` tren cung sample test du eligibility voi Logistic Regression, sort giam dan/tie-break ma tang, top_k, `1/top_k`, tien mat cho phan thieu va cung engine/chi phi. Test khong chon tham so baseline.
+
+## QD-0050: Manifest Moc 4 tu tinh va fail closed
+
+Manifest bat buoc co SHA-256 tung dau vao va san pham, Git commit, ma lan chay, UTC, Python/uv/scikit-learn version, nguon/phien ban/co so gia, muc dich, cau hinh feature/label/fold/model/ranking, canh bao va gioi han. Metadata rong hoac thieu bi tu choi.
+
+## QD-0051: NaN va Inf bi tu choi xuyen suot
+
+OHLCV, feature, probability, relative return, metric input va payload CSV/JSON phai huu han theo `math.isfinite`. Metric model/ranking tu xac thuc vai tro test, khoa `(ngay,ma)`, fold/model, probability va nhan; khong am tham dem trung.
+
+## QD-0052: Eligibility M4 la phep AND fail closed
+
+Tai ngay T, ma chi eligible khi dong thoi dat membership PIT, thanh khoan PIT, warm-up, feature bat buoc, chat luong du lieu, benchmark metadata PIT va open hop le tai dung phien T+1 tren lich benchmark. Thanh khoan MVP:
+
+```text
+gtgd_tb_20 = mean(gia_dong_cua * khoi_luong)
+```
+
+Tinh tren dung 20 phien benchmark ket thuc tai T, don vi dong/phien, khong forward-fill va khong dung du lieu sau T. Gia tri thieu hoac duoi `nguong_gtgd_tb_toi_thieu` ghi `khong_dat_thanh_khoan`. Thieu open dung T+1 ghi `thieu_open_t1`; open T+2 khong thay the.
+
+## QD-0053: Metric backtest chi tinh trong cua so OOS
+
+Moi run khoa `oos_start`, `ngay_bat_dau_metric` va `oos_end`. Engine chi nhan pham vi can de thuc thi tin hieu OOS dau tien; NAV va metric duoc cat tai `ngay_bat_dau_metric..oos_end`. Du lieu train/warm-up truoc OOS khong vao CAGR, Sharpe, turnover hoac cash ratio; du lieu sau `oos_end` khong anh huong metric. Von khoi tao mot lan va chuoi OOS lien tuc.
+
+## QD-0054: Fold test rong fail closed
+
+Sau refit, `selected["test"]` rong tao loi `test_rong`; khong tao prediction test tao loi `khong_co_prediction_test`. Fold khong tang `so_fold_thanh_cong`, khong them test date, ranking hoac ngay tai can bang. Loi duoc cong bo trong coverage va `mo_hinh.csv`.
+
+## QD-0055: Corporate action khong phu thuoc lich tin hieu
+
+Su kien duoc dung khi timestamp cong bo co mui gio, khong sau cutoff bao thu cua ngay hieu luc, ngay hieu luc nam trong cua so backtest va co so gia phu hop. Su kien giua hai ky tai can bang van duoc ap dung dung ngay hieu luc. Cong bo sau ngay hieu luc, ap dung hoi to, su kien trung va gia dieu chinh kem su kien deu bi tu choi.
+
+## QD-0056: Coverage theo ma la point-in-time
+
+Tap phien yeu cau cua tung ma la giao cua khoang nghien cuu, thoi gian tu phien du lieu hop le dau tien, membership PIT va cac phien thuc su can kiem tra. Khong tinh thieu truoc khi ma bat dau hop le hoac sau khi roi universe; `ma_co_gap` chi xet gap ben trong tap phien yeu cau. Chon policy B: dong/ma loi gia hoac volume bi loai co kiem soat, run tiep tuc va coverage ghi ro loi.
+
+## QD-0057: Model audit phan biet selection va refit
+
+`validation_selection` fit scaler/model tren train de chon C va cong bo validation processed rows bang selection scaler/model ID. `final_refit` fit tren train+validation va cong bo test processed rows bang refit scaler/model ID. Audit luu stage, hai model ID, scaler mean/scale, C, coefficients, intercept, n_iter, convergence/warning, candidate errors, feature order, cutoff va scikit-learn version.
+
+## QD-0058: Nghien cuu khong duoc thanh cong rong
+
+Benchmark file phai co dung mot ma va bang `config.benchmark`; MVP khoa VNINDEX. `nghien_cuu` tu choi cong bo neu thieu benchmark metadata PIT, khong co fold test hop le, prediction OOS hoac ngay tai can bang, tat ca fold that bai, coverage/universe duoi nguong, hoac co so gia/corporate actions khong dat. `kiem_tra_ky_thuat` co the tiep tuc nhung bat buoc ghi canh bao.
+
+## QD-0059: Dependency lock bat buoc da nen tang
+
+Preflight Tier A tren Windows phat hien lock cu chi chua wheel manylinux cho NumPy, SciPy va scikit-learn, lam frozen sync that bai voi `BLOCKED_DEPENDENCY_LOCK_LINUX_ONLY_ON_WINDOWS`. Du an giu `package = false` va khai bao `required-environments` cho Linux x86_64 va Windows AMD64; khong dung marker de loai Windows.
+
+Lock da nen tang giu nguyen `scikit-learn==1.9.0`, `numpy==2.3.5`, `scipy==1.17.0`, `joblib==1.5.3`, `narwhals==2.0.1` va `threadpoolctl==3.6.0`. CI bat buoc chay `uv 0.11.32`, `uv lock --check`, frozen sync, compileall va toan bo unittest tren ca `ubuntu-24.04` va `windows-2025`. Sua lock khong thay doi logic Moc 4; Tier A/Tier B va du lieu that van chua chay.

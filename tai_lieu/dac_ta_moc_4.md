@@ -2,11 +2,10 @@
 
 ## 1. Trạng thái
 
-- Trạng thái: **bản dự thảo để phê duyệt**.
-- Base bắt buộc: `bb25ff16761b7c79e701fbd4f3a5af02f1644e07`.
-- Nhánh điều phối: `dac_ta-moc-4`.
-- Tài liệu này chưa cho phép triển khai mã Mốc 4.
-- Chỉ sau khi PR đặc tả được phê duyệt, gộp và CI trên `main` đạt mới được tạo nhánh chuyên môn Mốc 4.
+- Trạng thái: **đã được phê duyệt**.
+- PR đặc tả: `#9`.
+- Merge commit đặc tả: `24bf02a7cf0f18d5a0fe342356b8ea0e045b1ed6`.
+- Nhánh triển khai: `m4-dac_trung-xep_hang-hoc_may`.
 
 ## 2. Mục tiêu
 

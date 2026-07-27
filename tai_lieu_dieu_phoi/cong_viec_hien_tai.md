@@ -1,45 +1,23 @@
 # Công việc hiện tại
 
-Cập nhật: 2026-07-25
+Cập nhật: 2026-07-27
 
-## Đoạn phụ trách
+## Mục tiêu vòng
 
-Đoạn `00 Điều phối trung tâm` phụ trách soạn và điều phối phê duyệt đặc tả Mốc 4.
+Sửa `BLOCKED_WINDOWS_DIRECTORY_FSYNC` trên PR #13 bằng commit nối tiếp, không viết lại lịch sử và không dùng workflow để commit/push.
 
-## Nền bắt buộc
+## Phạm vi
 
-- Kho: `Tienkhoaa2908/vn-quant-system`.
-- `main`: `bb25ff16761b7c79e701fbd4f3a5af02f1644e07`.
-- Nhánh điều phối: `dac_ta-moc-4`.
-- Phạm vi nhánh: chỉ tài liệu đặc tả và điều phối.
-- Không force-push.
-- Không sửa trực tiếp `main`.
-- Không commit tệp dưới `du_lieu/`.
-- Không triển khai mã Mốc 4 trên nhánh này.
+1. `_fsync_dir` trả `False` trên Windows mà không gọi `os.open` trên directory.
+2. POSIX dùng `O_RDONLY | O_DIRECTORY` khi có, fsync descriptor, đóng descriptor trong `finally` và propagate lỗi.
+3. Giữ file fsync cho 16 sản phẩm cùng manifest, staging cùng parent, một `os.replace`, rollback và chống ghi đè.
+4. Thêm test portability dùng filesystem thật kết hợp mock hẹp theo capability.
+5. Giữ nguyên lock/dependency và CI matrix Ubuntu/Windows.
 
-## Mốc 3 đã đóng hoàn toàn
+## Cửa hoàn tất
 
-- PR số 7 và PR số 8 đã gộp bằng merge commit.
-- CI cuối trên `main`: run `#185`, Run ID `30151712433`, Job ID `89663090052`, `completed/success`.
-- Engine và 121 kiểm thử đã được nghiệm thu.
-- Xác minh ba mã chỉ chứng minh kỹ thuật, không chứng minh hiệu quả đầu tư.
+Cả hai job phải checkout `refs/pull/13/merge`, đạt lock check, frozen sync, version gate, compileall và toàn bộ suite cũ cộng test mới. Sau CI xanh chỉ báo đoạn 00; không chạy Tier A.
 
-## Công việc của PR đặc tả
+## Cấm hiện hành
 
-1. Thêm `tai_lieu/dac_ta_moc_4.md`.
-2. Chốt universe point-in-time và phương án proxy.
-3. Chốt dữ liệu nhiều năm, warm-up và coverage.
-4. Chốt feature, nhãn, walk-forward và Logistic Regression.
-5. Chốt ranking, backtest ngoài mẫu, sản phẩm và kiểm thử.
-6. Cập nhật ba tài liệu điều phối và kế hoạch tổng thể.
-7. Mở PR Draft.
-8. Xác minh CI.
-9. Chờ người dùng phê duyệt các quyết định.
-10. Chỉ gộp bằng lệnh riêng.
-
-## Cửa kiểm soát
-
-- Mốc 4 chưa được mở triển khai.
-- Không tạo nhánh chuyên môn trước khi đặc tả được phê duyệt và gộp.
-- LightGBM không nằm trong lần triển khai đầu tiên.
-- Mốc 5 chưa mở.
+Không sửa feature, label, folds, Logistic Regression, ranking, adapter, backtest Mốc 3, eligibility, coverage nghiệp vụ, dependency version hoặc dữ liệu thật; không force-push/rebase/squash; không Tier A/Tier B, Ready, merge, LightGBM hoặc Mốc 5.
