@@ -105,3 +105,34 @@ Pipeline chay dung mot lan. External verifier ban dau tao false blocker `G2B2_NO
 - Khong research claim; NAV/AUC/Sharpe khong duoc dien giai thanh hieu qua dau tu, alpha, kha nang giao dich that hay khuyen nghi dau tu.
 - Tier B chua chay; khong LightGBM, SSI.
 - `MOC_5_NOT_OPENED`.
+
+## Cap nhat 2026-07-28 — QD-0065 va dac ta Moc 5
+
+Trang thai hien hanh o phan nay thay the cac dong `MOC_5_NOT_OPENED` o phan lich su phia tren.
+
+### Muc tieu vong
+
+Soan dac ta Moc 5 — chia von va danh muc muc tieu — tu base main bat buoc `e59dca55fa37d88bd0e0f6e8e78bc6d282e4996b`, tren nhanh `dac_ta-moc-5`; tao Draft PR vao `main` va dung sau bao cao doan 00.
+
+### Pham vi khoa
+
+- Chi thay doi dac ta, kien truc, `DECISIONS.md` va tai lieu dieu phoi.
+- Khong sua `src/`, `tests/`, workflow, dependency hoac lockfile.
+- Khong sua/chay lai Moc 4; khong Tier B, LightGBM, SSI API hoac auto-trading.
+- Khoa input contract tu ranking/selection M4, sector PIT, volatility 60 returns, VNINDEX regime, NAV/cash/holdings va order references.
+- Khoa inverse volatility, ticker cap 15%, sector cap 25%, cash 10% RISK_ON / 50% RISK_OFF, feasibility va deterministic water-filling.
+- Khoa Decimal, SHA-256, provenance, immutable publication, fail-closed validation va proposed orders `MANUAL_ENTRY_ONLY`.
+
+### Quyet dinh con mo
+
+1. Nguon/taxonomy/version sector PIT canonical.
+2. Nguon gia tham chieu va lot-size PIT canonical.
+3. Gia tri phi, thue va slippage cho proposal van hanh.
+4. Nguon lich canonical xac nhan execution date.
+
+### Cua hoan tat cua vong dac ta
+
+- Diff chi nam trong tai lieu duoc phep.
+- Draft PR Open, chua Ready va chua merge.
+- Bao cao doan 00 gom branch, final head commit, PR URL, files thay doi, toan bo open decisions va CI current-head.
+- `MOC_5_SPEC_OPEN`; `MOC_5_IMPLEMENTATION_NOT_STARTED`; `NO_SSI_INTEGRATION`; `NO_READY_NO_MERGE`.
