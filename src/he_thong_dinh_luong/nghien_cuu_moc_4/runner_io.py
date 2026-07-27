@@ -1,0 +1,350 @@
+"""Doc va xac thuc dau vao cuc bo cho runner Moc 4."""
+from __future__ import annotations
+
+import csv
+from dataclasses import dataclass
+from datetime import date, datetime, time, timedelta, timezone
+from decimal import Decimal
+from io import StringIO
+import json
+from math import isfinite
+from pathlib import Path
+import platform
+import subprocess
+from typing import Iterable, Mapping, Sequence
+
+import sklearn
+
+from .adapter_mo_phong import chay_backtest_oos_lien_tuc, chuyen_ty_trong_test, metric_backtest_oos
+from .baseline import du_doan_baseline_test, metric_baseline_test, xep_hang_baseline_test
+from .chi_so import metric_model_test, metric_ranking_test
+from .cong_bo import (
+    TEN_SAN_PHAM,
+    cong_bo_san_pham,
+    tao_csv_du_doan,
+    tao_csv_feature_sau_tien_xu_ly,
+)
+from .dac_trung import FEATURE_ORDER_MAC_DINH, phien_cuoi_thang, tao_feature_cuoi_thang
+from .do_phu import DongLoai, bao_cao_do_phu
+from .eligibility import danh_gia_eligibility, phien_t1_chinh_thuc
+from .logistic import du_doan_test, huan_luyen_logistic
+from .mo_hinh import (
+    BanGhiPointInTime,
+    BanGhiUniverse,
+    CauHinhMoc4,
+    DongFeature,
+    DongNhan,
+    DongXepHang,
+    DuDoan,
+    FoldWalkForward,
+    MauMoHinh,
+    ThanhOHLCV,
+    xac_thuc_co_so_gia_va_su_kien,
+)
+from .nhan import tao_nhan
+from .phong_ve import xac_thuc_cau_truc_huu_han, xac_thuc_so_huu_han
+from .universe import chon_ban_ghi_pit, xac_dinh_universe
+from .walk_forward import loc_mau_theo_fold, tao_folds, xac_thuc_prediction_test
+from .xep_hang import xep_hang_test
+
+UTC = timezone.utc
+MUI_GIO_VIET_NAM = timezone(timedelta(hours=7))
+GIO_TAO_TIN_HIEU = time(15, 0)
+
+
+
+@dataclass(frozen=True)
+class _DocOHLCV:
+    rows: tuple[ThanhOHLCV, ...]
+    nguon: str
+    phien_ban: str
+    ma_loi_gia: tuple[str, ...]
+    ma_loi_volume: tuple[str, ...]
+    khoa_loi_gia: tuple[tuple[str, date], ...]
+    khoa_loi_volume: tuple[tuple[str, date], ...]
+
+
+@dataclass(frozen=True)
+class _DocPIT:
+    records: tuple[BanGhiPointInTime, ...]
+    event_rows: tuple[Mapping[str, object], ...]
+    nguon: str
+    phien_ban: str
+
+
+def _read_csv(path: Path) -> tuple[list[dict[str, str]], tuple[str, ...]]:
+    if not path.is_file():
+        raise ValueError(f"Tep dau vao khong ton tai: {path}.")
+    with path.open("r", encoding="utf-8", newline="") as handle:
+        reader = csv.DictReader(handle)
+        if reader.fieldnames is None:
+            raise ValueError(f"CSV khong co header: {path}.")
+        rows = [dict(row) for row in reader]
+        return rows, tuple(reader.fieldnames)
+
+
+def _parse_date(value: object, name: str) -> date:
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{name} khong duoc rong.")
+    try:
+        return date.fromisoformat(value.strip())
+    except ValueError as exc:
+        raise ValueError(f"{name} khong dung YYYY-MM-DD.") from exc
+
+
+def _parse_datetime(value: object, name: str) -> datetime:
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{name} khong duoc rong.")
+    try:
+        result = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise ValueError(f"{name} khong phai ISO-8601.") from exc
+    if result.tzinfo is None or result.utcoffset() is None:
+        raise ValueError(f"{name} phai co mui gio.")
+    return result
+
+
+def _parse_bool(value: object, name: str) -> bool:
+    if value is True or value == "true" or value == "True" or value == "1":
+        return True
+    if value is False or value == "false" or value == "False" or value == "0":
+        return False
+    raise ValueError(f"{name} phai la boolean ro rang.")
+
+
+def _parse_float(value: object, name: str) -> float:
+    if isinstance(value, bool):
+        raise ValueError(f"{name} khong phai so hop le.")
+    try:
+        result = float(str(value).strip())
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{name} khong phai so hop le.") from exc
+    if not isfinite(result):
+        raise ValueError(f"{name} phai huu han; NaN/Inf bi tu choi.")
+    return result
+
+
+def _parse_int(value: object, name: str) -> int:
+    if isinstance(value, bool):
+        raise ValueError(f"{name} khong phai int hop le.")
+    text = str(value).strip()
+    if not text or not text.lstrip("-").isdigit():
+        raise ValueError(f"{name} phai la int.")
+    return int(text)
+
+
+def _unique(values: Iterable[str], name: str) -> str:
+    found = sorted({value for value in values if value})
+    if len(found) != 1:
+        raise ValueError(f"{name} phai co dung mot gia tri; nhan duoc {found}.")
+    return found[0]
+
+
+def _doc_ohlcv(path: Path, *, benchmark: bool = False) -> _DocOHLCV:
+    """Doc OHLCV theo policy B: stock loi bi loai co kiem soat; benchmark fail closed."""
+    raw_rows, fields = _read_csv(path)
+    required = {
+        "ma", "ngay", "gia_mo_cua", "gia_cao_nhat", "gia_thap_nhat",
+        "gia_dong_cua", "khoi_luong", "nguon", "phien_ban", "co_so_gia",
+    }
+    missing = sorted(required - set(fields))
+    if missing:
+        raise ValueError(f"OHLCV thieu cot: {', '.join(missing)}.")
+    rows: list[ThanhOHLCV] = []
+    price_errors: set[str] = set()
+    volume_errors: set[str] = set()
+    price_error_keys: set[tuple[str, date]] = set()
+    volume_error_keys: set[tuple[str, date]] = set()
+    seen: set[tuple[str, date]] = set()
+    sources: list[str] = []
+    versions: list[str] = []
+    for number, raw in enumerate(raw_rows, 2):
+        symbol = str(raw.get("ma", "")).strip().upper()
+        if not symbol:
+            raise ValueError(f"Ma rong tai dong {number} cua {path.name}.")
+        day = _parse_date(raw.get("ngay"), f"ngay dong {number}")
+        key = (symbol, day)
+        if key in seen:
+            raise ValueError(f"OHLCV trung ma/ngay: {symbol}, {day}.")
+        seen.add(key)
+        source = str(raw.get("nguon", "")).strip()
+        version = str(raw.get("phien_ban", "")).strip()
+        basis = str(raw.get("co_so_gia", "")).strip()
+        if not source or not version or not basis:
+            raise ValueError(f"OHLCV thieu nguon/phien_ban/co_so_gia tai dong {number}.")
+        sources.append(source)
+        versions.append(version)
+        try:
+            open_price = _parse_float(raw.get("gia_mo_cua"), "gia_mo_cua")
+            high = _parse_float(raw.get("gia_cao_nhat"), "gia_cao_nhat")
+            low = _parse_float(raw.get("gia_thap_nhat"), "gia_thap_nhat")
+            close = _parse_float(raw.get("gia_dong_cua"), "gia_dong_cua")
+            if min(open_price, high, low, close) <= 0:
+                raise ValueError("Gia phai duong.")
+        except ValueError as exc:
+            price_errors.add(symbol)
+            price_error_keys.add(key)
+            if benchmark:
+                raise ValueError(f"OHLCV benchmark loi gia tai {symbol}, {day}: {exc}") from exc
+            continue
+        try:
+            volume = _parse_int(raw.get("khoi_luong"), "khoi_luong")
+            if volume < 0:
+                raise ValueError("khoi_luong khong duoc am.")
+        except ValueError as exc:
+            volume_errors.add(symbol)
+            volume_error_keys.add(key)
+            if benchmark:
+                raise ValueError(f"OHLCV benchmark loi volume tai {symbol}, {day}: {exc}") from exc
+            continue
+        try:
+            item = ThanhOHLCV(
+                ma=symbol, ngay=day, gia_mo_cua=open_price, gia_cao_nhat=high,
+                gia_thap_nhat=low, gia_dong_cua=close, khoi_luong=volume,
+                nguon=source, phien_ban=version, co_so_gia=basis,
+            )
+        except ValueError as exc:
+            price_errors.add(symbol)
+            price_error_keys.add(key)
+            if benchmark:
+                raise ValueError(f"OHLCV benchmark loi gia tai {symbol}, {day}: {exc}") from exc
+            continue
+        rows.append(item)
+    if benchmark and not rows:
+        raise ValueError("Benchmark khong co bar hop le.")
+    return _DocOHLCV(
+        tuple(sorted(rows, key=lambda row: (row.ma, row.ngay))),
+        _unique(sources, "nguon OHLCV"), _unique(versions, "phien_ban OHLCV"),
+        tuple(sorted(price_errors)), tuple(sorted(volume_errors)),
+        tuple(sorted(price_error_keys)), tuple(sorted(volume_error_keys)),
+    )
+
+
+def _xac_thuc_benchmark_identity(rows: Sequence[ThanhOHLCV], expected_symbol: str) -> str:
+    symbols = sorted({row.ma for row in rows})
+    if symbols != [expected_symbol]:
+        raise ValueError(
+            f"Benchmark file phai co dung mot ma {expected_symbol}; nhan duoc {symbols}."
+        )
+    return symbols[0]
+
+
+def _doc_calendar(path: Path) -> tuple[date, ...]:
+    rows, fields = _read_csv(path)
+    if "ngay" not in fields:
+        raise ValueError("Lich benchmark thieu cot ngay.")
+    days = tuple(_parse_date(row.get("ngay"), "lich_benchmark.ngay") for row in rows)
+    if not days:
+        raise ValueError("Lich benchmark rong.")
+    if len(days) != len(set(days)):
+        raise ValueError("Lich benchmark trung ngay.")
+    if tuple(sorted(days)) != days:
+        raise ValueError("Lich benchmark phai sap xep tang dan.")
+    return days
+
+
+def _doc_universe(path: Path) -> tuple[tuple[BanGhiUniverse, ...], str, str]:
+    rows, fields = _read_csv(path)
+    required = {"ngay_hieu_luc", "ma", "thuoc_universe", "nguon", "phien_ban", "thoi_diem_cong_bo"}
+    missing = sorted(required - set(fields))
+    if missing:
+        raise ValueError(f"Universe thieu cot: {', '.join(missing)}.")
+    result: list[BanGhiUniverse] = []
+    for number, row in enumerate(rows, 2):
+        result.append(BanGhiUniverse(
+            ngay_hieu_luc=_parse_date(row.get("ngay_hieu_luc"), f"universe.ngay_hieu_luc dong {number}"),
+            ma=str(row.get("ma", "")).strip().upper(),
+            thuoc_universe=_parse_bool(row.get("thuoc_universe"), "thuoc_universe"),
+            nguon=str(row.get("nguon", "")).strip(),
+            phien_ban=str(row.get("phien_ban", "")).strip(),
+            thoi_diem_cong_bo=_parse_datetime(row.get("thoi_diem_cong_bo"), "thoi_diem_cong_bo"),
+        ))
+    if not result:
+        raise ValueError("Universe rong.")
+    return tuple(result), _unique((x.nguon for x in result), "nguon universe"), _unique((x.phien_ban for x in result), "phien_ban universe")
+
+
+def _doc_pit(path: Path) -> _DocPIT:
+    rows, fields = _read_csv(path)
+    if not rows:
+        return _DocPIT((), (), "khong_co_su_kien", "0")
+    required = {"loai_du_lieu", "khoa_ban_ghi", "ngay_hieu_luc", "nguon", "phien_ban", "thoi_diem_cong_bo"}
+    missing = sorted(required - set(fields))
+    if missing:
+        raise ValueError(f"Metadata PIT thieu cot: {', '.join(missing)}.")
+    records: list[BanGhiPointInTime] = []
+    events: list[Mapping[str, object]] = []
+    for number, row in enumerate(rows, 2):
+        data_text = str(row.get("du_lieu_json", "") or "{}").strip()
+        try:
+            data = json.loads(data_text)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"du_lieu_json sai tai dong {number}.") from exc
+        if not isinstance(data, dict):
+            raise ValueError("du_lieu_json phai la object.")
+        xac_thuc_cau_truc_huu_han(data, f"metadata_pit[{number}]")
+        record = BanGhiPointInTime(
+            loai_du_lieu=str(row.get("loai_du_lieu", "")).strip(),
+            khoa_ban_ghi=str(row.get("khoa_ban_ghi", "")).strip(),
+            ngay_hieu_luc=_parse_date(row.get("ngay_hieu_luc"), "metadata_pit.ngay_hieu_luc"),
+            nguon=str(row.get("nguon", "")).strip(),
+            phien_ban=str(row.get("phien_ban", "")).strip(),
+            thoi_diem_cong_bo=_parse_datetime(row.get("thoi_diem_cong_bo"), "metadata_pit.thoi_diem_cong_bo"),
+            du_lieu=data,
+        )
+        records.append(record)
+        if record.loai_du_lieu == "corporate_action":
+            events.append(data)
+    keys = [record.khoa() for record in records]
+    if len(keys) != len(set(keys)):
+        raise ValueError("Trung ban ghi metadata PIT/corporate action.")
+    return _DocPIT(
+        tuple(records), tuple(events),
+        _unique((x.nguon for x in records), "nguon metadata PIT"),
+        _unique((x.phien_ban for x in records), "phien_ban metadata PIT"),
+    )
+
+
+def _signal_time(day: date) -> datetime:
+    return datetime.combine(day, GIO_TAO_TIN_HIEU, tzinfo=MUI_GIO_VIET_NAM)
+
+
+def _json_ready(value: object) -> object:
+    if isinstance(value, Decimal):
+        return str(value)
+    if isinstance(value, (date, datetime)):
+        return value.isoformat()
+    if isinstance(value, Mapping):
+        return {str(key): _json_ready(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [_json_ready(item) for item in value]
+    if isinstance(value, float):
+        xac_thuc_so_huu_han(value, "json")
+    return value
+
+
+def _json_text(value: object) -> str:
+    return json.dumps(_json_ready(value), ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False) + "\n"
+
+
+def _csv_text(fieldnames: Sequence[str], rows: Iterable[Mapping[str, object]]) -> str:
+    stream = StringIO(newline="")
+    writer = csv.DictWriter(stream, fieldnames=fieldnames, extrasaction="raise", lineterminator="\n")
+    writer.writeheader()
+    for row in rows:
+        normalized = {}
+        for name in fieldnames:
+            value = row.get(name)
+            if isinstance(value, bool):
+                normalized[name] = "true" if value else "false"
+            elif isinstance(value, (date, datetime)):
+                normalized[name] = value.isoformat()
+            elif value is None:
+                normalized[name] = ""
+            elif isinstance(value, float):
+                xac_thuc_so_huu_han(value, f"csv.{name}")
+                normalized[name] = format(value, ".17g")
+            else:
+                normalized[name] = value
+        writer.writerow(normalized)
+    return stream.getvalue()
