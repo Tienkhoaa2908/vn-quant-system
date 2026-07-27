@@ -1,0 +1,164 @@
+name: agent_m4_reporting_provenance
+
+on:
+  pull_request:
+    branches:
+      - m4-dac_trung-xep-hang-hoc_may-sach-final-v2
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+
+jobs:
+  tao_commit_reporting_provenance:
+    if: github.head_ref == 'agent/m4-reporting-provenance-staging'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Lay patch harness
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: patch-source
+          fetch-depth: 1
+
+      - name: Lay canonical head
+        uses: actions/checkout@v4
+        with:
+          ref: m4-dac_trung-xep-hang-hoc_may-sach-final-v2
+          path: worktree
+          fetch-depth: 0
+
+      - name: Cai dat uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.32"
+
+      - name: Cai dat Python
+        run: uv python install 3.12
+
+      - name: Khoa parent canonical
+        working-directory: worktree
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "2efa627c65cb5387bcc4aa77f4063070812d6aa6"
+          test -z "$(git status --short)"
+
+      - name: Ap dung patch reporting provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python patch-source/tools/agent_patch_m4_reporting_provenance.py worktree
+
+      - name: Kiem tra pham vi diff
+        working-directory: worktree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git diff --exit-code -- uv.lock
+          git diff --name-only | sort > "$RUNNER_TEMP/actual-files.txt"
+          cat > "$RUNNER_TEMP/expected-files.txt" <<'EOF'
+          DECISIONS.md
+          README.md
+          src/he_thong_dinh_luong/nghien_cuu_moc_4/runner.py
+          tai_lieu/dac_ta_moc_4.md
+          tai_lieu/kien_truc_moc_4.md
+          tai_lieu_dieu_phoi/ban_giao_doan_chat.md
+          tai_lieu_dieu_phoi/cong_viec_hien_tai.md
+          tai_lieu_dieu_phoi/ke_hoach_tong_the.md
+          tai_lieu_dieu_phoi/trang_thai_du_an.md
+          tests/test_m4_benchmark_close_only.py
+          EOF
+          sort -o "$RUNNER_TEMP/expected-files.txt" "$RUNNER_TEMP/expected-files.txt"
+          diff -u "$RUNNER_TEMP/expected-files.txt" "$RUNNER_TEMP/actual-files.txt"
+
+      - name: Kiem tra lock va dong bo
+        working-directory: worktree
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv sync --frozen --python 3.12
+          uv lock --check
+
+      - name: Ghi nhan phien ban
+        working-directory: worktree
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            uv --version
+            uv run --python 3.12 python --version
+            uv run --python 3.12 python -c "import sklearn; print('scikit-learn', sklearn.__version__)"
+          } | tee "$RUNNER_TEMP/m4-reporting-provenance-versions.txt"
+
+      - name: Compileall
+        working-directory: worktree
+        shell: bash
+        env:
+          PYTHONPATH: src
+        run: |
+          set -euo pipefail
+          uv run --python 3.12 python -m compileall -q src tests
+
+      - name: Chay toan bo unittest
+        working-directory: worktree
+        shell: bash
+        env:
+          PYTHONPATH: src
+          NO_PROXY: "*"
+        run: |
+          set -euo pipefail
+          uv run --python 3.12 python -m unittest discover -s tests -p 'test_*.py' -v \
+            2>&1 | tee "$RUNNER_TEMP/m4-reporting-provenance-tests.log"
+          count="$(sed -nE 's/^Ran ([0-9]+) tests? in .*/\1/p' "$RUNNER_TEMP/m4-reporting-provenance-tests.log" | tail -1)"
+          test -n "$count"
+          test "$count" -ge 338
+          printf '%s\n' "$count" | tee "$RUNNER_TEMP/m4-reporting-provenance-test-count.txt"
+
+      - name: Tao dung mot commit
+        working-directory: worktree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "Tienkhoaa2908"
+          git config user.email "236086801+Tienkhoaa2908@users.noreply.github.com"
+          git add \
+            src/he_thong_dinh_luong/nghien_cuu_moc_4/runner.py \
+            tests/test_m4_benchmark_close_only.py \
+            DECISIONS.md \
+            README.md \
+            tai_lieu/dac_ta_moc_4.md \
+            tai_lieu/kien_truc_moc_4.md \
+            tai_lieu_dieu_phoi
+          git diff --cached --check
+          git commit -m "sua metadata trang thai va provenance Moc 4"
+          test "$(git rev-list --count 2efa627c65cb5387bcc4aa77f4063070812d6aa6..HEAD)" = "1"
+          git rev-parse HEAD | tee "$RUNNER_TEMP/m4-reporting-provenance-result-sha.txt"
+          git show --stat --oneline HEAD
+
+      - name: Cong bo commit len nhanh result tam
+        working-directory: worktree
+        shell: bash
+        env:
+          RESULT_BRANCH: agent/m4-reporting-provenance-result-qd0062
+        run: |
+          set -euo pipefail
+          if git ls-remote --exit-code origin "refs/heads/$RESULT_BRANCH" >/dev/null 2>&1; then
+            echo "Result branch already exists: $RESULT_BRANCH" >&2
+            exit 1
+          fi
+          git push origin "HEAD:refs/heads/$RESULT_BRANCH"
+
+      - name: Tai bang chung local test
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m4-reporting-provenance-local-proof
+          path: |
+            ${{ runner.temp }}/m4-reporting-provenance-tests.log
+            ${{ runner.temp }}/m4-reporting-provenance-test-count.txt
+            ${{ runner.temp }}/m4-reporting-provenance-versions.txt
+            ${{ runner.temp }}/m4-reporting-provenance-result-sha.txt
+            ${{ runner.temp }}/actual-files.txt
+          if-no-files-found: warn
