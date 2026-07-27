@@ -1,65 +1,114 @@
 # Trạng thái dự án
 
-Cập nhật gần nhất: 2026-07-25
+Cập nhật gần nhất: 2026-07-27
 
 ## Kho mã nguồn
 
 - Kho: `Tienkhoaa2908/vn-quant-system`.
-- Nhánh chính: `main`.
-- Đầu `main`: `bb25ff16761b7c79e701fbd4f3a5af02f1644e07`.
-- Python mục tiêu: 3.12; công cụ môi trường: `uv`.
-- GitHub là nguồn sự thật về nhánh, commit, PR và CI.
+- Base Mốc 4: `24bf02a7cf0f18d5a0fe342356b8ea0e045b1ed6`.
+- Source kỹ thuật cuối: `5aec6ace8423fbf30442aa77db6ff63adb3c854e`.
+- Commit thứ tư của nhánh clean-history có đúng tree source: `8452cfb8ddc521c80d7f1128acd72039b1fca0eb`.
+- Nhánh chính thức hiện tại: `m4-dac_trung-xep-hang-hoc_may-sach-final`.
+- Head trước vòng sửa tài liệu: `07bc48075be5e44cd410ff8fc2ef02828fc8fd73`.
+- PR chính thức: #14, Open, Draft, chưa merge và chưa Ready.
+- PR #13 là PR nguồn kỹ thuật, tiếp tục Open, Draft và chưa merge.
 
-## Mốc 0–Mốc 3
+## Portability công bố Mốc 4
 
-Trạng thái: **đã đóng hoàn toàn**.
+Dependency lock đa nền tảng đã đạt frozen sync trên Ubuntu và Windows. Publication giữ file fsync cho 16 sản phẩm cùng manifest, atomic replace, chống ghi đè và rollback staging.
 
-Mốc 3:
+POSIX/Linux mở directory bằng `O_RDONLY`, thêm `O_DIRECTORY` khi có, fsync descriptor, đóng descriptor trong `finally` và propagate lỗi thật. Windows không gọi `os.open` trên directory và trả capability unsupported; không tuyên bố directory-entry crash durability tương đương POSIX.
 
-- PR triển khai số 7 đã gộp bằng merge commit `79a044d75f3a66e5c636f0a83613fc9af0cac3fc`.
-- PR điều phối số 8 đã gộp bằng merge commit `bb25ff16761b7c79e701fbd4f3a5af02f1644e07`.
-- CI sau gộp PR số 8:
-  - workflow `kiem_tra_tu_dong`;
-  - run number `185`;
-  - Run ID `30151712433`;
-  - Job ID `89663090052`;
-  - trigger `push`;
-  - branch `main`;
-  - checkout `bb25ff16761b7c79e701fbd4f3a5af02f1644e07`;
-  - `completed/success`.
-- 121 kiểm thử ngoại tuyến và xác minh kỹ thuật engine trên FPT, HPG, MBB đã đạt.
+Bổ sung test riêng cho file fsync, POSIX error propagation, Windows unsupported capability, publication 17 file, manifest hash, one-shot replace, cùng parent filesystem, rollback, tính tái lập và dọn staging.
 
-## Giới hạn dữ liệu hiện tại
+## CI kỹ thuật đã phê duyệt
 
-- Bộ ba mã chỉ là xác minh kỹ thuật.
-- Chưa có lịch sử thành viên VN100 point-in-time thật được phê duyệt.
-- Chưa có universe nhiều năm được kiểm toán.
-- Cơ sở giá và corporate actions thật chưa được xác nhận đầy đủ.
-- Chưa có feature set sản xuất, nhãn, walk-forward hoặc mô hình học máy.
-- Không tích hợp SSI, không đọc tài khoản và không gửi lệnh.
+- Source run: #334, `completed/success`.
+- Ubuntu Job: `89890344314`, success.
+- Windows Job: `89890344310`, success.
+- Python `3.12.13`, uv `0.11.32`, scikit-learn `1.9.0`.
+- Tổng 320 test được discovery.
 
-## Mốc 4
+## CI clean-history trước correction tài liệu
 
-Trạng thái: **đang chuẩn bị đặc tả; chưa mở triển khai**.
+- PR #14 run #335, Run ID `30241263742`, `completed/success`.
+- Ubuntu Job `89898799819`, success.
+- Windows Job `89898799861`, success.
+- Merge ref đã kiểm tra: `refs/pull/14/merge`.
 
-- Nhánh điều phối: `dac_ta-moc-4`.
-- Base: `bb25ff16761b7c79e701fbd4f3a5af02f1644e07`.
-- Tài liệu dự thảo: `tai_lieu/dac_ta_moc_4.md`.
-- Nhánh chỉ được chứa tài liệu.
-- Chưa tạo nhánh `m4-dac_trung-xep_hang-hoc_may`.
-- Chưa viết mã Mốc 4.
+## Blocker tài liệu và cửa kiểm soát
 
-Các cửa phải phê duyệt:
+Commit thứ năm đã rút gọn tài liệu tích lũy. Vòng hiện tại phục hồi đầy đủ nội dung từ commit thứ tư và nối QD-0060/trạng thái final, chỉ trong bảy tệp tài liệu được phê duyệt.
 
-1. nguồn VN100 point-in-time hoặc universe proxy;
-2. mục tiêu lịch sử tối thiểu 5 năm, ưu tiên 7–10 năm khi chất lượng cho phép;
-3. warm-up và coverage;
-4. cơ sở giá và corporate actions;
-5. bộ feature MVP;
-6. nhãn lợi nhuận tương đối 20 phiên;
-7. walk-forward có purge/embargo;
-8. Logistic Regression trước LightGBM;
-9. ranking và lịch tái cân bằng;
-10. chỉ số đánh giá ngoài mẫu;
-11. sản phẩm và truy vết;
-12. tiêu chí xác minh universe mở rộng.
+- Code, workflow, dependency và test phải tiếp tục giống source `5aec6ace8423fbf30442aa77db6ff63adb3c854e`.
+- Tier A/Tier B chưa chạy; chưa có raw data thật.
+- Không thay đổi feature, label, folds, model, ranking, adapter, backtest hoặc dependency version.
+- Không LightGBM, SSI, Ready, merge hoặc Mốc 5.
+
+## Cap nhat QD-0061: contract benchmark close-only
+
+PR canonical hien tai la #16 tren nhanh `m4-dac_trung-xep-hang-hoc_may-sach-final-v2`. Giai doan 2A da hoan tat voi `D.OFFICIAL_VALUES_UNAVAILABLE`, `SEMANTICS_DEFINITION_NOT_FOUND` va `CLOSE_ONLY_BENCHMARK_CONTRACT`; cac tham chieu PR #14/CI cu o phan lich su khong phai trang thai current-head. CI #347 chi la baseline cua head cu truoc patch nay.
+
+Co phieu tiep tuc dung `ThanhOHLCV` strict. Benchmark dung `ThanhBenchmarkDongCua` va schema CSV dung sau cot `ma,ngay,gia_dong_cua,nguon,phien_ban,co_so_gia`; open/high/low/volume benchmark khong duoc dua vao canonical input, sua, suy dien hoac dung trong feature/label. Raw KBS va ho so audit run `m4_tier_a_20260727T081753Z_e2c866db` giu bat bien; khong co correction overlay hay replacement values. Manifest/bao cao cong bo `benchmark_contract=close_only`, hai canh bao bat buoc va gioi han chi kiem tra ky thuat. Exact official OHLC van chua co; dieu nay khong xac nhan co so gia co phieu. Normalization, Tier A pipeline, Tier B va Moc 5 chua chay.
+
+## Cap nhat QD-0062: reporting/provenance blocker
+
+Canonical PR la #16 tren nhanh `m4-dac_trung-xep-hang-hoc_may-sach-final-v2`. Head truoc correction la `2efa627c65cb5387bcc4aa77f4063070812d6aa6`; close-only QD-0061 va CI #351 da dat. Giai doan 2A da hoan tat; blocker hien tai chi la generic runner hard-code reporting/provenance khong thuoc kha nang tu xac minh. Correction QD-0062 tach policy khoi runtime fact, khong chay lai Tier A pipeline va khong mo Giai doan 2B, Tier B hay Moc 5.
+
+## Trang thai sau QD-0063
+
+Tier A technical validation cua Moc 4 da complete. Final-documentation commit va CI current-head cua PR #16 la cua cuoi hien tai; khong mo Tier B hay Moc 5 trong vong nay.
+
+### Bang chung Tier A hien hanh
+
+- G2B1 Run ID: `m4_tier_a_exec_20260727T130417Z_27077ed`.
+- G2B1 `input_manifest`: `aa3cddbf51f7440a16bd4c7e2d6d29311d8c68fc19475b08e9d69c12ce93fdc4`.
+- G2B1 `input_sha256`: `5b74568f6be4639a4b67ffd1ee6f35d61ea6ebc72360f6fae0377dffb10c576c`.
+- G2B1 `g2b1_final_artifacts`: `b1e5588c21da002b663cada27a8b06a4bd4d03245ad739fe7c9c20d1bb522c1d`.
+- G2B2 Pipeline Run ID: `m4_tier_a_pipeline_20260727T141935Z_27077ed`.
+- Product manifest: `363662bfa0d31b4ae1399cca171ef33936935f701254b58a653ab51fde8b1a91`.
+- Pipeline verification: `24ab8e49ad4b9bb43301f1818c3b851f93df724b98e8024bc4d7d93d89717633`.
+- Pipeline execution provenance: `c09ab566e889c071baae88cd2a6f5cf1ab6bca874fd389a93427256c150b08eb`.
+- External final-hash file: `8eeb5b9f407754bdda28154f0d9e5b3b39192a66975c53229dfe38a7492775ff`.
+
+### Ket qua technical validation da khoa
+
+- Pipeline tao dung 17 san pham va chi chay mot lan.
+- Tong 36 fold; 34 fold thanh cong.
+- `fold_035` that bai voi exact reason `test_rong`.
+- `fold_036` that bai voi exact reason `test_rong`.
+- 102 Logistic test predictions va 102 momentum test predictions.
+- 204 ranking rows va 204 target-weight rows.
+- OOS tu `2023-08-31` den `2026-06-26`; metric start `2023-09-05`.
+- Toan bo execution duoc doi soat dung T+1.
+- NAV reconciliation cua ca hai chien luoc bang `0E-18`.
+- External audit khong phat hien leakage sau khi contract verifier duoc sua dung.
+- Technical gate khong yeu cau loi nhuan duong.
+- Observed technical outputs: Logistic NAV `1339417920.647295`, AUC `0.6051518646674355`, Sharpe `0.5716438544137741`; momentum NAV `1738588942.107435`, AUC `0.5638216070742023`, Sharpe `0.9412394202346132`.
+
+### Lich su external verifier
+
+Pipeline chay dung mot lan. External verifier ban dau tao false blocker `G2B2_NO_LEAKAGE_AUDIT_FAILED`; cac blocker tiep theo nam trong verifier contract, gom gia dinh expanding train phai tang nghiem ngat va target-strategy detection khong khop contract san pham. Verifier duoc sua va chay lai tren cung 17 san pham; pipeline khong chay lai. Byte cua 17 san pham va product manifest khong doi. External verification/provenance artifacts duoc tai tao. Chi bon hash G2B2 canonical hien hanh o tren duoc dung lam bang chung cuoi; hash cua false-blocker state la superseded evidence, khong phai final canonical evidence.
+
+### Gioi han va cach dien giai bat buoc
+
+- Tier A chi la technical validation; khong phai research validation.
+- Universe chi gom `FPT/HPG/MBB`, la synthetic technical control; khong phai VN100 point-in-time.
+- Calendar duoc lap tu observed VNINDEX bars ket hop official notices; khong phai official exchange export.
+- Corporate-action inventory chi partial; corporate actions khong duoc ap dung trong run.
+- `price_basis_confirmed=false`; operational mode `gia_dieu_chinh` khong phai empirical confirmation cua price basis.
+- Benchmark theo contract close-only; exact official VNINDEX OHLC chua co.
+- Khong Tier B; khong research claim; khong ket luan alpha, hieu qua chien luoc, kha nang giao dich that hoac khuyen nghi dau tu.
+- Khong LightGBM, SSI hoac Moc 5.
+- NAV, AUC va Sharpe neu duoc ghi chi la observed technical outputs; khong duoc mo ta la tot, hieu qua, vuot troi hoac dung de khuyen nghi dau tu.
+
+### Trang thai dieu phoi
+
+- PR canonical: `#16`.
+- Branch canonical: `m4-dac_trung-xep-hang-hoc_may-sach-final-v2`.
+- Head truoc final-documentation commit: `27077ed1066b0c5813d9bb5276a6c618633fe345`.
+- CI `#353`, Run ID `30264618547`, la current-head baseline truoc final-documentation commit; sau push no khong con la current-head evidence.
+- Tier A technical validation complete; buoc hien tai la final documentation va current-head CI.
+- PR #13 va PR #14 tiep tuc Open/Draft cho toi khi CI cuoi cua PR #16 duoc xac minh.
+- PR #16 tiep tuc Open/Draft, chua Ready va chua merge.
+- Tier B va Moc 5 chua mo.

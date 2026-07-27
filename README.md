@@ -1,15 +1,110 @@
 # vn-quant-system
 
-He thong dinh luong co phieu Viet Nam. Moc 0–2 da hoan thanh; Moc 3 dang duoc ra soat tren PR so 7 o trang thai draft.
+He thong dinh luong co phieu Viet Nam. Moc 0–3 da dong; final tree ky thuat Moc 4 da duoc phe duyet va dang duoc ra soat tren PR clean-history so 14 o trang thai Draft.
 
 ## Pham vi hien tai
 
 - Moc 1: thu thap OHLCV ngay qua Vnstock Community 4.0.4/KBS, du lieu tho bat bien, chuan hoa, chat luong va SHA-256.
 - Moc 2: tap co phieu point-in-time, thanh khoan, MA250 va dong luong khong nhin truoc.
 - Moc 3: mo phong giao dich long-only, lenh DAY, tien mat, vi the, corporate actions MVP, so cai, NAV, chi so va dau ra bat bien.
+- Moc 4: universe point-in-time, feature va nhan monthly, walk-forward purge/embargo, momentum baseline, Logistic Regression, ranking, metric ngoai mau va adapter sang engine Moc 3.
 
-Khong thuoc Moc 3: Logistic Regression, LightGBM, walk-forward ML, inverse volatility san xuat, tran 15% moi ma/25% moi nganh, ket noi SSI, doc tai khoan hay gui lenh.
+Khong thuoc Moc 4: LightGBM, deep learning, inverse volatility san xuat, tran 15% moi ma/25% moi nganh, ket noi SSI, doc tai khoan hay gui lenh.
 
+## Moc 4 — pipeline dau-cuoi bang fixture ngoai tuyen
+
+Ma nam trong:
+
+```text
+src/he_thong_dinh_luong/nghien_cuu_moc_4/
+```
+
+Ham dieu phoi chinh:
+
+```python
+chay_nghien_cuu_moc_4(...)
+```
+
+Luồng runner chi doc tep cuc bo:
+
+```text
+cau hinh va dau vao
+→ PIT universe/benchmark metadata/corporate actions
+→ coverage
+→ feature cuoi thang theo lich benchmark chinh thuc
+→ nhan T+H
+→ samples va walk-forward folds
+→ momentum baseline va Logistic Regression
+→ prediction test, ranking va target weights
+→ hai backtest OOS lien tuc qua engine Moc 3
+→ model/ranking/backtest metrics
+→ 16 san pham + manifest
+→ cong bo nguyen tu
+```
+
+Bat bien chinh:
+
+- Cutoff PIT: `thoi_diem_cong_bo <= thoi_diem_tao_tin_hieu`; timestamp phai co mui gio.
+- Lich benchmark duoc truyen rieng. Moi cua so va endpoint `T-N` dung dung phien benchmark; khong nen thoi gian, forward-fill, tim phien thay the hoac lay bar cu de bu.
+- Thieu bat ky bar bat buoc trong MA, momentum, volatility, liquidity hay regime thi feature tuong ung rong; dong thieu feature bat buoc bi loai va ghi coverage.
+- T+H la phien thu H sau T tren lich benchmark; thieu stock/benchmark dung T/T+H thi nhan rong.
+- Expanding monthly walk-forward co purge/embargo; fold co test rong hoac khong tao prediction test bi fail closed va khong tao ranking/tai can bang. Chi prediction test vao metric cuoi va backtest.
+- Backtest khoa `oos_start`, `ngay_bat_dau_metric` va `oos_end`. Du lieu truoc OOS chi phuc vu warm-up/train/dinh gia can thiet; metric NAV/CAGR/Sharpe/turnover/cash ratio chi tinh trong cua so OOS, du lieu sau `oos_end` khong duoc anh huong.
+- Dependency khoa `scikit-learn==1.9.0`; khong pandas, khong LightGBM.
+- Eligibility tai T la phep AND fail closed cua membership PIT, thanh khoan PIT, warm-up, feature bat buoc, chat luong du lieu, benchmark metadata PIT va open dung T+1. Thanh khoan MVP dung `gtgd_tb_20 = mean(close * volume)` tren dung 20 phien benchmark ket thuc tai T, don vi dong/phien, cutoff tai T va nguong `nguong_gtgd_tb_toi_thieu`; thieu/khong dat ghi `khong_dat_thanh_khoan`. Thieu open dung T+1 ghi `thieu_open_t1`, khong tim T+2.
+- Momentum baseline va Logistic Regression dung cung test dates, universe, eligibility, top_k, chi phi va engine.
+- Adapter bat buoc `che_do_ma_khong_xuat_hien=muc_tieu_bang_0`, phat target 0 cho ma roi top_k va bieu dien ngay tai can bang rong de ve tien mat.
+- Corporate action duoc chon theo timestamp cong bo va ngay hieu luc trong cua so backtest, khong phu thuoc co ngay tin hieu nam giua cong bo va hieu luc; khong ap dung hoi to, su kien trung va gia dieu chinh kem su kien bi tu choi.
+- Coverage theo ma dung tap phien yeu cau PIT, khong tinh truoc ngay bat dau hop le hoac sau khi ma roi universe; gap chi xet trong tap phien yeu cau. Policy B loai dong/ma loi co kiem soat va ghi `ma_loi_gia`/`ma_loi_volume`.
+- Model audit phan biet `validation_selection` (fit train) va `final_refit` (fit train+validation), luu scaler, C, coefficient, intercept, n_iter, warning, candidate error, feature order, cutoff va scikit-learn version.
+- Che do `nghien_cuu` fail closed neu sai benchmark identity, thieu metadata PIT, khong co fold/prediction/tai can bang OOS, coverage/universe duoi nguong hoac hop dong gia/corporate actions khong dat. Run technical duoc tiep tuc voi canh bao.
+- Manifest tu tinh SHA-256 tung dau vao va tung san pham; metadata version/cau_hinh/canh_bao/gioi_han la bat buoc.
+- NaN/Inf bi tu choi trong dau vao, feature, probability, relative return, metric va san pham.
+- Cong bo 17 tep bang staging, file fsync, atomic replace va rollback. Directory fsync chi duoc thuc hien tren POSIX/Linux; Windows MVP bao capability unsupported thay vi gia lap crash-durability tuong duong POSIX.
+
+CLI chay dau-cuoi:
+
+```bash
+PYTHONPATH=src uv run --python 3.12 \
+  python -m he_thong_dinh_luong.nghien_cuu_moc_4 \
+  --cau-hinh duong_dan/cau_hinh.json \
+  --ohlcv duong_dan/ohlcv.csv \
+  --benchmark duong_dan/benchmark.csv \
+  --lich-benchmark duong_dan/lich_benchmark.csv \
+  --universe duong_dan/universe.csv \
+  --corporate-actions duong_dan/corporate_actions_metadata.csv \
+  --thu-muc-dau-ra duong_dan/ket_qua \
+  --ma-lan-chay ma_lan_chay_duy_nhat \
+  --git-commit <SHA-40-ky-tu>
+```
+
+Che do chi xac thuc cau hinh van duoc giu:
+
+```bash
+PYTHONPATH=src uv run --python 3.12 \
+  python -m he_thong_dinh_luong.nghien_cuu_moc_4 \
+  --kiem-tra-cau-hinh duong_dan/cau_hinh.json
+```
+
+Suite nen co 187 test Mốc 4 va 121 test hoi quy Mốc 0–3, tong 308 test ngoai tuyen. Vong portability bo sung test rieng cho file fsync, directory fsync POSIX/Windows, atomic replace, rollback, hash manifest va tinh tai lap; CI Ubuntu/Windows la cua xac nhan cuoi.
+
+Chua chay Tier A/Tier B, chua tai VN100/VNINDEX that, nguon that chua duoc phe duyet va khong duoc dien giai metric fixture nhu hieu qua chien luoc.
+
+## Khoa dependency da nen tang
+
+Preflight Tier A tren Windows `win_amd64` phat hien `uv.lock` cu chi chua wheel manylinux cho NumPy, SciPy va scikit-learn; `uv sync --frozen --python 3.12` vi the dung voi ma `BLOCKED_DEPENDENCY_LOCK_LINUX_ONLY_ON_WINDOWS`. Day la loi lockfile, khong phai scikit-learn khong ho tro Windows.
+
+`[tool.uv]` khoa hai moi truong bat buoc: Linux x86_64 va Windows AMD64. Lock giu nguyen `scikit-learn==1.9.0`, `numpy==2.3.5`, `scipy==1.17.0`, `joblib==1.5.3`, `narwhals==2.0.1` va `threadpoolctl==3.6.0`, dong thoi chua wheel CPython 3.12 manylinux x86_64 va win_amd64 cho ba goi nhi phan. CI PR chay cung mot bo `uv lock --check`, frozen sync, compileall va unittest tren `ubuntu-24.04` va `windows-2025`.
+
+Sua loi lock khong thay doi logic feature/model/ranking/backtest. Tier A/Tier B van chua bat dau, chua co raw data that; PR #13 tiep tuc Draft nhu PR nguon va PR #14 la PR clean-history chinh thuc.
+
+## Durability cong bo da nen tang
+
+- `file_fsync`: ap dung cho 16 san pham va `manifest.json` tren ca Ubuntu va Windows.
+- `directory_fsync`: ap dung tren POSIX/Linux bang descriptor directory co `O_DIRECTORY` khi he dieu han cung cap; loi `os.open`/`os.fsync` duoc propagate.
+- Windows MVP: `_fsync_dir(...)` khong goi `os.open` tren directory va tra `False` de bieu thi capability khong duoc ho tro; khong tuyen bo crash-durability directory entry tuong duong POSIX.
+- `atomic_replace`: van dung `os.replace(staging, destination)` tren ca hai nen tang.
+- `rollback`: staging duoc xoa khi cong bo that bai; destination ton tai truoc bi tu choi va khong bi ghi de.
 ## Dau vao Moc 3
 
 ### Duong co so va gia
@@ -153,11 +248,11 @@ PYTHONPATH=src uv run --python 3.12 \
   python -m unittest discover -s tests -p 'test_*.py' -v
 ```
 
-Bo kiem thu Moc 3 tach rieng cac ca co tuc, suc mua, so cai, eligibility, bien chi phi, bao mat va don vi, dong thoi giu dong ho T/T+1, corporate actions, chi so, cong bo/rollback, tai lap va kich ban vang. CI khong goi mang va khong goi Vnstock.
+Bo kiem thu Moc 4 tach rieng theo loi nghiep vu va giu toan bo 121 test Moc 0–3. CI khong goi mang va khong goi Vnstock.
 
 ## Xac minh ky thuat tren du lieu that
 
-Lan chay `xac_minh_fpt_hpg_mbb_20260725T074736Z` da xac minh engine tren FPT, HPG va MBB voi 287 phien moi ma, tong 861 dong sau khi ghep gia Moc 1 voi trang thai Moc 2. Engine tao 287 dong NAV, 287 dong so cai, 6/6 lenh khop, khong co lenh het han/tu choi, dong het ba vi the, tien mat khong am, doi soat bang `0.0000000`, tao dung 9 san pham va xac minh SHA-256 manifest.
+Lan chay `xac_minh_fpt_hpg_mbb_20260725T074736Z` da xac minh engine Moc 3 tren FPT, HPG va MBB voi 287 phien moi ma, tong 861 dong sau khi ghep gia Moc 1 voi trang thai Moc 2. Engine tao 287 dong NAV, 287 dong so cai, 6/6 lenh khop, khong co lenh het han/tu choi, dong het ba vi the, tien mat khong am, doi soat bang `0.0000000`, tao dung 9 san pham va xac minh SHA-256 manifest.
 
 Ket qua chi la xac minh ky thuat. Ty trong 30% moi ma la kich ban kiem tra; lan chay khong dung baseline MA250-dong-luong, khong co corporate actions that, va khong duoc dien giai loi nhuan am hay duong nhu danh gia chien luoc.
 
@@ -171,5 +266,85 @@ So lieu, phuong phap va gioi han: `tai_lieu/ket_qua_xac_minh_that_moc_3.md`.
 - Snapshot membership chua phai lich su thanh vien that; nguong thanh khoan chua phai cau hinh san xuat.
 - Co so gia `khong_dieu_chinh` chua duoc nguon xac nhan doc lap.
 - Baseline chi kiem tra engine, khong phai chien luoc san xuat.
-- Chua co ML, walk-forward, inverse volatility hoac gioi han nganh.
-- PR so 7 phai giu draft; khong Ready, khong gop va khong mo Moc 4 khi chua co phan quyet cua doan 00.
+- Moc 4 chua chay du lieu that; chua co LightGBM, chia von san xuat hay SSI.
+- PR #14 phai giu Draft; PR #13 tiep tuc Open/Draft nhu PR nguon; khong Ready, khong gop va khong mo Moc 5.
+
+## Trang thai final Moc 4 va PR clean-history
+
+Final source ky thuat duoc doan 00 phe duyet la `5aec6ace8423fbf30442aa77db6ff63adb3c854e`. CI run #334 da dat tren Ubuntu Job `89890344314` va Windows Job `89890344310`; suite discovery tong 320 test. Commit thu tu cua nhanh clean-history `8452cfb8ddc521c80d7f1128acd72039b1fca0eb` co dung tree source ky thuat.
+
+PR chinh thuc hien tai la #14 tren nhanh `m4-dac_trung-xep-hang-hoc_may-sach-final`. Run #335, Run ID `30241263742`, Ubuntu Job `89898799819` va Windows Job `89898799861` da `completed/success` truoc vong correction tai lieu. PR #14 van Open/Draft/chua merge; PR #13 van Open/Draft/chua merge nhu PR nguon.
+
+## Durability cong bo theo capability nen tang
+
+Cong bo 16 san pham va `manifest.json` tren Ubuntu/Windows deu dung mode tao moi, `flush()` va file fsync. Tren POSIX/Linux, directory fsync dung `O_RDONLY`, them `O_DIRECTORY` khi co, goi `os.fsync(fd)`, dong descriptor trong `finally` va propagate loi that. Tren Windows MVP, implementation khong goi `os.open` tren directory va tra capability unsupported; khong tuyen bo directory-entry crash durability tuong duong POSIX.
+
+Staging van nam cung parent filesystem voi destination; publication dung mot `os.replace`, tu choi ghi de va rollback staging khi loi. Tier A/Tier B chua chay, khong co du lieu thi truong that trong repository, khong Ready/merge, khong LightGBM va khong mo Moc 5.
+
+## Cap nhat QD-0061: contract benchmark close-only
+
+PR canonical hien tai la #16 tren nhanh `m4-dac_trung-xep-hang-hoc_may-sach-final-v2`. Giai doan 2A da hoan tat voi `D.OFFICIAL_VALUES_UNAVAILABLE`, `SEMANTICS_DEFINITION_NOT_FOUND` va `CLOSE_ONLY_BENCHMARK_CONTRACT`; cac tham chieu PR #14/CI cu o phan lich su khong phai trang thai current-head. CI #347 chi la baseline cua head cu truoc patch nay.
+
+Co phieu tiep tuc dung `ThanhOHLCV` strict. Benchmark dung `ThanhBenchmarkDongCua` va schema CSV dung sau cot `ma,ngay,gia_dong_cua,nguon,phien_ban,co_so_gia`; open/high/low/volume benchmark khong duoc dua vao canonical input, sua, suy dien hoac dung trong feature/label. Raw KBS va ho so audit run `m4_tier_a_20260727T081753Z_e2c866db` giu bat bien; khong co correction overlay hay replacement values. Manifest/bao cao cong bo `benchmark_contract=close_only`, hai canh bao bat buoc va gioi han chi kiem tra ky thuat. Exact official OHLC van chua co; dieu nay khong xac nhan co so gia co phieu. Normalization, Tier A pipeline, Tier B va Moc 5 chua chay.
+
+## Cap nhat QD-0062: reporting va provenance
+
+Runner Moc 4 phan biet policy voi runtime fact. `chi_kiem_tra_ky_thuat` duoc suy ra tu cau hinh; gioi han cam tuyen bo hieu qua chi ap dung cho technical run. Runner khong hard-code trang thai Tier A/Tier B, phe duyet nguon, raw immutability hay absence of correction overlay nhu ket qua tu xac minh. Cac actual acquisition facts thuoc external execution provenance manifest. PR canonical van la #16; head truoc correction la `2efa627c65cb5387bcc4aa77f4063070812d6aa6`, CI #351 la baseline close-only head cu, Giai doan 2B chua mo.
+
+## Cap nhat QD-0063: Tier A Moc 4 technical validation complete
+
+Moc 4 da hoan tat vong Tier A technical validation tren PR canonical #16. Day la bang chung ky thuat ve pipeline, provenance, walk-forward, ranking va backtest contract; khong phai ket luan nghien cuu hay dau tu.
+
+### Bang chung Tier A hien hanh
+
+- G2B1 Run ID: `m4_tier_a_exec_20260727T130417Z_27077ed`.
+- G2B1 `input_manifest`: `aa3cddbf51f7440a16bd4c7e2d6d29311d8c68fc19475b08e9d69c12ce93fdc4`.
+- G2B1 `input_sha256`: `5b74568f6be4639a4b67ffd1ee6f35d61ea6ebc72360f6fae0377dffb10c576c`.
+- G2B1 `g2b1_final_artifacts`: `b1e5588c21da002b663cada27a8b06a4bd4d03245ad739fe7c9c20d1bb522c1d`.
+- G2B2 Pipeline Run ID: `m4_tier_a_pipeline_20260727T141935Z_27077ed`.
+- Product manifest: `363662bfa0d31b4ae1399cca171ef33936935f701254b58a653ab51fde8b1a91`.
+- Pipeline verification: `24ab8e49ad4b9bb43301f1818c3b851f93df724b98e8024bc4d7d93d89717633`.
+- Pipeline execution provenance: `c09ab566e889c071baae88cd2a6f5cf1ab6bca874fd389a93427256c150b08eb`.
+- External final-hash file: `8eeb5b9f407754bdda28154f0d9e5b3b39192a66975c53229dfe38a7492775ff`.
+
+### Ket qua technical validation da khoa
+
+- Pipeline tao dung 17 san pham va chi chay mot lan.
+- Tong 36 fold; 34 fold thanh cong.
+- `fold_035` that bai voi exact reason `test_rong`.
+- `fold_036` that bai voi exact reason `test_rong`.
+- 102 Logistic test predictions va 102 momentum test predictions.
+- 204 ranking rows va 204 target-weight rows.
+- OOS tu `2023-08-31` den `2026-06-26`; metric start `2023-09-05`.
+- Toan bo execution duoc doi soat dung T+1.
+- NAV reconciliation cua ca hai chien luoc bang `0E-18`.
+- External audit khong phat hien leakage sau khi contract verifier duoc sua dung.
+- Technical gate khong yeu cau loi nhuan duong.
+- Observed technical outputs: Logistic NAV `1339417920.647295`, AUC `0.6051518646674355`, Sharpe `0.5716438544137741`; momentum NAV `1738588942.107435`, AUC `0.5638216070742023`, Sharpe `0.9412394202346132`.
+
+### Lich su external verifier
+
+Pipeline chay dung mot lan. External verifier ban dau tao false blocker `G2B2_NO_LEAKAGE_AUDIT_FAILED`; cac blocker tiep theo nam trong verifier contract, gom gia dinh expanding train phai tang nghiem ngat va target-strategy detection khong khop contract san pham. Verifier duoc sua va chay lai tren cung 17 san pham; pipeline khong chay lai. Byte cua 17 san pham va product manifest khong doi. External verification/provenance artifacts duoc tai tao. Chi bon hash G2B2 canonical hien hanh o tren duoc dung lam bang chung cuoi; hash cua false-blocker state la superseded evidence, khong phai final canonical evidence.
+
+### Gioi han va cach dien giai bat buoc
+
+- Tier A chi la technical validation; khong phai research validation.
+- Universe chi gom `FPT/HPG/MBB`, la synthetic technical control; khong phai VN100 point-in-time.
+- Calendar duoc lap tu observed VNINDEX bars ket hop official notices; khong phai official exchange export.
+- Corporate-action inventory chi partial; corporate actions khong duoc ap dung trong run.
+- `price_basis_confirmed=false`; operational mode `gia_dieu_chinh` khong phai empirical confirmation cua price basis.
+- Benchmark theo contract close-only; exact official VNINDEX OHLC chua co.
+- Khong Tier B; khong research claim; khong ket luan alpha, hieu qua chien luoc, kha nang giao dich that hoac khuyen nghi dau tu.
+- Khong LightGBM, SSI hoac Moc 5.
+- NAV, AUC va Sharpe neu duoc ghi chi la observed technical outputs; khong duoc mo ta la tot, hieu qua, vuot troi hoac dung de khuyen nghi dau tu.
+
+### Trang thai dieu phoi
+
+- PR canonical: `#16`.
+- Branch canonical: `m4-dac_trung-xep-hang-hoc_may-sach-final-v2`.
+- Head truoc final-documentation commit: `27077ed1066b0c5813d9bb5276a6c618633fe345`.
+- CI `#353`, Run ID `30264618547`, la current-head baseline truoc final-documentation commit; sau push no khong con la current-head evidence.
+- Tier A technical validation complete; buoc hien tai la final documentation va current-head CI.
+- PR #13 va PR #14 tiep tuc Open/Draft cho toi khi CI cuoi cua PR #16 duoc xac minh.
+- PR #16 tiep tuc Open/Draft, chua Ready va chua merge.
+- Tier B va Moc 5 chua mo.
