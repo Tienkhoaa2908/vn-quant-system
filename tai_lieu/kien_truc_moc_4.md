@@ -497,7 +497,7 @@ Thieu bar bat buoc tao ly do co cau truc `thieu_bar_<side>_<feature>`, feature r
 
 ## 19. Coverage schema
 
-`bao_cao_do_phu.json` cong bo khoang yeu cau/thuc te, tong ma universe/co du lieu, danh sach loi hoan toan/warm-up/gap/gia/volume/corporate actions, coverage theo ngay (`tu_so,mau_so,ty_le`), coverage theo ma (`so_phien_co,so_phien_yeu_cau,ty_le`), ngay thieu top_k, ly do loai, loi fold, nguon/phien ban va co so gia.
+`bao_cao_do_phu.json` cong bo khoang yeu cau/thuc_te, tong ma universe/co du lieu, danh sach loi hoan toan/warm-up/gap/gia/volume/corporate actions, coverage theo ngay (`tu_so,mau_so,ty_le`), coverage theo ma (`so_phien_co,so_phien_yeu_cau,ty_le`), ngay thieu top_k, ly do loai, loi fold, nguon/phien ban va co so gia.
 
 ## 20. Baseline va OOS adapter
 
@@ -527,7 +527,7 @@ Kich ban vang:
 
 ## 23. Cua kiem soat
 
-Tier A/Tier B chua chay. VN100/VNINDEX, lich benchmark, co so gia va corporate actions that chua duoc phe duyet. Ket qua fixture chi xac minh ky thuat, khong duoc dung de tuyen bo hieu qua chien luoc. Khong LightGBM, SSI, Ready, merge hay Mốc 5.
+Tier A/Tier B chua chay. VN100/VNINDEX, lich benchmark, co so gia va corporate actions that chua duoc phe duyet. Ket qua fixture chi xac minh ky thuat, khong duoc dung de tuyen bo hieu qua chien luoc. Khong LightGBM, SSI, Ready, merge hay Moc 5.
 
 ## 24. Eligibility, thanh khoan va open T+1
 
@@ -561,3 +561,15 @@ Mau so theo ma la `research range ∩ tu phien quan sat du lieu hop le/loi dau t
 Benchmark file co dung mot identity bang `config.benchmark`; MVP VNINDEX. Run `nghien_cuu` chi duoc cong bo khi co benchmark metadata PIT, it nhat mot fold test hop le, prediction test OOS, ngay tai can bang, coverage/universe dat nguong va hop dong gia/corporate actions dat. Technical run ghi canh bao thay vi tuyen bo nghien cuu thanh cong.
 
 Suite final tree gom 187 test Mốc 4 va 121 test Mốc 0–3, tong 308 test. 41 test moi cua vong nay tach rieng cho eligibility, OOS metamorphic, fold rong, corporate action cutoff, coverage PIT/data error, model audit stage va research fail closed. Tier A/Tier B va du lieu that chua chay; metric fixture khong chung minh hieu qua chien luoc. PR #10 tiep tuc Draft.
+
+## 30. Durability cong bo da nen tang
+
+Hop dong publication final theo QD-0060:
+
+- 16 san pham va `manifest.json` deu duoc ghi bang mode tao moi, `flush()` va file fsync tren Ubuntu va Windows;
+- tren POSIX/Linux, `_fsync_dir` dung `O_RDONLY`, them `O_DIRECTORY` khi co, goi `os.fsync(fd)`, luon dong descriptor trong `finally` va propagate loi `os.open`/`os.fsync`;
+- tren Windows MVP, Python khong mo directory bang `os.open(..., O_RDONLY)`; implementation khong goi `os.open` tren directory va tra capability `False`/unsupported;
+- staging nam cung parent filesystem voi destination, publication dung dung mot `os.replace`, tu choi ghi de destination va rollback staging khi loi;
+- file fsync, atomic replace va rollback ap dung tren ca hai nen tang, nhung khong tuyen bo Windows co directory-entry crash durability tuong duong POSIX.
+
+Final source ky thuat `5aec6ace8423fbf30442aa77db6ff63adb3c854e` da dat CI run #334 tren Ubuntu va Windows voi 320 test discovery. PR clean-history #14 tiep tuc Draft; Tier A/Tier B chua chay va khong co du lieu that trong repository.

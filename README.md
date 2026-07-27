@@ -1,6 +1,6 @@
 # vn-quant-system
 
-He thong dinh luong co phieu Viet Nam. Moc 0–3 da dong; Moc 4 dang duoc trien khai va ra soat tren PR so 13 o trang thai Draft.
+He thong dinh luong co phieu Viet Nam. Moc 0–3 da dong; final tree ky thuat Moc 4 da duoc phe duyet va dang duoc ra soat tren PR clean-history so 14 o trang thai Draft.
 
 ## Pham vi hien tai
 
@@ -60,7 +60,7 @@ Bat bien chinh:
 - Che do `nghien_cuu` fail closed neu sai benchmark identity, thieu metadata PIT, khong co fold/prediction/tai can bang OOS, coverage/universe duoi nguong hoac hop dong gia/corporate actions khong dat. Run technical duoc tiep tuc voi canh bao.
 - Manifest tu tinh SHA-256 tung dau vao va tung san pham; metadata version/cau_hinh/canh_bao/gioi_han la bat buoc.
 - NaN/Inf bi tu choi trong dau vao, feature, probability, relative return, metric va san pham.
-- Cong bo 17 tep bang staging, fsync, rename nguyen tu va rollback.
+- Cong bo 17 tep bang staging, file fsync, atomic replace va rollback. Directory fsync chi duoc thuc hien tren POSIX/Linux; Windows MVP bao capability unsupported thay vi gia lap crash-durability tuong duong POSIX.
 
 CLI chay dau-cuoi:
 
@@ -86,7 +86,7 @@ PYTHONPATH=src uv run --python 3.12 \
   --kiem-tra-cau-hinh duong_dan/cau_hinh.json
 ```
 
-Suite hien co 187 test Mốc 4 va 121 test hoi quy Mốc 0–3, tong 308 test ngoai tuyen. Kich ban vang chay runner hai lan byte-for-byte va chay CLI tren fixture; khong goi mang.
+Suite nen co 187 test Mốc 4 va 121 test hoi quy Mốc 0–3, tong 308 test ngoai tuyen. Vong portability bo sung test rieng cho file fsync, directory fsync POSIX/Windows, atomic replace, rollback, hash manifest va tinh tai lap; CI Ubuntu/Windows la cua xac nhan cuoi.
 
 Chua chay Tier A/Tier B, chua tai VN100/VNINDEX that, nguon that chua duoc phe duyet va khong duoc dien giai metric fixture nhu hieu qua chien luoc.
 
@@ -96,8 +96,15 @@ Preflight Tier A tren Windows `win_amd64` phat hien `uv.lock` cu chi chua wheel 
 
 `[tool.uv]` khoa hai moi truong bat buoc: Linux x86_64 va Windows AMD64. Lock giu nguyen `scikit-learn==1.9.0`, `numpy==2.3.5`, `scipy==1.17.0`, `joblib==1.5.3`, `narwhals==2.0.1` va `threadpoolctl==3.6.0`, dong thoi chua wheel CPython 3.12 manylinux x86_64 va win_amd64 cho ba goi nhi phan. CI PR chay cung mot bo `uv lock --check`, frozen sync, compileall va unittest tren `ubuntu-24.04` va `windows-2025`.
 
-Sua loi nay khong thay doi logic feature/model/ranking/backtest. Tier A/Tier B van chua bat dau, chua co raw data that va PR #13 tiep tuc Draft.
+Sua loi lock khong thay doi logic feature/model/ranking/backtest. Tier A/Tier B van chua bat dau, chua co raw data that; PR #13 tiep tuc Draft nhu PR nguon va PR #14 la PR clean-history chinh thuc.
 
+## Durability cong bo da nen tang
+
+- `file_fsync`: ap dung cho 16 san pham va `manifest.json` tren ca Ubuntu va Windows.
+- `directory_fsync`: ap dung tren POSIX/Linux bang descriptor directory co `O_DIRECTORY` khi he dieu han cung cap; loi `os.open`/`os.fsync` duoc propagate.
+- Windows MVP: `_fsync_dir(...)` khong goi `os.open` tren directory va tra `False` de bieu thi capability khong duoc ho tro; khong tuyen bo crash-durability directory entry tuong duong POSIX.
+- `atomic_replace`: van dung `os.replace(staging, destination)` tren ca hai nen tang.
+- `rollback`: staging duoc xoa khi cong bo that bai; destination ton tai truoc bi tu choi va khong bi ghi de.
 ## Dau vao Moc 3
 
 ### Duong co so va gia
@@ -203,7 +210,7 @@ PYTHONPATH=src uv run --python 3.12 \
   --ty_trong_muc_tieu du_lieu/ty_trong_muc_tieu.csv \
   --cau_hinh du_lieu/cau_hinh_moc_3.json \
   --su_kien_doanh_nghiep du_lieu/su_kien.csv \
-  --thu-muc-dau-ra du_lieu/backtest/<ma_lan_chay_moi>
+  --thu_muc_dau_ra du_lieu/backtest/<ma_lan_chay_moi>
 ```
 
 `--su_kien_doanh_nghiep` la tuy chon. Thu muc dau ra khong duoc ton tai truoc lan chay. Loi do CLI kiem soat duoc lam sach dong nhat trong stdout va `bao_cao_loi.json`; token, secret, password, API key va Bearer credential khong duoc lo.
@@ -260,4 +267,16 @@ So lieu, phuong phap va gioi han: `tai_lieu/ket_qua_xac_minh_that_moc_3.md`.
 - Co so gia `khong_dieu_chinh` chua duoc nguon xac nhan doc lap.
 - Baseline chi kiem tra engine, khong phai chien luoc san xuat.
 - Moc 4 chua chay du lieu that; chua co LightGBM, chia von san xuat hay SSI.
-- PR so 13 phai giu Draft; khong Ready, khong gop va khong mo Moc 5.
+- PR #14 phai giu Draft; PR #13 tiep tuc Open/Draft nhu PR nguon; khong Ready, khong gop va khong mo Moc 5.
+
+## Trang thai final Moc 4 va PR clean-history
+
+Final source ky thuat duoc doan 00 phe duyet la `5aec6ace8423fbf30442aa77db6ff63adb3c854e`. CI run #334 da dat tren Ubuntu Job `89890344314` va Windows Job `89890344310`; suite discovery tong 320 test. Commit thu tu cua nhanh clean-history `8452cfb8ddc521c80d7f1128acd72039b1fca0eb` co dung tree source ky thuat.
+
+PR chinh thuc hien tai la #14 tren nhanh `m4-dac_trung-xep-hang-hoc_may-sach-final`. Run #335, Run ID `30241263742`, Ubuntu Job `89898799819` va Windows Job `89898799861` da `completed/success` truoc vong correction tai lieu. PR #14 van Open/Draft/chua merge; PR #13 van Open/Draft/chua merge nhu PR nguon.
+
+## Durability cong bo theo capability nen tang
+
+Cong bo 16 san pham va `manifest.json` tren Ubuntu/Windows deu dung mode tao moi, `flush()` va file fsync. Tren POSIX/Linux, directory fsync dung `O_RDONLY`, them `O_DIRECTORY` khi co, goi `os.fsync(fd)`, dong descriptor trong `finally` va propagate loi that. Tren Windows MVP, implementation khong goi `os.open` tren directory va tra capability unsupported; khong tuyen bo directory-entry crash durability tuong duong POSIX.
+
+Staging van nam cung parent filesystem voi destination; publication dung mot `os.replace`, tu choi ghi de va rollback staging khi loi. Tier A/Tier B chua chay, khong co du lieu thi truong that trong repository, khong Ready/merge, khong LightGBM va khong mo Moc 5.

@@ -33,7 +33,7 @@ Trạng thái: **đã hoàn thành và đã đóng hoàn toàn**.
 
 ## Mốc 4 — Dữ liệu nhiều năm, đặc trưng, xếp hạng và học máy cơ sở
 
-Trạng thái: **đặc tả đã phê duyệt và gộp; nhánh chuyên môn đã mở; chưa triển khai mã**.
+Trạng thái: **final tree kỹ thuật đã được đoạn 00 phê duyệt; PR clean-history #14 đang Draft và sửa blocker tài liệu tích lũy**.
 
 - Đặc tả: `tai_lieu/dac_ta_moc_4.md`.
 - PR đặc tả số 9 đã gộp bằng merge commit `24bf02a7cf0f18d5a0fe342356b8ea0e045b1ed6`.
@@ -45,8 +45,16 @@ Trạng thái: **đặc tả đã phê duyệt và gộp; nhánh chuyên môn đ
   - trigger `push`;
   - checkout `24bf02a7cf0f18d5a0fe342356b8ea0e045b1ed6`;
   - `completed/success`.
-- Nhánh chuyên môn: `m4-dac_trung-xep_hang-hoc_may`.
-- Base nhánh: `24bf02a7cf0f18d5a0fe342356b8ea0e045b1ed6`.
+- Source kỹ thuật cuối: `5aec6ace8423fbf30442aa77db6ff63adb3c854e`.
+- Branch clean-history: `m4-dac_trung-xep-hang-hoc_may-sach-final`.
+- PR chính thức: #14, Open, Draft, chưa merge.
+- PR nguồn #13 tiếp tục Open, Draft, chưa merge.
+- CI source run #334: Ubuntu Job `89890344314`, Windows Job `89890344310`, success.
+- CI PR #14 trước correction tài liệu: run #335, Run ID `30241263742`, Ubuntu Job `89898799819`, Windows Job `89898799861`, success.
+- Lock đa nền tảng Linux x86_64/Windows AMD64; Python 3.12.13, uv 0.11.32, scikit-learn 1.9.0.
+- Publication theo capability: file fsync hai nền tảng; directory fsync POSIX; Windows unsupported; atomic replace và rollback giữ nguyên.
+- 320 test discovery.
+- Tier A/Tier B chưa chạy; không có dữ liệu thật trong repository.
 
 Phạm vi đã phê duyệt:
 
@@ -60,7 +68,7 @@ Phạm vi đã phê duyệt:
 - ranking, `top_k` và backtest ngoài mẫu qua engine Mốc 3;
 - LightGBM chỉ sau quyết định riêng.
 
-Mã Mốc 4 chỉ được triển khai trên nhánh chuyên môn và PR phải giữ Draft đến khi đoạn 00 phê duyệt.
+Mã Mốc 4 chỉ được triển khai trên nhánh chuyên môn và PR phải giữ Draft đến khi đoạn 00 phê duyệt. Vòng hiện tại chỉ sửa tài liệu tích lũy; không Ready, merge hoặc chạy Tier A.
 
 ## Mốc 5 — Chia vốn
 

@@ -254,7 +254,7 @@ Baseline dung `dong_luong_12_1` tren cung sample test du eligibility voi Logisti
 
 ## QD-0050: Manifest Moc 4 tu tinh va fail closed
 
-Manifest bat buoc co SHA-256 tung dau vao va san pham, Git commit, ma lan chay, UTC, Python/uv/scikit-learn version, nguon/phien ban/co so gia, muc dich, cau hinh feature/label/fold/model/ranking, canh bao va gioi han. Metadata rong hoac thieu bi tu choi.
+Manifest bat buoc co SHA-256 tung dau vao va san pham, Git commit, ma lan chay, UTC, Python/uv/scikit-learn version, nguon/phien_ban/co_so_gia, muc dich, cau hinh feature/label/fold/model/ranking, canh bao va gioi han. Metadata rong hoac thieu bi tu choi.
 
 ## QD-0051: NaN va Inf bi tu choi xuyen suot
 
@@ -299,3 +299,13 @@ Benchmark file phai co dung mot ma va bang `config.benchmark`; MVP khoa VNINDEX.
 Preflight Tier A tren Windows phat hien lock cu chi chua wheel manylinux cho NumPy, SciPy va scikit-learn, lam frozen sync that bai voi `BLOCKED_DEPENDENCY_LOCK_LINUX_ONLY_ON_WINDOWS`. Du an giu `package = false` va khai bao `required-environments` cho Linux x86_64 va Windows AMD64; khong dung marker de loai Windows.
 
 Lock da nen tang giu nguyen `scikit-learn==1.9.0`, `numpy==2.3.5`, `scipy==1.17.0`, `joblib==1.5.3`, `narwhals==2.0.1` va `threadpoolctl==3.6.0`. CI bat buoc chay `uv 0.11.32`, `uv lock --check`, frozen sync, compileall va toan bo unittest tren ca `ubuntu-24.04` va `windows-2025`. Sua lock khong thay doi logic Moc 4; Tier A/Tier B va du lieu that van chua chay.
+
+## QD-0060: Directory fsync theo capability nen tang
+
+Cong bo Moc 4 van ghi moi tung tep, `flush()` va `os.fsync()` cho 16 san pham cung `manifest.json`, dat staging cung filesystem voi destination, dung mot `os.replace`, tu choi ghi de va xoa staging khi loi. Tren POSIX/Linux, `_fsync_dir` mo directory bang `O_RDONLY` ket hop `O_DIRECTORY` khi co, fsync descriptor, luon dong descriptor va propagate moi loi that.
+
+Python Windows khong ho tro mo directory bang `os.open(..., O_RDONLY)` theo hop dong nay. Windows MVP vi vay khong goi `os.open` cho directory va tra capability `False`; file fsync, atomic replace va rollback van ap dung. Du an khong tuyen bo Windows co crash-durability cua directory entry tuong duong POSIX.
+
+QD-0060 duoc khoa tren final source `5aec6ace8423fbf30442aa77db6ff63adb3c854e`. CI ky thuat tham chieu la run #334: Ubuntu Job `89890344314` va Windows Job `89890344310` deu `completed/success`, voi 320 test duoc discovery. Day la cua ky thuat truoc PR clean-history; Tier A/Tier B van chua chay.
+
+Trang thai ap dung: source ky thuat `5aec6ace8423fbf30442aa77db6ff63adb3c854e` da dat CI run #334 tren Ubuntu/Windows voi 320 test discovery. PR clean-history #14 tren nhanh `m4-dac_trung-xep-hang-hoc_may-sach-final` giu Open/Draft/chua merge; PR #13 giu Open/Draft nhu PR nguon. Vong correction tai lieu chi phuc hoi noi dung tich luy, khong thay doi code, workflow, dependency hoac test; Tier A/Tier B chua chay.
