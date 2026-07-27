@@ -2,25 +2,94 @@ name: kiem_tra_tu_dong
 
 on:
   push:
-    branches: [main, m3-mo_phong-giao_dich]
+    branches:
+      - main
+      - m4-dac_trung-xep_hang-hoc_may
+      - m4-dac_trung-xep-hang-hoc_may-sach-v2
   pull_request:
   workflow_dispatch:
 
 jobs:
-  kiem_tra:
-    runs-on: ubuntu-latest
+  kiem_tra_ubuntu:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        shell: bash
     steps:
       - name: Lay ma nguon
         uses: actions/checkout@v4
       - name: Cai dat uv
         uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.32"
       - name: Cai dat Python
         run: uv python install 3.12
+      - name: Kiem tra khoa dependency
+        run: uv lock --check
       - name: Dong bo moi truong
         run: uv sync --frozen --python 3.12
+      - name: Ghi nhan phien ban
+        run: |
+          {
+            uv --version
+            uv run --python 3.12 python --version
+            uv run --python 3.12 python -c "import sklearn; print('scikit-learn', sklearn.__version__)"
+          } | tee phien-ban-ci-ubuntu.txt
       - name: Kiem tra cu phap
-        run: PYTHONPATH=src uv run --python 3.12 python -m compileall -q src tests
+        env:
+          PYTHONPATH: src
+        run: uv run --python 3.12 python -m compileall -q src tests
       - name: Chay kiem thu ngoai tuyen
         env:
+          PYTHONPATH: src
           NO_PROXY: "*"
-        run: PYTHONPATH=src uv run --python 3.12 python -m unittest discover -s tests -p 'test_*.py' -v
+        run: uv run --python 3.12 python -m unittest discover -s tests -p 'test_*.py' -v
+      - name: Tai thong tin phien ban
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phien-ban-ci-ubuntu
+          path: phien-ban-ci-ubuntu.txt
+          if-no-files-found: error
+
+  kiem_tra_windows:
+    runs-on: windows-2025
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Lay ma nguon
+        uses: actions/checkout@v4
+      - name: Cai dat uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.32"
+      - name: Cai dat Python
+        run: uv python install 3.12
+      - name: Kiem tra khoa dependency
+        run: uv lock --check
+      - name: Dong bo moi truong
+        run: uv sync --frozen --python 3.12
+      - name: Ghi nhan phien ban
+        run: |
+          {
+            uv --version
+            uv run --python 3.12 python --version
+            uv run --python 3.12 python -c "import sklearn; print('scikit-learn', sklearn.__version__)"
+          } | tee phien-ban-ci-windows.txt
+      - name: Kiem tra cu phap
+        env:
+          PYTHONPATH: src
+        run: uv run --python 3.12 python -m compileall -q src tests
+      - name: Chay kiem thu ngoai tuyen
+        env:
+          PYTHONPATH: src
+          NO_PROXY: "*"
+        run: uv run --python 3.12 python -m unittest discover -s tests -p 'test_*.py' -v
+      - name: Tai thong tin phien ban
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phien-ban-ci-windows
+          path: phien-ban-ci-windows.txt
+          if-no-files-found: error
