@@ -429,25 +429,25 @@ def chay_nghien_cuu_moc_4(
     model_metrics = {"logistic": logistic_model_metrics, "momentum_baseline": baseline_model_metrics}
     ranking_metrics = {"logistic": logistic_ranking_metrics, "momentum_baseline": baseline_ranking_metrics}
     backtest_metrics = {"logistic": logistic_backtest_metrics, "momentum_baseline": baseline_backtest_metrics}
+    is_technical = config.muc_dich_lan_chay == "kiem_tra_ky_thuat"
     limitations = [
-        "TIER_A_TIER_B_CHUA_CHAY",
-        "NGUON_DU_LIEU_THAT_CHUA_DUOC_PHE_DUYET",
         "BENCHMARK_EXACT_OFFICIAL_OHLC_CHUA_CO",
-        "BENCHMARK_RAW_SOURCE_GIU_BAT_BIEN",
+        "BENCHMARK_RAW_SOURCE_PHAI_GIU_BAT_BIEN",
         "KHONG_CORRECTION_OVERLAY",
-        "KHONG_DUOC_TUYEN_BO_HIEU_QUA_CHIEN_LUOC",
         "KHONG_LIGHTGBM_KHONG_SSI_KHONG_MOC_5",
     ]
+    if is_technical:
+        limitations.append("KHONG_DUOC_TUYEN_BO_HIEU_QUA_CHIEN_LUOC")
     report = {
         "ma_lan_chay": ma_lan_chay,
         "benchmark_contract": BENCHMARK_CONTRACT,
         "benchmark_policy": {
             "features_va_labels_chi_dung_close": True,
             "open_high_low_volume_duoc_dung": False,
-            "correction_overlay": False,
-            "raw_source_giu_bat_bien": True,
-            "exact_official_ohlc_da_co": False,
-            "chi_kiem_tra_ky_thuat": True,
+            "correction_overlay_duoc_phep": False,
+            "raw_source_bat_buoc_giu_bat_bien": True,
+            "exact_official_ohlc_hien_co": False,
+            "chi_kiem_tra_ky_thuat": is_technical,
         },
         "so_fold": len(folds),
         "oos_start": oos_start, "ngay_bat_dau_metric": metric_start, "oos_end": oos_end,
@@ -536,10 +536,10 @@ def chay_nghien_cuu_moc_4(
         "benchmark_policy": {
             "features_va_labels_chi_dung_close": True,
             "open_high_low_volume_duoc_dung": False,
-            "correction_overlay": False,
-            "raw_source_giu_bat_bien": True,
-            "exact_official_ohlc_da_co": False,
-            "chi_kiem_tra_ky_thuat": True,
+            "correction_overlay_duoc_phep": False,
+            "raw_source_bat_buoc_giu_bat_bien": True,
+            "exact_official_ohlc_hien_co": False,
+            "chi_kiem_tra_ky_thuat": is_technical,
         },
         "nguon_ohlcv": stock_doc.nguon, "phien_ban_ohlcv": stock_doc.phien_ban,
         "nguon_universe": universe_source, "phien_ban_universe": universe_version,

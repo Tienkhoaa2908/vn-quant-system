@@ -317,3 +317,11 @@ Audit Tier A Giai doan 2A cua run `m4_tier_a_20260727T081753Z_e2c866db` ket luan
 `ThanhOHLCV` cua co phieu tiep tuc giu invariant OHLCV strict. Benchmark dung kieu `ThanhBenchmarkDongCua` va CSV canonical gom dung `ma,ngay,gia_dong_cua,nguon,phien_ban,co_so_gia`; khong mang open/high/low/volume. Feature va label benchmark chi duoc doc `gia_dong_cua`. Manifest va bao cao phai cong bo `benchmark_contract=close_only`, canh bao `BENCHMARK_CLOSE_ONLY` va `BENCHMARK_OHLC_SEMANTICS_CHUA_XAC_NHAN`, khong tuyen bo co so gia co phieu da duoc xac nhan.
 
 PR canonical la #16 tren nhanh `m4-dac_trung-xep-hang-hoc_may-sach-final-v2`. G2A da hoan tat; vong hien tai chi sua contract close-only va kiem thu ky thuat. CI #347 chi la baseline cua head truoc QD-0061. Tier A pipeline, normalization, Tier B va Moc 5 chua chay.
+
+## QD-0062: Tach reporting policy khoi execution provenance
+
+Generic runner Moc 4 chi cong bo dieu no tu xac minh trong code hoac suy ra truc tiep tu cau hinh. Trang thai dieu phoi Tier A/Tier B va phe duyet nguon du lieu khong duoc hard-code trong san pham bat bien. `chi_kiem_tra_ky_thuat` duoc suy ra tu `muc_dich_lan_chay`; gioi han `KHONG_DUOC_TUYEN_BO_HIEU_QUA_CHIEN_LUOC` chi xuat hien cho technical run.
+
+`benchmark_policy` mo ta yeu cau contract: correction overlay khong duoc phep, raw acquisition source bat buoc giu bat bien va exact official OHLC hien chua co. Generic runner khong tu nhan da chung minh raw bat bien hay absence of overlay. Hai actual run facts nay phai duoc khoa bang external execution provenance manifest cua Tier A. San pham runner khong duoc chua trang thai dieu phoi co the sai sau khi pipeline thuc su chay.
+
+Trang thai ap dung: PR canonical #16, head truoc correction `2efa627c65cb5387bcc4aa77f4063070812d6aa6`; close-only contract QD-0061 va CI #351 da dat. Vong QD-0062 chi sua reporting/provenance, khong chay Tier A pipeline, Tier B, normalization, calendar, corporate actions hoac Moc 5. Giai doan 2B chua mo.

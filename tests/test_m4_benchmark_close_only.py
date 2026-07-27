@@ -152,22 +152,79 @@ class TestRunnerBenchmarkCloseOnly(unittest.TestCase):
         cls.paths = tao_fixture_runner(fixture)
         cls.result = chay_nghien_cuu_moc_4(duong_dan_cau_hinh=cls.paths["cau_hinh"], duong_dan_ohlcv=cls.paths["ohlcv"], duong_dan_benchmark=cls.paths["benchmark"], duong_dan_lich_benchmark=cls.paths["lich_benchmark"], duong_dan_universe=cls.paths["universe"], duong_dan_corporate_actions=cls.paths["corporate_actions"], thu_muc_dau_ra=cls.root / "out", ma_lan_chay="close-only", git_commit=GIT_SHA, thoi_diem_utc=FIXED_TIME)
 
+        research_fixture = cls.root / "fixture-research"
+        research_fixture.mkdir()
+        cls.research_paths = tao_fixture_runner(research_fixture)
+        research_config = json.loads(cls.research_paths["cau_hinh"].read_text(encoding="utf-8"))
+        research_config["moc_4"]["muc_dich_lan_chay"] = "nghien_cuu"
+        research_config["moc_4"]["co_so_gia_da_xac_nhan"] = True
+        cls.research_paths["cau_hinh"].write_text(
+            json.dumps(research_config, ensure_ascii=False, sort_keys=True, separators=(",", ":")),
+            encoding="utf-8",
+        )
+        cls.research_result = chay_nghien_cuu_moc_4(
+            duong_dan_cau_hinh=cls.research_paths["cau_hinh"],
+            duong_dan_ohlcv=cls.research_paths["ohlcv"],
+            duong_dan_benchmark=cls.research_paths["benchmark"],
+            duong_dan_lich_benchmark=cls.research_paths["lich_benchmark"],
+            duong_dan_universe=cls.research_paths["universe"],
+            duong_dan_corporate_actions=cls.research_paths["corporate_actions"],
+            thu_muc_dau_ra=cls.root / "out-research",
+            ma_lan_chay="close-only-research",
+            git_commit=GIT_SHA,
+            thoi_diem_utc=FIXED_TIME,
+        )
+
     @classmethod
     def tearDownClass(cls) -> None:
         cls.temp.cleanup()
 
-    def test_manifest_report_co_contract_va_hai_warning(self):
+    def test_manifest_report_technical_co_policy_dong_va_hai_warning(self):
         report = json.loads((self.result.thu_muc_san_pham / "bao_cao.json").read_text(encoding="utf-8"))
         manifest = json.loads((self.result.thu_muc_san_pham / "manifest.json").read_text(encoding="utf-8"))
         for payload in (report, manifest["metadata"]):
             self.assertEqual(payload["benchmark_contract"], BENCHMARK_CONTRACT)
-            self.assertTrue(payload["benchmark_policy"]["features_va_labels_chi_dung_close"])
-            self.assertFalse(payload["benchmark_policy"]["open_high_low_volume_duoc_dung"])
-            self.assertFalse(payload["benchmark_policy"]["correction_overlay"])
-            self.assertTrue(payload["benchmark_policy"]["raw_source_giu_bat_bien"])
-            self.assertFalse(payload["benchmark_policy"]["exact_official_ohlc_da_co"])
+            policy = payload["benchmark_policy"]
+            self.assertTrue(policy["features_va_labels_chi_dung_close"])
+            self.assertFalse(policy["open_high_low_volume_duoc_dung"])
+            self.assertFalse(policy["correction_overlay_duoc_phep"])
+            self.assertTrue(policy["raw_source_bat_buoc_giu_bat_bien"])
+            self.assertFalse(policy["exact_official_ohlc_hien_co"])
+            self.assertTrue(policy["chi_kiem_tra_ky_thuat"])
             self.assertIn("BENCHMARK_CLOSE_ONLY", payload["canh_bao"])
             self.assertIn("BENCHMARK_OHLC_SEMANTICS_CHUA_XAC_NHAN", payload["canh_bao"])
+            self.assertIn("CHI_KIEM_TRA_KY_THUAT_KHONG_KET_LUAN_HIEU_QUA", payload["canh_bao"])
+            self.assertIn("KHONG_DUOC_TUYEN_BO_HIEU_QUA_CHIEN_LUOC", payload["gioi_han"])
+
+    def test_manifest_report_research_khong_mang_gioi_han_technical(self):
+        report = json.loads((self.research_result.thu_muc_san_pham / "bao_cao.json").read_text(encoding="utf-8"))
+        manifest = json.loads((self.research_result.thu_muc_san_pham / "manifest.json").read_text(encoding="utf-8"))
+        for payload in (report, manifest["metadata"]):
+            self.assertFalse(payload["benchmark_policy"]["chi_kiem_tra_ky_thuat"])
+            self.assertNotIn("KHONG_DUOC_TUYEN_BO_HIEU_QUA_CHIEN_LUOC", payload["gioi_han"])
+            self.assertNotIn("CHI_KIEM_TRA_KY_THUAT_KHONG_KET_LUAN_HIEU_QUA", payload["canh_bao"])
+            self.assertIn("BENCHMARK_CLOSE_ONLY", payload["canh_bao"])
+            self.assertIn("BENCHMARK_OHLC_SEMANTICS_CHUA_XAC_NHAN", payload["canh_bao"])
+
+    def test_report_manifest_khong_chua_assertion_mo_ho_hoac_trang_thai_dieu_phoi(self):
+        forbidden_limits = {
+            "TIER_A_TIER_B_CHUA_CHAY",
+            "NGUON_DU_LIEU_THAT_CHUA_DUOC_PHE_DUYET",
+        }
+        forbidden_policy_keys = {
+            "correction_overlay",
+            "raw_source_giu_bat_bien",
+            "exact_official_ohlc_da_co",
+        }
+        for result in (self.result, self.research_result):
+            report = json.loads((result.thu_muc_san_pham / "bao_cao.json").read_text(encoding="utf-8"))
+            manifest = json.loads((result.thu_muc_san_pham / "manifest.json").read_text(encoding="utf-8"))
+            for payload in (report, manifest["metadata"]):
+                self.assertTrue(forbidden_limits.isdisjoint(payload["gioi_han"]))
+                self.assertTrue(forbidden_policy_keys.isdisjoint(payload["benchmark_policy"]))
+                self.assertFalse(payload["benchmark_policy"]["correction_overlay_duoc_phep"])
+                self.assertTrue(payload["benchmark_policy"]["raw_source_bat_buoc_giu_bat_bien"])
+                self.assertFalse(payload["benchmark_policy"]["exact_official_ohlc_hien_co"])
 
     def test_runner_end_to_end_nhan_benchmark_close_only(self):
         with self.paths["benchmark"].open(newline="", encoding="utf-8") as handle:
