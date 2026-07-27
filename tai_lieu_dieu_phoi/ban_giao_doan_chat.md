@@ -1,21 +1,20 @@
-# Bàn giao đoạn chat điều phối
+# Ban giao doan chat dieu phoi
 
-Cập nhật: 2026-07-27
+Cap nhat: 2026-07-27
 
-## Nền
+## Nguon su that
 
-- Kho: `Tienkhoaa2908/vn-quant-system`.
 - Base: `24bf02a7cf0f18d5a0fe342356b8ea0e045b1ed6`.
-- Nhánh: `m4-dac_trung-xep-hang-hoc_may-sach-v2`.
-- Head nền portability: `d0886947cf33ebe7fc2b4eae99676218b1b01c11`.
-- PR #13 phải giữ Open, Draft, chưa merge.
+- Final source ky thuat: `5aec6ace8423fbf30442aa77db6ff63adb3c854e`.
+- CI run #334: success.
+- Ubuntu Job `89890344314`: success.
+- Windows Job `89890344310`: success.
+- 320 test discovery.
 
-## Trạng thái kỹ thuật
+## Durability
 
-Lock đa nền tảng đã đạt frozen sync trên Ubuntu/Windows với Python 3.12.13, uv 0.11.32 và scikit-learn 1.9.0. Lỗi Windows còn lại đến từ `os.open(directory, O_RDONLY)` trong `_fsync_dir`.
+File fsync ap dung cho 16 san pham va manifest tren Ubuntu/Windows. POSIX directory fsync dung O_DIRECTORY khi co va propagate loi. Windows khong mo directory bang os.open va tra capability unsupported. Atomic replace, same-parent staging, chong ghi de va rollback van giu tren ca hai nen tang. Khong tuyen bo crash durability directory entry Windows tuong duong POSIX.
 
-Patch portability giữ file fsync và atomic publication, chỉ phân nhánh capability directory fsync: POSIX thực hiện và propagate lỗi; Windows trả unsupported mà không giả lập thành công. Test mới kiểm tra 17 file, hash manifest, không ghi đè, rollback, one-shot replace, same-parent staging, deterministic output và không để staging rác.
+## Buoc hien tai
 
-## Cửa tiếp theo
-
-Chờ CI merge ref PR #13 xanh trên Ubuntu và Windows. Sau đó báo đoạn 00 để xác minh final tree; không tự chạy Tier A/Tier B, không tạo PR clean-history, không Ready/merge và không mở Mốc 5.
+Tao PR clean-history cuoi voi nam commit sach. Sau CI xanh, bao doan 00; khong tu dong dong PR #13, khong Ready/merge va khong chay Tier A.
