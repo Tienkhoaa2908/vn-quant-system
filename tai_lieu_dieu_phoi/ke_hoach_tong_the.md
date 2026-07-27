@@ -141,3 +141,37 @@ Pipeline chay dung mot lan. External verifier ban dau tao false blocker `G2B2_NO
 - Khong research claim; NAV/AUC/Sharpe khong duoc dien giai thanh hieu qua dau tu, alpha, kha nang giao dich that hay khuyen nghi dau tu.
 - Tier B chua chay; khong LightGBM, SSI.
 - `MOC_5_NOT_OPENED`.
+
+## Cap nhat QD-0065 — Mo vong dac ta Moc 5
+
+Phan nay thay the trang thai `MOC_5_NOT_OPENED` o cac phan lich su.
+
+### Mốc 5 — Chia vốn và danh mục mục tiêu
+
+Trạng thái: **đang đặc tả trên Draft PR; chưa triển khai**.
+
+- Base main: `e59dca55fa37d88bd0e0f6e8e78bc6d282e4996b`.
+- Branch: `dac_ta-moc-5`.
+- Đặc tả: `tai_lieu/dac_ta_moc_5.md`.
+- Kiến trúc: `tai_lieu/kien_truc_moc_5.md`.
+- QD-0065 khóa contract và architecture; không thay đổi model/ranking Mốc 4.
+- Allocation sequence: eligible targets → inverse volatility → ticker cap 15% → sector cap 25% → cash target theo regime → deterministic iterative redistribution → residual cash.
+- VNINDEX regime: RISK_ON cash 10%, RISK_OFF cash 50%.
+- Volatility MVP: sample standard deviation của đúng 60 daily returns kết thúc tại ngày tín hiệu; không impute.
+- Decimal, stable ordering, SHA-256, provenance và immutable publication bắt buộc.
+- Proposed orders chỉ phục vụ nhập thủ công; `MANUAL_ENTRY_ONLY`, không SSI integration hoặc tự động giao dịch.
+
+### Cửa triển khai Mốc 5 tương lai
+
+Chỉ được mở implementation sau khi Draft PR đặc tả được review, các quyết định mở được chốt và có chỉ thị riêng. PR đặc tả hiện tại không được Ready hoặc merge tự động.
+
+Các quyết định còn mở:
+
+1. nguồn và taxonomy/version sector point-in-time canonical;
+2. nguồn giá tham chiếu và lot-size point-in-time canonical;
+3. giá trị phí, thuế, slippage cho proposal vận hành;
+4. nguồn lịch canonical xác nhận execution date.
+
+### Mốc 6
+
+Trạng thái giữ nguyên: **chưa mở**. Paper trading không được gộp vào Mốc 5; Mốc 5 chỉ sinh proposed orders và người dùng tự nhập lệnh.
