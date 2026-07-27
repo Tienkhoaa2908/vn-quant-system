@@ -49,6 +49,7 @@ jobs:
         run: |
           set -euo pipefail
           python patch-source/tools/agent_patch_m4_close_only.py worktree
+          python patch-source/tools/agent_patch_m4_close_only_fix1.py worktree
 
       - name: Kiem tra lock va dong bo
         working-directory: worktree
