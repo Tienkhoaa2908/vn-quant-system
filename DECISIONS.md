@@ -404,3 +404,68 @@ Trang thai khoa hien hanh:
 Gioi han bat buoc khong thay doi: Tier A chi la technical validation, khong phai research validation; universe chi gom `FPT/HPG/MBB` va la synthetic technical control, khong phai VN100 point-in-time; `price_basis_confirmed=false`; operational mode `gia_dieu_chinh` khong phai empirical confirmation; corporate-action inventory van partial va corporate actions khong duoc ap dung trong Tier A; benchmark van close-only va exact official VNINDEX OHLC chua co.
 
 Khong co research claim, khong ket luan alpha, hieu qua dau tu hoac kha nang giao dich that. NAV, AUC va Sharpe chi la observed technical outputs, khong duoc dien giai thanh hieu qua dau tu hay khuyen nghi dau tu. Tier B chua chay; khong LightGBM, SSI; Moc 5 chua mo.
+
+## QD-0067: Hop dong gia mo cua, dong cua va khoi luong cho kiem tra ky thuat Moc 4
+
+Hop dong OHLCV day du van la hop dong kiem tra nghiem ngat mac dinh:
+
+```text
+ma,ngay,gia_mo_cua,gia_cao_nhat,gia_thap_nhat,gia_dong_cua,khoi_luong
+```
+
+Ngoai hop dong mac dinh, phe duyet hop dong ky thuat rut gon:
+
+```text
+ma,ngay,gia_mo_cua,gia_dong_cua,khoi_luong,
+nguon,phien_ban,co_so_gia,raw_sha256
+```
+
+Hop dong rut gon chi duoc dung cho kiem tra ky thuat Moc 4 tren tap 121 ma.
+Khong duoc dung de tuyen bo hieu qua dau tu, phat tin hieu van hanh, tao khuyen
+nghi giao dich, xac nhan co so gia hoac thay the kiem ke hanh dong doanh nghiep.
+Price basis va corporate actions van chua dat cua nghien cuu; hop dong nay chi
+dung cho kiem tra ky thuat.
+
+Bang chung kiem toan duoc khoa:
+
+- 121/121 ma co raw;
+- 121/121 raw co SHA-256 khop;
+- 231.151 dong;
+- 45 ma dat hop dong OHLCV day du;
+- 76 ma chi loi quan he high/low;
+- 121 ma co open/close/volume hop le;
+- 0 ma khong dung duoc hop dong rut gon;
+- 159 cap ma-ngay bat thuong tren 35 ngay lich;
+- khong trung ngay, khong gia khong duong, khong gia tri khong huu han va
+  khong khoi luong am.
+
+Cua hop dong rut gon fail closed theo tung ma: raw phai ton tai; SHA-256 tinh
+lai phai khop bao cao kiem toan; identity raw phai khop ma; `nguon` va
+`phien_ban` phai co; open/close phai huu han va duong; volume phai huu han va
+khong am; ngay phai duy nhat va tang nghiem ngat. High/low khong chan hop dong
+rut gon, khong duoc dua vao CSV rut gon, khong duoc tao, noi suy hoac sua.
+
+Trong kiem tra ky thuat Moc 4, feature, label, MA250, regime va dinh gia chi dung
+close; thanh khoan dung `close * volume`; thuc thi T+1 dung open. Khong feature
+nao dung high/low. Feature bien do high-low chuan hoa bi loai va khong duoc tao
+feature thay the sau khi nhin ket qua kiem thu.
+
+Moi publication bat buoc ghi cac canh bao:
+
+```text
+HIGH_LOW_SEMANTICS_CHUA_XAC_NHAN
+PRICE_BASIS_CHUA_XAC_NHAN
+CORPORATE_ACTIONS_CHUA_DAY_DU
+CHI_DUNG_CHO_KIEM_TRA_KY_THUAT
+```
+
+Raw giu bat bien. San pham rut gon cong bo nguyen tu, khong ghi de, sap xep theo
+`ma,ngay`, co manifest va SHA-256. Cua nghien cuu chinh thuc van fail closed cho
+toi khi lich su thanh phan lien tuc, doi chieu HOSE EOD, corporate actions va co
+so gia deu dat.
+
+Gioi han bien hinh: thay byte high/low khong duoc thay doi cac cot nghiep vu
+`ma,ngay,gia_mo_cua,gia_dong_cua,khoi_luong,nguon,phien_ban,co_so_gia`.
+Tuy nhien `raw_sha256` bat buoc thay doi de provenance trung thuc; vi vay byte
+CSV day du khong the bat bien neu byte raw thay doi. Kiem thu phai khoa ro ngoai
+le provenance nay, khong duoc giu hash cu hoac gia mao tinh bat bien.

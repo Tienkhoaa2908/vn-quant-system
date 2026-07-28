@@ -14,9 +14,9 @@ from io import StringIO
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
-from . import _tai_du_lieu_vn100_legacy as _legacy
-from ._tai_du_lieu_vn100_legacy import *  # noqa: F401,F403
-from ._tai_du_lieu_vn100_legacy import (
+from . import _tai_du_lieu_vn100_co_so as _co_so
+from ._tai_du_lieu_vn100_co_so import *  # noqa: F401,F403
+from ._tai_du_lieu_vn100_co_so import (
     _doc_raw,
     _ngay,
     _sha256,
@@ -321,7 +321,7 @@ def _parser_rut_gon() -> argparse.ArgumentParser:
 
 def chay() -> int:
     if "--tao-hop-dong-rut-gon" not in sys.argv[1:]:
-        return _legacy.chay()
+        return _co_so.chay()
     args = _parser_rut_gon().parse_args()
     result = chuyen_doi_hop_dong_rut_gon_vn100(
         danh_sach_ma=args.danh_sach_ma,
