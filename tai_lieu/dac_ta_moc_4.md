@@ -571,3 +571,91 @@ Pipeline chay dung mot lan. External verifier ban dau tao false blocker `G2B2_NO
 - PR #13 va PR #14 tiep tuc Open/Draft cho toi khi CI cuoi cua PR #16 duoc xac minh.
 - PR #16 tiep tuc Open/Draft, chua Ready va chua merge.
 - Tier B va Moc 5 chua mo.
+
+## 14. Hop dong runtime rut gon va kiem toan san pham v2
+
+### 14.1 Lua chon hop dong
+
+`strict_ohlcv` giu nguyen contract va hanh vi tuong thich nguoc. Reduced mode
+chi duoc chon bang cau hinh ro rang:
+
+```text
+price_contract=reduced_open_close_volume_v1
+universe_contract=technical_candidate_union_v1
+muc_dich_lan_chay=kiem_tra_ky_thuat
+```
+
+Khong duoc auto-detect schema. `technical_candidate_union_v1` khong phai
+universe PIT. Profile hien tai `technical_candidate_union_121` chi la ten ho so
+lan chay; runtime phai doc expected counts tu profile/publication manifest va
+doi soat observed counts.
+
+### 14.2 Feature va du lieu gia
+
+Reduced feature order co dung 23 truong. Sai khac duy nhat so voi strict feature
+order la loai `bien_do_cao_thap_chuan_hoa`. Cam tao feature thay the. Cam doc,
+dung, noi suy, dien, sua hoac tong hop high/low. Close duoc dung cho feature,
+label, MA250, market regime va valuation; thanh khoan dung `close * volume`;
+execution dung open cua dung phien benchmark T+1. Khong fill-forward, carry hay
+gan missing return bang 0.
+
+### 14.3 Price basis va corporate actions
+
+Metadata bat buoc:
+
+```text
+stock_price_basis=CHUA_XAC_NHAN
+stock_price_basis_confirmed=false
+benchmark_contract=close_only
+benchmark_unit=index_points
+benchmark_price_basis_confirmed=false
+stock_benchmark_price_basis_equality_required=false
+```
+
+`CHUA_XAC_NHAN` la gia tri contract doc lap, khong phai alias cua
+`dieu_chinh` hoac `khong_dieu_chinh`. `mo_phong.co_so_gia` phai giu nguyen gia
+tri nay trong reduced publication. Cau hinh M3 phai duoc tao qua
+`cau_hinh_mo_phong.tu_mapping`; object ngoai kieu bi tu choi. Corporate actions
+khong duoc chuan hoa hoac ap dung khi basis chua xac nhan; engine fail closed.
+
+### 14.4 Publication v2
+
+Publication v2 gom 22 san pham nghiep vu va `manifest.json`, tong 23 tep. Sau
+san pham bo sung so voi v1:
+
+```text
+lenh.csv
+khop_lenh.csv
+so_cai.csv
+vi_the.csv
+nav.csv
+su_kien_da_ap_dung.csv
+```
+
+Manifest phai ghi version contract, SHA-256/size cua moi san pham, input hashes,
+stock/benchmark metadata tach biet, candidate/profile counts du kien va quan
+sat, high/low policy, corporate-action policy va research gate.
+
+### 14.5 Auditor v1
+
+`m4_product_audit_v1` chi doc publication da co. Auditor khong duoc import hoac
+goi runner, pipeline, trainer, refit hay backtest; khong duoc sua san pham.
+Auditor fail closed tren toi thieu: thieu/thua tep, hash/size, config canonical,
+fold chronology, purge/embargo, prediction uniqueness/range, ranking order,
+tie-break, top-k/weight, exact T+1, cash/position, NAV-ledger va reconciliation.
+Destination audit khong duoc ton tai. Hai audit cung input va cung audit ID phai
+cho output byte-identical va SHA-256-identical.
+
+### 14.6 Cua dien giai
+
+Reduced research gate luon:
+
+```text
+research_gate=FAIL
+PRICE_BASIS_UNCONFIRMED
+```
+
+Dau ra reduced chi dung de xac minh runtime. Cam dung lam signal van hanh,
+khuyen nghi giao dich, ket luan alpha, research validation hoac danh gia hieu
+qua dau tu.
+
