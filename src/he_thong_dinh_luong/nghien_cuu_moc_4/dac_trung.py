@@ -99,7 +99,7 @@ def _feature_calendar_aligned(
         reasons.add("thieu_bar_benchmark_t")
 
     def missing(feature: str, side: str) -> None:
-        if feature in values:
+        if feature != "bien_do_cao_thap_chuan_hoa" or feature in values:
             reasons.add(f"thieu_bar_{side}_{feature}")
 
     for n in (20, 60, 120, 250):
