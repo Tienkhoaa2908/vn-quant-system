@@ -105,3 +105,30 @@ Pipeline chay dung mot lan. External verifier ban dau tao false blocker `G2B2_NO
 - Khong research claim; NAV/AUC/Sharpe khong duoc dien giai thanh hieu qua dau tu, alpha, kha nang giao dich that hay khuyen nghi dau tu.
 - Tier B chua chay; khong LightGBM, SSI.
 - `MOC_5_NOT_OPENED`.
+Cap nhat: 2026-07-28
+
+## Pham vi PR #21
+
+Khoa QD-0067 va bo chuyen doi ngoai tuyen tu raw VN100 sang hop dong:
+
+```text
+ma,ngay,gia_mo_cua,gia_dong_cua,khoi_luong,
+nguon,phien_ban,co_so_gia,raw_sha256
+```
+
+Bat buoc: khong goi KBS, khong tai lai 121 ma, khong sua raw, khong commit san
+pham van hanh/checkpoint, khong chay Moc 4, khong huan luyen/backtest va khong
+trien khai Moc 5.
+
+## Cua hoan tat
+
+- publication gom CSV, coverage, exclusion, manifest va sha256;
+- fail closed theo raw/hash/identity/source/version/open/close/volume/date;
+- high/low khong chan va khong vao CSV;
+- output sap xep xac dinh, khong ghi de;
+- hai lan chay cung input tao cung byte;
+- manifest truy vet dung raw SHA-256;
+- PR #21 giu Draft/Open/chua merge.
+
+Cua nghien cuu chinh thuc van fail vi membership PIT, HOSE EOD, corporate
+actions va price basis.

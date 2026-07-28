@@ -141,3 +141,29 @@ Pipeline chay dung mot lan. External verifier ban dau tao false blocker `G2B2_NO
 - Khong research claim; NAV/AUC/Sharpe khong duoc dien giai thanh hieu qua dau tu, alpha, kha nang giao dich that hay khuyen nghi dau tu.
 - Tier B chua chay; khong LightGBM, SSI.
 - `MOC_5_NOT_OPENED`.
+## Moc 0–3
+
+Da hoan tat va da merge. Cac quyet dinh/implementation lich su giu nguyen.
+
+## Moc 4
+
+Implementation va Tier A tren fixture FPT/HPG/MBB da hoan tat truoc do. Vong
+hien tai chua chay lai Moc 4 tren VN100.
+
+QD-0067 mo mot input contract rieng cho technical validation tren 121 ma:
+open/close/volume co provenance raw. Close dung cho feature, label, MA250,
+regime va dinh gia; thanh khoan dung close*volume; execution T+1 dung open.
+Khong high/low feature va khong feature thay the sau khi nhin ket qua.
+
+Tai gia 121 ma da hoan tat; raw/hash audit dat. Tuy nhien research gate van fail
+do universe membership PIT chua lien tuc, HOSE EOD chua doi chieu dat,
+corporate-action inventory chua day du va price basis chua xac nhan. Technical
+publication khong duoc dien giai thanh hieu qua dau tu.
+
+## Moc 5
+
+Chua trien khai trong PR #21. PR #20 giu Open/Draft rieng, khong bi sua.
+
+## Moc 6
+
+Chua mo. Khong paper trading hoac tin hieu van hanh tu hop dong rut gon.

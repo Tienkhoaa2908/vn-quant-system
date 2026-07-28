@@ -113,3 +113,22 @@ Pipeline chay dung mot lan. External verifier ban dau tao false blocker `G2B2_NO
 - Khong research claim; NAV/AUC/Sharpe khong duoc dien giai thanh hieu qua dau tu, alpha, kha nang giao dich that hay khuyen nghi dau tu.
 - Tier B chua chay; khong LightGBM, SSI.
 - `MOC_5_NOT_OPENED`.
+Cap nhat: 2026-07-28
+
+## VN100 data gate — QD-0067
+
+- Repository: `Tienkhoaa2908/vn-quant-system`.
+- Branch: `du_lieu-vn100-toan-phan`.
+- PR #21: Open/Draft/chua merge.
+- 121/121 ma da co raw; 121/121 SHA-256 khop; 231.151 dong.
+- 45 ma dat OHLCV strict; 76 ma chi loi high/low.
+- 121 ma dat open/close/volume; 0 ma bi loai khoi hop dong rut gon.
+- 159 cap ma-ngay bat thuong tren 35 ngay lich.
+
+QD-0067 giu OHLCV strict lam hop dong mac dinh va phe duyet hop dong
+open/close/volume chi cho kiem tra ky thuat Moc 4. Publication rut gon bat bien,
+khong mang high/low, co raw SHA-256 va bon canh bao bat buoc.
+
+Cua nghien cuu chinh thuc van fail do membership PIT, HOSE EOD, corporate
+actions va price basis. Moc 4 tren tap 121 ma chua chay lai. Khong huan luyen,
+khong backtest. Moc 5 chua trien khai.

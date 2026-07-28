@@ -262,3 +262,139 @@ Chua duoc chay Moc 4 cho toi khi dong thoi dat:
 
 Neu mot cua khong dat, trang thai phai la `FAIL` va dung truoc Moc 4, huan
 luyen va backtest.
+## Trang thai hien hanh
+
+- Nhanh: `du_lieu-vn100-toan-phan`.
+- PR #21 phai giu Open/Draft/chua merge.
+- Tai gia 121 ma da hoan tat va raw nam ngoai kho ma.
+- Khong goi lai KBS, khong tai lai 121 ma, khong sua raw.
+- Vong nay chi tao hop dong rut gon va publication ngoai tuyen.
+- Moc 4 tren tap 121 ma chua chay lai; khong huan luyen/backtest.
+- Moc 5 chua trien khai.
+
+## Bang chung kiem toan khoa
+
+```text
+tong_ma: 121
+so_ma_co_raw: 121
+so_ma_raw_sha256_khop: 121
+tong_so_dong: 231151
+so_ma_dat_ohlcv_nghiem_ngat: 45
+so_ma_chi_loi_high_low: 76
+so_ma_open_close_volume_hop_le: 121
+so_ma_khong_dung_duoc_hop_dong_rut_gon: 0
+so_cap_ma_ngay_bat_thuong: 159
+so_ngay_lich_bat_thuong: 35
+```
+
+Khong co `DUPLICATE_DATE`, `NON_POSITIVE_PRICE`, `NON_FINITE` hoac
+`NEGATIVE_VOLUME`. Cua strict fail o 76 ma chi do quan he high/low voi
+open/close.
+
+## Hai hop dong gia
+
+Hop dong mac dinh van la OHLCV day du va nghiem ngat. QD-0067 phe duyet them
+hop dong ky thuat rut gon:
+
+```text
+ma,ngay,gia_mo_cua,gia_dong_cua,khoi_luong,
+nguon,phien_ban,co_so_gia,raw_sha256
+```
+
+Hop dong rut gon chi phuc vu kiem tra ky thuat Moc 4 tren tap rong. No khong
+xac nhan price basis, khong thay corporate-action inventory, khong tao research
+claim va khong duoc dung cho tin hieu/khuyen nghi van hanh.
+
+## Bo chuyen doi ngoai tuyen
+
+Lenh Windows Git Bash:
+
+```bash
+PYTHONPATH=src uv run --python 3.12 \
+  python -m he_thong_dinh_luong.tai_du_lieu_vn100 \
+  --tao-hop-dong-rut-gon \
+  --danh-sach-ma "$UNION_LIST" \
+  --thu-muc-tho \
+    /c/Users/welcome/Documents/vn-quant-data/vn100_ohlcv/tho \
+  --tien-to-lan-chay vn100_full_windows_20260724_eeca1708 \
+  --bao-cao-kiem-toan \
+    /c/Users/welcome/Documents/vn-quant-data/vn100_ohlcv/kiem_toan_eeca1708/bao_cao_phan_loai_121_ma.json \
+  --thu-muc-san-pham \
+    /c/Users/welcome/Documents/vn-quant-data/vn100_ohlcv/hop_dong_rut_gon_01 \
+  --ma-lan-chay vn100_rut_gon_20260724
+```
+
+Che do nay khong khoi tao `vnstock`, khong goi mang va khong sua raw. Neu thu
+muc san pham da ton tai, publication fail closed thay vi ghi de.
+
+## San pham bat buoc
+
+```text
+du_lieu_gia_mo_dong_khoi_luong.csv
+bao_cao_do_phu_hop_dong_rut_gon.json
+bao_cao_ma_bi_loai.json
+manifest.json
+sha256.txt
+```
+
+CSV khong chua high/low. Moi dong mang raw SHA-256. Manifest ghi SHA-256 danh
+sach ma, bao cao kiem toan, tung raw duoc chon va tung san pham. `sha256.txt`
+khong tu bam chinh no de tranh vong tham chieu; hash cua `sha256.txt` duoc bao
+trong stdout/bao cao lan chay.
+
+## Cua chat luong theo ma
+
+Mot ma chi dat khi:
+
+1. raw ton tai;
+2. SHA-256 raw khop bao cao kiem toan;
+3. identity raw khop ma;
+4. `nguon` va `phien_ban` khong rong;
+5. co cot `time/open/close/volume`;
+6. open va close huu han, duong;
+7. volume huu han, khong am;
+8. ngay duy nhat va tang nghiem ngat.
+
+High/low khong chan hop dong rut gon. Ma thieu mot dieu kien bi loai toan bo va
+ghi ly do trong `bao_cao_ma_bi_loai.json`; khong loai rieng dong va khong dien
+thieu.
+
+## Su dung trong Moc 4
+
+- feature, label, MA250, regime va dinh gia dung close;
+- thanh khoan dung `close * volume`;
+- execution T+1 dung open;
+- khong feature nao dung high/low;
+- loai bo feature bien do high-low chuan hoa;
+- khong tao feature thay the sau khi nhin ket qua.
+
+Canh bao bat buoc:
+
+```text
+HIGH_LOW_SEMANTICS_CHUA_XAC_NHAN
+PRICE_BASIS_CHUA_XAC_NHAN
+CORPORATE_ACTIONS_CHUA_DAY_DU
+CHI_DUNG_CHO_KIEM_TRA_KY_THUAT
+```
+
+## Tinh tai lap va bien hinh
+
+Hai lan chay cung input, cung `ma_lan_chay` va hai destination moi phai tao
+cung byte cho ca nam san pham. Raw khong doi byte. Thu tu CSV la ma tang dan,
+sau do ngay tang dan.
+
+Thay high/low nhung giu open/close/volume khong thay doi cac cot nghiep vu rut
+gon. Do `raw_sha256` truy vet byte raw, cot nay bat buoc thay doi khi raw thay
+doi; khong duoc giu hash cu de gia mao CSV bat bien.
+
+## Cua nghien cuu chinh thuc
+
+Cua nghien cuu van `FAIL`. Blocker con lai:
+
+- lich su thanh phan VN100 point-in-time chua lien tuc;
+- doi chieu HOSE EOD chua dat;
+- corporate-action inventory chua day du;
+- price basis chua xac nhan.
+
+Khong research claim, khong huan luyen, khong backtest va khong trien khai Moc 5
+trong PR #21.

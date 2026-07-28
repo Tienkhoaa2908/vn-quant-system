@@ -97,3 +97,29 @@ Pipeline chay dung mot lan. External verifier ban dau tao false blocker `G2B2_NO
 - Khong research claim; NAV/AUC/Sharpe khong duoc dien giai thanh hieu qua dau tu, alpha, kha nang giao dich that hay khuyen nghi dau tu.
 - Tier B chua chay; khong LightGBM, SSI.
 - `MOC_5_NOT_OPENED`.
+Cap nhat: 2026-07-28
+
+## Anchor
+
+- Branch: `du_lieu-vn100-toan-phan`.
+- Parent truoc QD-0067: `bb3fc035c6ebd885cf4083184ea8a96c7b0f2401`.
+- PR #21 phai giu Open/Draft/chua merge.
+- PR #20 khong duoc sua.
+
+## Du lieu khoa
+
+- 121 raw, 121 hash khop, 231.151 dong;
+- 45 strict-pass, 76 high/low-only;
+- 121 open/close/volume-pass, 0 excluded theo hop dong rut gon;
+- 159 cap ma-ngay bat thuong, 35 ngay lich;
+- khong duplicate/non-finite/non-positive/negative-volume.
+
+QD-0067 phe duyet hop dong rut gon chi cho technical validation. High/low khong
+vao san pham va khong duoc dung trong feature/label/ranking/backtest. Close dung
+cho feature/label/MA250/regime/dinh gia, `close*volume` cho thanh khoan, open cho
+T+1 execution.
+
+Doan tiep theo chi duoc chay bo chuyen doi ngoai tuyen tren raw hien co. Khong
+goi mang, khong sua raw, khong research claim. Cua chinh thuc van fail vi
+membership PIT, HOSE EOD, corporate actions va price basis. Moc 4 chua chay lai;
+Moc 5 chua trien khai.
