@@ -1,15 +1,15 @@
 # Bàn giao đoạn chat điều phối
 
-Cập nhật: 2026-07-27
+Cập nhật: 2026-07-28
 
 ## Nền
 
 - Kho: `Tienkhoaa2908/vn-quant-system`.
-- Main hien hanh: `67d09c85a3f3fef855b536172e43966a3269d5ce`.
-- PR #16 da merge bang merge commit `67d09c85a3f3fef855b536172e43966a3269d5ce`.
-- CI post-merge main #355 / Run ID `30281747970` da completed/success tren Ubuntu va Windows.
-- PR #13 va PR #14 da closed/unmerged do PR #16 thay the.
-- Mốc 4 complete; Mốc 5 chua mo.
+- Main hiện hành: `ae807ee1ae06d81b655b8a4961673a4d9ebd629c`.
+- PR #21 đã merge bằng merge commit `ae807ee1ae06d81b655b8a4961673a4d9ebd629c`.
+- CI post-merge main #379 / Run ID `30341585611` đã completed/success trên Ubuntu và Windows.
+- PR #20 vẫn Open/Draft và không bị sửa.
+- Mốc 4 chưa chạy lại trên tập rộng; Mốc 5 chưa triển khai.
 
 ## Trạng thái kỹ thuật
 
@@ -25,7 +25,7 @@ Commit thứ năm của PR #14 đã thay các tài liệu tích lũy bằng bả
 
 ## Cửa tiếp theo
 
-PR dieu phoi hau Moc 4 chi cap nhat nam tai lieu, phai giu Draft/Open/chua merge. Khong co technical drift, khong chay lai Tier A/du lieu that, khong Tier B, LightGBM, SSI va khong mo Moc 5.
+PR điều phối hậu gộp PR #21 chỉ cập nhật bốn tài liệu điều phối, phải giữ Draft/Open/chưa merge. Không có technical drift, không chạy lại Mốc 4, không huấn luyện/backtest và không triển khai Mốc 5.
 
 ## Cap nhat QD-0061: contract benchmark close-only
 
@@ -101,10 +101,10 @@ Cap nhat: 2026-07-28
 
 ## Anchor
 
-- Branch: `du_lieu-vn100-toan-phan`.
-- Parent truoc QD-0067: `bb3fc035c6ebd885cf4083184ea8a96c7b0f2401`.
-- PR #21 phai giu Open/Draft/chua merge.
-- PR #20 khong duoc sua.
+- Branch triển khai đã gộp: `du_lieu-vn100-toan-phan`.
+- Parent trước QD-0067: `bb3fc035c6ebd885cf4083184ea8a96c7b0f2401`.
+- PR #21 đã merge tại `ae807ee1ae06d81b655b8a4961673a4d9ebd629c`.
+- PR #20 không được sửa.
 
 ## Du lieu khoa
 
@@ -119,8 +119,8 @@ vao san pham va khong duoc dung trong feature/label/ranking/backtest. Close dung
 cho feature/label/MA250/regime/dinh gia, `close*volume` cho thanh khoan, open cho
 T+1 execution.
 
-Doan tiep theo chi duoc chay bo chuyen doi ngoai tuyen tren raw hien co. Khong
-goi mang, khong sua raw, khong research claim. Cua chinh thuc van fail vi
+Doan tiep theo chi duoc chuan bi ke hoach chay lai Moc 4 ky thuat tren tap rong.
+Khong goi mang, khong sua raw, khong research claim. Cua chinh thuc van fail vi
 membership PIT, HOSE EOD, corporate actions va price basis. Moc 4 chua chay lai;
 Moc 5 chua trien khai.
 
@@ -177,3 +177,14 @@ tuc, chua doi chieu HOSE EOD, kiem ke corporate actions chua day du va price
 basis chua xac nhan. Khong duoc dien giai publication thanh bang chung alpha,
 hieu qua mo hinh, hieu qua dau tu, tin hieu van hanh hay khuyen nghi giao dich.
 Moc 4 chua chay lai; Moc 5 chua trien khai.
+
+## Bàn giao hậu gộp PR #21
+
+- Merge commit chính thức: `ae807ee1ae06d81b655b8a4961673a4d9ebd629c`.
+- CI main hậu gộp: run #379, Run ID `30341585611`, `completed/success`.
+- Ubuntu Job `90218164153` và Windows Job `90218164026` đều success.
+- Công cụ kiểm toán raw, hợp đồng rút gọn và publication 121 mã đã có trên `main`.
+- Đoạn chuyên trách tiếp theo chỉ được chuẩn bị lần chạy lại Mốc 4 kỹ thuật trên tập rộng; không tự chạy trước khi có đặc tả đầu vào và cửa kiểm soát riêng.
+- Không được biến union 121 thành universe point-in-time cố định; eligibility và MA250 phải xét theo từng mã-ngày.
+- PR #20 và Mốc 5 tiếp tục tạm dừng.
+- Không được đưa ra kết luận alpha, hiệu quả đầu tư, tín hiệu vận hành hoặc khuyến nghị giao dịch.
