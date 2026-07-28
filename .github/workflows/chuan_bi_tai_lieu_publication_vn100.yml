@@ -1,6 +1,8 @@
 name: chuan_bi_tai_lieu_publication_vn100
 
 on:
+  push:
+    branches: [du_lieu-vn100-toan-phan]
   pull_request:
     branches: [main]
 
