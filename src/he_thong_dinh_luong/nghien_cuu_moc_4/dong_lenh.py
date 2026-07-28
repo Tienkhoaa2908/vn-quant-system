@@ -16,6 +16,7 @@ def tao_parser() -> argparse.ArgumentParser:
     parser.add_argument("--kiem-tra-cau-hinh", type=Path)
     parser.add_argument("--cau-hinh", type=Path)
     parser.add_argument("--ohlcv", type=Path)
+    parser.add_argument("--thu-muc-publication-gia-rut-gon", type=Path)
     parser.add_argument("--benchmark", type=Path)
     parser.add_argument("--lich-benchmark", type=Path)
     parser.add_argument("--universe", type=Path)
@@ -27,21 +28,28 @@ def tao_parser() -> argparse.ArgumentParser:
 
 
 def _doc_config(path: Path) -> tuple[CauHinhMoc4, dict[str, object]]:
-    data = json.loads(path.read_text(encoding="utf-8"), parse_constant=lambda x: (_ for _ in ()).throw(ValueError(f"Cau hinh chua {x}.")))
+    data = json.loads(
+        path.read_text(encoding="utf-8"),
+        parse_constant=lambda x: (_ for _ in ()).throw(ValueError(f"Cau hinh chua {x}.")),
+    )
     if not isinstance(data, dict):
         raise ValueError("Cau hinh phai la object.")
     m4 = data.get("moc_4", data)
     if not isinstance(m4, dict):
         raise ValueError("moc_4 phai la object.")
-    return CauHinhMoc4.tu_mapping(m4), data
+    mapping = dict(m4)
+    mapping["thu_muc_dau_ra"] = str(mapping.get("thu_muc_dau_ra", "."))
+    return CauHinhMoc4.tu_mapping(mapping), data
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    args = tao_parser().parse_args(argv)
+    parser = tao_parser()
+    args = parser.parse_args(argv)
     if args.kiem_tra_cau_hinh is not None:
         if any(value is not None for value in (
-            args.cau_hinh, args.ohlcv, args.benchmark, args.lich_benchmark,
-            args.universe, args.corporate_actions, args.thu_muc_dau_ra,
+            args.cau_hinh, args.ohlcv, args.thu_muc_publication_gia_rut_gon,
+            args.benchmark, args.lich_benchmark, args.universe,
+            args.corporate_actions, args.thu_muc_dau_ra,
             args.ma_lan_chay, args.git_commit,
         )):
             raise ValueError("Che do kiem tra cau hinh khong duoc tron voi che do chay.")
@@ -49,22 +57,40 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(json.dumps({
             "hop_le": True,
             "muc_dich_lan_chay": config.muc_dich_lan_chay,
+            "price_contract": config.price_contract,
+            "universe_contract": config.universe_contract,
             "canh_bao": list(config.canh_bao_muc_dich()),
         }, ensure_ascii=False, sort_keys=True))
         return 0
-    required = {
-        "cau_hinh": args.cau_hinh, "ohlcv": args.ohlcv, "benchmark": args.benchmark,
-        "lich_benchmark": args.lich_benchmark, "universe": args.universe,
-        "corporate_actions": args.corporate_actions, "thu_muc_dau_ra": args.thu_muc_dau_ra,
-        "ma_lan_chay": args.ma_lan_chay, "git_commit": args.git_commit,
+
+    common_required = {
+        "cau_hinh": args.cau_hinh,
+        "benchmark": args.benchmark,
+        "lich_benchmark": args.lich_benchmark,
+        "corporate_actions": args.corporate_actions,
+        "thu_muc_dau_ra": args.thu_muc_dau_ra,
+        "ma_lan_chay": args.ma_lan_chay,
+        "git_commit": args.git_commit,
     }
-    missing = sorted(name for name, value in required.items() if value is None)
+    missing = sorted(name for name, value in common_required.items() if value is None)
     if missing:
-        tao_parser().error("Thieu tham so chay: " + ", ".join(missing))
+        parser.error("Thieu tham so chay: " + ", ".join(missing))
     try:
+        config, _ = _doc_config(args.cau_hinh)
+        if config.la_reduced:
+            if args.thu_muc_publication_gia_rut_gon is None:
+                parser.error("Reduced mode thieu thu_muc_publication_gia_rut_gon")
+            if args.ohlcv is not None or args.universe is not None:
+                parser.error("Reduced mode cam ohlcv/universe; khong tu nhan dang schema")
+        else:
+            if args.ohlcv is None or args.universe is None:
+                parser.error("strict_ohlcv thieu ohlcv/universe")
+            if args.thu_muc_publication_gia_rut_gon is not None:
+                parser.error("strict_ohlcv cam publication reduced")
         result = chay_nghien_cuu_moc_4(
             duong_dan_cau_hinh=args.cau_hinh,
             duong_dan_ohlcv=args.ohlcv,
+            thu_muc_publication_gia_rut_gon=args.thu_muc_publication_gia_rut_gon,
             duong_dan_benchmark=args.benchmark,
             duong_dan_lich_benchmark=args.lich_benchmark,
             duong_dan_universe=args.universe,
@@ -73,6 +99,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             ma_lan_chay=args.ma_lan_chay,
             git_commit=args.git_commit,
         )
+    except SystemExit:
+        raise
     except Exception as exc:
         print(json.dumps({"hop_le": False, "loi": str(exc)}, ensure_ascii=False, sort_keys=True), file=sys.stderr)
         return 2
