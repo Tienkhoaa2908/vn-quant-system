@@ -5,54 +5,42 @@ import csv
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta, timezone
 from decimal import Decimal
+import hashlib
 from io import StringIO
 import json
 from math import isfinite
 from pathlib import Path
-import platform
-import subprocess
+import re
 from typing import Iterable, Mapping, Sequence
 
-import sklearn
-
-from .adapter_mo_phong import chay_backtest_oos_lien_tuc, chuyen_ty_trong_test, metric_backtest_oos
-from .baseline import du_doan_baseline_test, metric_baseline_test, xep_hang_baseline_test
-from .chi_so import metric_model_test, metric_ranking_test
-from .cong_bo import (
-    TEN_SAN_PHAM,
-    cong_bo_san_pham,
-    tao_csv_du_doan,
-    tao_csv_feature_sau_tien_xu_ly,
-)
-from .dac_trung import FEATURE_ORDER_MAC_DINH, phien_cuoi_thang, tao_feature_cuoi_thang
-from .do_phu import DongLoai, bao_cao_do_phu
-from .eligibility import danh_gia_eligibility, phien_t1_chinh_thuc
-from .logistic import du_doan_test, huan_luyen_logistic
 from .mo_hinh import (
     BanGhiPointInTime,
     BanGhiUniverse,
-    CauHinhMoc4,
-    DongFeature,
-    DongNhan,
-    DongXepHang,
-    DuDoan,
-    FoldWalkForward,
-    MauMoHinh,
+    STOCK_PRICE_BASIS_CHUA_XAC_NHAN,
     ThanhBenchmarkDongCua,
     ThanhCoGiaDongCua,
+    ThanhGiaMoDongKhoiLuong,
     ThanhOHLCV,
-    xac_thuc_co_so_gia_va_su_kien,
 )
-from .nhan import tao_nhan
 from .phong_ve import xac_thuc_cau_truc_huu_han, xac_thuc_so_huu_han
-from .universe import chon_ban_ghi_pit, xac_dinh_universe
-from .walk_forward import loc_mau_theo_fold, tao_folds, xac_thuc_prediction_test
-from .xep_hang import xep_hang_test
 
 UTC = timezone.utc
 MUI_GIO_VIET_NAM = timezone(timedelta(hours=7))
 GIO_TAO_TIN_HIEU = time(15, 0)
 
+TEN_TEP_PUBLICATION_REDUCED = (
+    "du_lieu_gia_mo_dong_khoi_luong.csv",
+    "bao_cao_do_phu_hop_dong_rut_gon.json",
+    "bao_cao_ma_bi_loai.json",
+    "manifest.json",
+    "sha256.txt",
+)
+COT_REDUCED = (
+    "ma", "ngay", "gia_mo_cua", "gia_dong_cua", "khoi_luong",
+    "nguon", "phien_ban", "co_so_gia", "raw_sha256",
+)
+_RE_VOLUME = re.compile(r"(?:0|[1-9][0-9]*)\Z")
+_RE_SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 
 
 @dataclass(frozen=True)
@@ -64,6 +52,21 @@ class _DocOHLCV:
     ma_loi_volume: tuple[str, ...]
     khoa_loi_gia: tuple[tuple[str, date], ...]
     khoa_loi_volume: tuple[tuple[str, date], ...]
+
+
+@dataclass(frozen=True)
+class _DocPublicationRutGon:
+    rows: tuple[ThanhGiaMoDongKhoiLuong, ...]
+    nguon: str
+    phien_ban: str
+    stock_price_basis: str
+    candidate_union_expected_count: int
+    publication_expected_symbol_count: int
+    publication_observed_symbol_count: int
+    publication_expected_row_count: int
+    publication_observed_row_count: int
+    manifest: Mapping[str, object]
+    input_paths: Mapping[str, Path]
 
 
 @dataclass(frozen=True)
@@ -150,6 +153,41 @@ def _unique(values: Iterable[str], name: str) -> str:
     return found[0]
 
 
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _doc_json_object(path: Path, name: str) -> dict[str, object]:
+    try:
+        value = json.loads(
+            path.read_text(encoding="utf-8"),
+            parse_constant=lambda raw: (_ for _ in ()).throw(ValueError(f"{name} chua {raw}.")),
+        )
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"{name} khong phai JSON hop le.") from exc
+    if not isinstance(value, dict):
+        raise ValueError(f"{name} phai la JSON object.")
+    xac_thuc_cau_truc_huu_han(value, name)
+    return value
+
+
+def _doc_sha256_txt(path: Path) -> dict[str, str]:
+    result: dict[str, str] = {}
+    for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        parts = line.split("  ", 1)
+        if len(parts) != 2 or not _RE_SHA256.fullmatch(parts[0]) or not parts[1]:
+            raise ValueError(f"sha256.txt sai dinh dang tai dong {number}.")
+        digest, name = parts
+        if name in result:
+            raise ValueError("sha256.txt trung ten tep.")
+        result[name] = digest
+    return result
+
+
 def _doc_ohlcv(path: Path) -> _DocOHLCV:
     """Doc OHLCV co phieu; loi gia/volume bi loai co kiem soat nhu hop dong cu."""
     raw_rows, fields = _read_csv(path)
@@ -191,7 +229,7 @@ def _doc_ohlcv(path: Path) -> _DocOHLCV:
             close = _parse_float(raw.get("gia_dong_cua"), "gia_dong_cua")
             if min(open_price, high, low, close) <= 0:
                 raise ValueError("Gia phai duong.")
-        except ValueError as exc:
+        except ValueError:
             price_errors.add(symbol)
             price_error_keys.add(key)
             continue
@@ -199,7 +237,7 @@ def _doc_ohlcv(path: Path) -> _DocOHLCV:
             volume = _parse_int(raw.get("khoi_luong"), "khoi_luong")
             if volume < 0:
                 raise ValueError("khoi_luong khong duoc am.")
-        except ValueError as exc:
+        except ValueError:
             volume_errors.add(symbol)
             volume_error_keys.add(key)
             continue
@@ -209,7 +247,7 @@ def _doc_ohlcv(path: Path) -> _DocOHLCV:
                 gia_thap_nhat=low, gia_dong_cua=close, khoi_luong=volume,
                 nguon=source, phien_ban=version, co_so_gia=basis,
             )
-        except ValueError as exc:
+        except ValueError:
             price_errors.add(symbol)
             price_error_keys.add(key)
             continue
@@ -222,25 +260,146 @@ def _doc_ohlcv(path: Path) -> _DocOHLCV:
     )
 
 
+def _doc_publication_rut_gon(
+    directory: Path,
+    *,
+    candidate_union_expected_count: int,
+) -> _DocPublicationRutGon:
+    root = Path(directory)
+    if not root.is_dir():
+        raise ValueError(f"Thu muc publication rut gon khong ton tai: {root}.")
+    names = tuple(sorted(path.name for path in root.iterdir() if path.is_file()))
+    if names != tuple(sorted(TEN_TEP_PUBLICATION_REDUCED)):
+        raise ValueError("Publication rut gon phai co dung nam tep canonical.")
+    paths = {name: root / name for name in TEN_TEP_PUBLICATION_REDUCED}
+    sha_rows = _doc_sha256_txt(paths["sha256.txt"])
+    expected_sha_names = set(TEN_TEP_PUBLICATION_REDUCED) - {"sha256.txt"}
+    if set(sha_rows) != expected_sha_names:
+        raise ValueError("sha256.txt khong bao phu dung bon tep publication.")
+    for name, expected in sha_rows.items():
+        if _sha256(paths[name]) != expected:
+            raise ValueError(f"SHA-256 publication khong khop: {name}.")
+
+    manifest = _doc_json_object(paths["manifest.json"], "publication.manifest")
+    coverage = _doc_json_object(paths["bao_cao_do_phu_hop_dong_rut_gon.json"], "publication.coverage")
+    excluded = _doc_json_object(paths["bao_cao_ma_bi_loai.json"], "publication.excluded")
+    contract = manifest.get("hop_dong")
+    if not isinstance(contract, Mapping):
+        raise ValueError("Publication manifest thieu hop_dong.")
+    if tuple(contract.get("cot", ())) != COT_REDUCED:
+        raise ValueError("Publication manifest co schema reduced khong dung canonical.")
+    if contract.get("co_so_gia") != STOCK_PRICE_BASIS_CHUA_XAC_NHAN:
+        raise ValueError("Publication stock price basis phai bang CHUA_XAC_NHAN.")
+    if contract.get("high_low_trong_san_pham") is not False:
+        raise ValueError("Publication reduced khong duoc chua high/low.")
+    if contract.get("chi_dung_kiem_tra_ky_thuat") is not True:
+        raise ValueError("Publication reduced phai chi dung kiem tra ky thuat.")
+    product_hashes = manifest.get("san_pham_sha256")
+    if not isinstance(product_hashes, Mapping):
+        raise ValueError("Publication manifest thieu san_pham_sha256.")
+    for name in TEN_TEP_PUBLICATION_REDUCED[:3]:
+        if product_hashes.get(name) != _sha256(paths[name]):
+            raise ValueError(f"Manifest publication bam sai tep {name}.")
+    if excluded.get("so_ma_bi_loai") != 0:
+        raise ValueError("Ho so candidate union hien tai khong cho phep ma bi loai.")
+
+    raw_manifest = manifest.get("raw")
+    if not isinstance(raw_manifest, list):
+        raise ValueError("Publication manifest.raw phai la list.")
+    publication_expected_symbol_count = len(raw_manifest)
+    tong_ma = coverage.get("tong_ma")
+    so_ma_dat = coverage.get("so_ma_dat")
+    expected_rows = coverage.get("tong_so_dong")
+    for value, name in (
+        (tong_ma, "coverage.tong_ma"),
+        (so_ma_dat, "coverage.so_ma_dat"),
+        (expected_rows, "coverage.tong_so_dong"),
+    ):
+        if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+            raise ValueError(f"{name} phai la int khong am.")
+    if not (
+        candidate_union_expected_count
+        == publication_expected_symbol_count
+        == tong_ma
+        == so_ma_dat
+    ):
+        raise ValueError("So ma du kien giua run profile va publication khong khop.")
+
+    raw_rows, fields = _read_csv(paths["du_lieu_gia_mo_dong_khoi_luong.csv"])
+    if fields != COT_REDUCED:
+        raise ValueError("CSV reduced sai schema hoac thu tu cot canonical.")
+    if not raw_rows:
+        raise ValueError("CSV reduced rong.")
+    rows: list[ThanhGiaMoDongKhoiLuong] = []
+    seen: set[tuple[str, date]] = set()
+    original_keys: list[tuple[str, date]] = []
+    sources: list[str] = []
+    versions: list[str] = []
+    bases: list[str] = []
+    for number, raw in enumerate(raw_rows, 2):
+        symbol = str(raw.get("ma", "")).strip().upper()
+        day = _parse_date(raw.get("ngay"), f"reduced.ngay dong {number}")
+        key = (symbol, day)
+        if not symbol:
+            raise ValueError(f"Ma reduced rong tai dong {number}.")
+        if key in seen:
+            raise ValueError(f"Reduced trung ma/ngay: {symbol}, {day}.")
+        seen.add(key)
+        original_keys.append(key)
+        volume_text = str(raw.get("khoi_luong", "")).strip()
+        if not _RE_VOLUME.fullmatch(volume_text):
+            raise ValueError(f"khoi_luong reduced phai la so nguyen thap phan khong am tai dong {number}.")
+        source = str(raw.get("nguon", "")).strip()
+        version = str(raw.get("phien_ban", "")).strip()
+        basis = str(raw.get("co_so_gia", "")).strip()
+        item = ThanhGiaMoDongKhoiLuong(
+            ma=symbol,
+            ngay=day,
+            gia_mo_cua=_parse_float(raw.get("gia_mo_cua"), "gia_mo_cua reduced"),
+            gia_dong_cua=_parse_float(raw.get("gia_dong_cua"), "gia_dong_cua reduced"),
+            khoi_luong=int(volume_text),
+            nguon=source,
+            phien_ban=version,
+            co_so_gia=basis,
+            raw_sha256=str(raw.get("raw_sha256", "")).strip(),
+        )
+        rows.append(item)
+        sources.append(source)
+        versions.append(version)
+        bases.append(basis)
+    if original_keys != sorted(original_keys):
+        raise ValueError("CSV reduced phai sap xep nghiem ngat theo ma,ngay.")
+    observed_symbols = len({row.ma for row in rows})
+    if observed_symbols != candidate_union_expected_count:
+        raise ValueError("So ma quan sat reduced khong khop run profile.")
+    if len(rows) != expected_rows:
+        raise ValueError("So dong quan sat reduced khong khop publication manifest/coverage.")
+    return _DocPublicationRutGon(
+        rows=tuple(rows),
+        nguon=_unique(sources, "nguon reduced"),
+        phien_ban=_unique(versions, "phien_ban reduced"),
+        stock_price_basis=_unique(bases, "stock_price_basis reduced"),
+        candidate_union_expected_count=candidate_union_expected_count,
+        publication_expected_symbol_count=publication_expected_symbol_count,
+        publication_observed_symbol_count=observed_symbols,
+        publication_expected_row_count=expected_rows,
+        publication_observed_row_count=len(rows),
+        manifest=manifest,
+        input_paths=paths,
+    )
+
+
 def _xac_thuc_benchmark_identity(rows: Sequence[ThanhCoGiaDongCua], expected_symbol: str) -> str:
     symbols = sorted({row.ma for row in rows})
     if symbols != [expected_symbol]:
-        raise ValueError(
-            f"Benchmark file phai co dung mot ma {expected_symbol}; nhan duoc {symbols}."
-        )
+        raise ValueError(f"Benchmark file phai co dung mot ma {expected_symbol}; nhan duoc {symbols}.")
     return symbols[0]
 
 
-def _doc_benchmark_dong_cua(
-    path: Path,
-    *,
-    expected_symbol: str,
-) -> _DocBenchmarkDongCua:
+def _doc_benchmark_dong_cua(path: Path, *, expected_symbol: str) -> _DocBenchmarkDongCua:
     """Doc benchmark canonical close-only va fail closed tren schema/identity."""
     raw_rows, fields = _read_csv(path)
-    expected_fields = (
-        "ma", "ngay", "gia_dong_cua", "nguon", "phien_ban", "co_so_gia",
-    )
+    expected_fields = ("ma", "ngay", "gia_dong_cua", "nguon", "phien_ban", "co_so_gia")
     if fields != expected_fields:
         missing = sorted(set(expected_fields) - set(fields))
         extra = sorted(set(fields) - set(expected_fields))
