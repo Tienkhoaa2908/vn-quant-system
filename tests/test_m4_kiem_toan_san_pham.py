@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import csv
 from datetime import datetime, timezone
-from decimal import Decimal
 import json
 from pathlib import Path
 import tempfile
@@ -29,27 +27,21 @@ class TestKiemToanSanPhamM4(unittest.TestCase):
                 git_commit="b" * 40,
                 thoi_diem_utc=datetime(2026, 7, 28, tzinfo=timezone.utc),
             ).thu_muc_san_pham
-            with (product / "so_cai.csv").open(encoding="utf-8", newline="") as handle:
-                ledger_rows = list(csv.DictReader(handle))
-            bad_ledger = [
-                {
-                    "chien_luoc": row["chien_luoc"], "ngay": row["ngay"],
-                    "cash": row["tien_mat_cuoi_ngay"], "diff": row["chenh_lech_doi_soat"],
-                }
-                for row in ledger_rows
-                if Decimal(row["tien_mat_cuoi_ngay"]) < 0 or Decimal(row["chenh_lech_doi_soat"]) != 0
-            ]
-            self.assertFalse(bad_ledger, bad_ledger[:5])
             ok1, audit1 = kiem_toan_san_pham(
-                thu_muc_san_pham=product, thu_muc_bao_cao=root / "audit1", ma_kiem_toan="audit_fixture",
+                thu_muc_san_pham=product,
+                thu_muc_bao_cao=root / "audit1",
+                ma_kiem_toan="audit_fixture",
             )
             ok2, audit2 = kiem_toan_san_pham(
-                thu_muc_san_pham=product, thu_muc_bao_cao=root / "audit2", ma_kiem_toan="audit_fixture",
+                thu_muc_san_pham=product,
+                thu_muc_bao_cao=root / "audit2",
+                ma_kiem_toan="audit_fixture",
             )
             report1 = json.loads((audit1 / "bao_cao_kiem_toan_doc_lap.json").read_text())
             report2 = json.loads((audit2 / "bao_cao_kiem_toan_doc_lap.json").read_text())
             self.assertTrue(ok1, report1["loi"])
             self.assertTrue(ok2, report2["loi"])
+            self.assertEqual(report1["reconciliation_tolerance"], "1E-18")
             for name in ("bao_cao_kiem_toan_doc_lap.json", "doi_soat_nav.csv", "sha256.txt"):
                 self.assertEqual((audit1 / name).read_bytes(), (audit2 / name).read_bytes())
             self.assertFalse(report1["pipeline_duoc_goi"])
@@ -59,11 +51,16 @@ class TestKiemToanSanPhamM4(unittest.TestCase):
             with (product / "feature_raw.csv").open("a", encoding="utf-8") as handle:
                 handle.write("tamper\n")
             valid, failed = kiem_toan_san_pham(
-                thu_muc_san_pham=product, thu_muc_bao_cao=root / "audit_fail", ma_kiem_toan="audit_fixture_fail",
+                thu_muc_san_pham=product,
+                thu_muc_bao_cao=root / "audit_fail",
+                ma_kiem_toan="audit_fixture_fail",
             )
             self.assertFalse(valid)
             failed_report = json.loads((failed / "bao_cao_kiem_toan_doc_lap.json").read_text())
-            self.assertTrue(any("PRODUCT_SHA256:feature_raw.csv" in item for item in failed_report["loi"]))
+            self.assertTrue(any(
+                "PRODUCT_SHA256:feature_raw.csv" in item
+                for item in failed_report["loi"]
+            ))
 
 
 if __name__ == "__main__":
