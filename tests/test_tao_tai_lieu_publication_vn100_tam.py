@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import json
+import unittest
 from pathlib import Path
 
 
@@ -71,23 +72,31 @@ Moc 4 chua chay lai; Moc 5 chua trien khai.
 '''
 
 
-def test_tao_payload_tai_lieu_publication_vn100_tam() -> None:
-    marker = "## Publication hop dong gia rut gon VN100 ngay 2026-07-28"
-    payload: dict[str, str] = {}
-    for ten in CAC_TAI_LIEU:
-        path = Path(ten)
-        noi_dung = path.read_text(encoding="utf-8")
-        assert marker not in noi_dung
-        payload[ten] = noi_dung.rstrip() + KHOI_PUBLICATION + "\n"
+class TaoPayloadTaiLieuPublicationVN100Tam(unittest.TestCase):
+    def test_tao_payload(self) -> None:
+        marker = "## Publication hop dong gia rut gon VN100 ngay 2026-07-28"
+        payload: dict[str, str] = {}
+        for ten in CAC_TAI_LIEU:
+            path = Path(ten)
+            noi_dung = path.read_text(encoding="utf-8")
+            self.assertNotIn(marker, noi_dung)
+            payload[ten] = noi_dung.rstrip() + KHOI_PUBLICATION + "\n"
 
-    encoded = base64.b64encode(
-        json.dumps(payload, ensure_ascii=False, sort_keys=True).encode("utf-8")
-    ).decode("ascii")
-    for ten_artifact in ("phien-ban-ci-ubuntu.txt", "phien-ban-ci-windows.txt"):
-        path = Path(ten_artifact)
-        if path.exists():
-            with path.open("a", encoding="utf-8", newline="\n") as tep:
-                tep.write("VN100_DOC_PAYLOAD_BEGIN\n")
-                tep.write(encoded + "\n")
-                tep.write("VN100_DOC_PAYLOAD_END\n")
-    assert len(payload) == 5
+        encoded = base64.b64encode(
+            json.dumps(payload, ensure_ascii=False, sort_keys=True).encode("utf-8")
+        ).decode("ascii")
+        so_artifact = 0
+        for ten_artifact in ("phien-ban-ci-ubuntu.txt", "phien-ban-ci-windows.txt"):
+            path = Path(ten_artifact)
+            if path.exists():
+                with path.open("a", encoding="utf-8", newline="\n") as tep:
+                    tep.write("VN100_DOC_PAYLOAD_BEGIN\n")
+                    tep.write(encoded + "\n")
+                    tep.write("VN100_DOC_PAYLOAD_END\n")
+                so_artifact += 1
+        self.assertEqual(len(payload), 5)
+        self.assertEqual(so_artifact, 1)
+
+
+if __name__ == "__main__":
+    unittest.main()
