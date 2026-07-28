@@ -26,18 +26,18 @@ Trạng thái: **đã hoàn thành và đã đóng hoàn toàn**.
 
 - PR triển khai số 7, merge commit `79a044d75f3a66e5c636f0a83613fc9af0cac3fc`.
 - PR điều phối số 8, merge commit `bb25ff16761b7c79e701fbd4f3a5af02f1644e07`.
-- CI cuối trên `main`: run `#185`, Run ID `30151712433`, Job ID `89663090052`, `completed/success`.
+- CI cuối trên `main`: run `#185`, Run ID `30151712433`, Job ID `89663073156`, `completed/success`.
 - Engine T/T+1, lệnh DAY, phí, thuế, trượt giá, lot size, tiền mặt, vị thế, sổ cái, NAV và corporate actions MVP.
 - 121 kiểm thử ngoại tuyến.
 - Xác minh kỹ thuật trên FPT, HPG, MBB; không dùng kết quả làm bằng chứng hiệu quả đầu tư.
 
 ## Mốc 4 — Dữ liệu nhiều năm, đặc trưng, xếp hạng và học máy cơ sở
 
-Trạng thái: **đã hoàn thành, đã merge và đã vượt CI post-merge trên main**.
+Trạng thái: **đã hoàn thành triển khai nền; đã gộp công cụ VN100 và mở chuẩn bị chạy lại kỹ thuật trên tập rộng**.
 
 - Đặc tả: `tai_lieu/dac_ta_moc_4.md`.
 - PR #16 đã merge bằng merge commit `67d09c85a3f3fef855b536172e43966a3269d5ce`.
-- CI post-merge trên `main`:
+- CI post-merge PR #16 trên `main`:
   - workflow `kiem_tra_tu_dong`;
   - run `#355`;
   - Run ID `30281747970`;
@@ -47,22 +47,25 @@ Trạng thái: **đã hoàn thành, đã merge và đã vượt CI post-merge tr
   - Windows Job `90029585961`, success;
   - artifacts `phien-ban-ci-ubuntu`, `phien-ban-ci-windows`;
   - uv `0.11.32`, Python `3.12.13`, scikit-learn `1.9.0`.
-- PR #13 và PR #14 đã đóng, không merge, do PR #16 thay thế.
-- Mốc 4 implementation và Tier A technical validation đã hoàn tất.
-- Tier A chỉ là technical validation; universe `FPT/HPG/MBB` là synthetic technical control, không phải VN100 PIT.
+- PR #21 đã merge bằng merge commit `ae807ee1ae06d81b655b8a4961673a4d9ebd629c`.
+- CI post-merge PR #21 trên `main`: run #379, Run ID `30341585611`, Ubuntu Job `90218164153`, Windows Job `90218164026`, `completed/success`.
+- Hợp đồng open/close/volume 121 mã và publication tái lập byte đã có trên `main`.
+- Chưa chạy lại pipeline Mốc 4 trên tập rộng; chưa huấn luyện, xếp hạng hoặc backtest trong vòng điều phối này.
+- Tier A trước đây chỉ là technical validation; universe `FPT/HPG/MBB` là synthetic technical control, không phải VN100 PIT.
 - `price_basis_confirmed=false`; corporate-action inventory partial; benchmark close-only.
 - Không research claim; NAV/AUC/Sharpe không phải bằng chứng hiệu quả đầu tư.
 - Tier B chưa chạy; không LightGBM hoặc SSI.
 
-Phạm vi kỹ thuật đã triển khai giữ nguyên: dữ liệu nhiều năm, kiểm soát PIT/look-ahead, feature, nhãn lợi nhuận tương đối, walk-forward purge/embargo, momentum baseline, Logistic Regression, ranking, `top_k`, backtest OOS và publication nguyên tử. Không có thay đổi kỹ thuật trong PR điều phối hậu Mốc 4.
+Phạm vi kỹ thuật đã triển khai giữ nguyên: dữ liệu nhiều năm, kiểm soát PIT/look-ahead, feature, nhãn lợi nhuận tương đối, walk-forward purge/embargo, momentum baseline, Logistic Regression, ranking, `top_k`, backtest OOS và publication nguyên tử. PR điều phối hậu gộp PR #21 không thay đổi mã kỹ thuật.
 
 ## Mốc 5 — Chia vốn
 
-Trạng thái: **chưa mở**.
+Trạng thái: **tạm dừng; PR #20 vẫn Open/Draft**.
 
 - Inverse volatility.
 - Tối đa 15% mỗi mã, 25% mỗi ngành.
 - Tiền mặt theo market regime.
+- Chưa triển khai cho tới khi cửa dữ liệu và lần chạy lại Mốc 4 kỹ thuật trên tập rộng được xử lý theo đặc tả riêng.
 
 ## Mốc 6 — Kiểm toán và giao dịch giả lập
 
@@ -141,6 +144,7 @@ Pipeline chay dung mot lan. External verifier ban dau tao false blocker `G2B2_NO
 - Khong research claim; NAV/AUC/Sharpe khong duoc dien giai thanh hieu qua dau tu, alpha, kha nang giao dich that hay khuyen nghi dau tu.
 - Tier B chua chay; khong LightGBM, SSI.
 - `MOC_5_NOT_OPENED`.
+
 ## Moc 0–3
 
 Da hoan tat va da merge. Cac quyet dinh/implementation lich su giu nguyen.
@@ -221,3 +225,13 @@ tuc, chua doi chieu HOSE EOD, kiem ke corporate actions chua day du va price
 basis chua xac nhan. Khong duoc dien giai publication thanh bang chung alpha,
 hieu qua mo hinh, hieu qua dau tu, tin hieu van hanh hay khuyen nghi giao dich.
 Moc 4 chua chay lai; Moc 5 chua trien khai.
+
+## Điểm kiểm soát hậu gộp PR #21
+
+- PR #21 đã merge tại `ae807ee1ae06d81b655b8a4961673a4d9ebd629c`.
+- CI `main` hậu gộp run #379 / Run ID `30341585611` đã `completed/success` trên Ubuntu và Windows.
+- Kế hoạch được mở sang bước chuẩn bị chạy lại Mốc 4 kỹ thuật trên tập rộng, nhưng chưa cho phép thực thi pipeline trong PR điều phối này.
+- Lần chạy kỹ thuật sau phải tách rõ kiểm tra sức chịu tải trên union 121 mã và kiểm tra đúng thời điểm trên đoạn membership liên tục có bằng chứng.
+- Không được dùng union 121 mã như universe point-in-time cố định; không forward-fill, không carry-forward và không biến thiếu dữ liệu thành lợi suất 0.
+- Mốc 5 tiếp tục tạm dừng; PR #20 giữ Open/Draft.
+- Cửa nghiên cứu chính thức vẫn `FAIL` do membership PIT, HOSE EOD, corporate actions và price basis chưa đạt.
