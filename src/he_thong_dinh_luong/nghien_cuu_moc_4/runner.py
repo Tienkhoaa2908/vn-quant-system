@@ -6,10 +6,14 @@ from datetime import date, datetime, time, timedelta, timezone
 import json
 from pathlib import Path
 import platform
-from types import SimpleNamespace
 from typing import Mapping
 
 import sklearn
+
+from he_thong_dinh_luong.mo_phong.mo_hinh import (
+    CO_SO_GIA_CHUA_XAC_NHAN,
+    cau_hinh_mo_phong,
+)
 
 from .adapter_mo_phong import chay_backtest_oos_lien_tuc, chuyen_ty_trong_test, metric_backtest_oos
 from .baseline import du_doan_baseline_test, metric_baseline_test, xep_hang_baseline_test
@@ -88,12 +92,26 @@ class KetQuaNghienCuuMoc4:
     canh_bao: tuple[str, ...]
 
 
-def _m3_config_reduced(data: Mapping[str, object]) -> object:
-    """Tao view cau hinh engine voi basis chua xac nhan, khong sua quy tac mo phong."""
-    base = _m3_config(data, "gia_khong_dieu_chinh")
-    values = dict(vars(base))
-    values["co_so_gia"] = STOCK_PRICE_BASIS_CHUA_XAC_NHAN
-    return SimpleNamespace(**values)
+@dataclass(frozen=True)
+class _TaiLieuGiaCoPhieu:
+    rows: tuple[ThanhGiaCoPhieu, ...]
+    nguon: str
+    phien_ban: str
+    ma_loi_gia: tuple[str, ...] = ()
+    ma_loi_volume: tuple[str, ...] = ()
+    khoa_loi_gia: tuple[tuple[str, date], ...] = ()
+    khoa_loi_volume: tuple[tuple[str, date], ...] = ()
+
+
+def _m3_config_reduced(data: Mapping[str, object]) -> cau_hinh_mo_phong:
+    """Tao cau hinh M3 typed voi basis chua xac nhan; khong anh xa sang basis khac."""
+    if STOCK_PRICE_BASIS_CHUA_XAC_NHAN != CO_SO_GIA_CHUA_XAC_NHAN:
+        raise AssertionError("Hop dong basis M3/M4 khong dong nhat.")
+    mapping = dict(data)
+    mapping["co_so_gia"] = CO_SO_GIA_CHUA_XAC_NHAN
+    if mapping.get("che_do_ma_khong_xuat_hien") != "muc_tieu_bang_0":
+        raise ValueError("Backtest Moc 4 bat buoc che_do_ma_khong_xuat_hien=muc_tieu_bang_0.")
+    return cau_hinh_mo_phong.tu_mapping(mapping)
 
 
 def _phien_yeu_cau_candidate_union(
@@ -174,11 +192,10 @@ def chay_nghien_cuu_moc_4(
             candidate_union_expected_count=config.candidate_union_expected_count,
         )
         stock_rows: tuple[ThanhGiaCoPhieu, ...] = publication_doc.rows
-        stock_doc = SimpleNamespace(
+        stock_doc = _TaiLieuGiaCoPhieu(
             rows=stock_rows,
             nguon=publication_doc.nguon,
             phien_ban=publication_doc.phien_ban,
-            ma_loi_gia=(), ma_loi_volume=(), khoa_loi_gia=(), khoa_loi_volume=(),
         )
         universe_records = ()
         universe_source = config.candidate_union_name or "technical_candidate_union"

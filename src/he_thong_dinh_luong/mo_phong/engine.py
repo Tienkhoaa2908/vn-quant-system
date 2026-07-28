@@ -7,7 +7,9 @@ from typing import Iterable
 
 from .khop_lenh import SAI_SO_TIEN_MAT, _lam_tron_xuong_theo_lo, _thuc_thi_lenh
 from .mo_hinh import (
-    MOT, SO_KHONG, cau_hinh_mo_phong, dong_nav, dong_so_cai, dong_vi_the,
+    CO_SO_GIA_CHUA_XAC_NHAN, CO_SO_GIA_DIEU_CHINH, MOT,
+    PRICE_BASIS_UNCONFIRMED, SO_KHONG, cau_hinh_mo_phong,
+    dong_nav, dong_so_cai, dong_vi_the,
     ket_qua_mo_phong, lenh, su_kien_doanh_nghiep, thanh_gia,
     ty_trong_muc_tieu, vi_the,
 )
@@ -119,13 +121,20 @@ def chay_mo_phong(
     cau_hinh: cau_hinh_mo_phong,
     cac_su_kien: Iterable[su_kien_doanh_nghiep] = (),
 ) -> ket_qua_mo_phong:
+    if not isinstance(cau_hinh, cau_hinh_mo_phong):
+        raise TypeError("cau_hinh phai la cau_hinh_mo_phong da duoc xac thuc.")
     gia = list(du_lieu_gia)
     ty_trong = list(cac_ty_trong)
     su_kien = list(cac_su_kien)
     if not gia:
         raise ValueError("Du lieu gia rong.")
-    if su_kien and cau_hinh.co_so_gia == "dieu_chinh":
+    if su_kien and cau_hinh.co_so_gia == CO_SO_GIA_DIEU_CHINH:
         raise ValueError("Du lieu gia dieu_chinh kem corporate actions co nguy co tinh hai lan.")
+    if su_kien and cau_hinh.co_so_gia == CO_SO_GIA_CHUA_XAC_NHAN:
+        raise ValueError(
+            f"{PRICE_BASIS_UNCONFIRMED}: engine khong ap dung corporate actions "
+            "khi co_so_gia=CHUA_XAC_NHAN."
+        )
     khoa_su_kien = [muc.khoa() for muc in su_kien]
     if len(set(khoa_su_kien)) != len(khoa_su_kien):
         raise ValueError("Trung su kien doanh nghiep.")

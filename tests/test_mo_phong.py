@@ -1,5 +1,6 @@
 from __future__ import annotations
 import json, tempfile, unittest
+from types import SimpleNamespace
 from decimal import Decimal
 from pathlib import Path
 from unittest.mock import patch
@@ -8,7 +9,7 @@ from he_thong_dinh_luong.mo_phong.baseline import baseline_can_bang_deu, baselin
 from he_thong_dinh_luong.mo_phong.chi_so import tinh_chi_so
 from he_thong_dinh_luong.mo_phong.dong_lenh import main
 from he_thong_dinh_luong.mo_phong.engine import _thuc_thi_lenh, chay_mo_phong
-from he_thong_dinh_luong.mo_phong.mo_hinh import cau_hinh_mo_phong, chuan_hoa_su_kien, chuan_hoa_ty_trong, dong_nav, ket_qua_mo_phong, lenh, su_kien_doanh_nghiep, vi_the
+from he_thong_dinh_luong.mo_phong.mo_hinh import CO_SO_GIA_CHUA_XAC_NHAN, PRICE_BASIS_UNCONFIRMED, cau_hinh_mo_phong, chuan_hoa_su_kien, chuan_hoa_ty_trong, dong_nav, ket_qua_mo_phong, lenh, su_kien_doanh_nghiep, vi_the
 from ho_tro_mo_phong import D1,D2,D3,D4,bar,cfg,tg
 
 class KiemTraMoPhong(unittest.TestCase):
@@ -64,5 +65,22 @@ class KiemTraMoPhong(unittest.TestCase):
     def test_17_cli_chin_san_pham(self):
         with tempfile.TemporaryDirectory() as td:
             p=Path(td);(p/"g.csv").write_text("ma,ngay,gia_mo_cua,gia_dong_cua,thuoc_tap_co_phieu,dat_thanh_khoan\nA,2026-01-05,10,10,true,true\nA,2026-01-06,10,10,true,true\n");(p/"t.csv").write_text("ngay_tin_hieu,ma,ty_trong_muc_tieu,ten_chien_luoc\n2026-01-05,A,.1,x\n");(p/"c.json").write_text(json.dumps(cfg(kich_thuoc_lo=1).thanh_tu_dien()));out=p/"out";self.assertEqual(main(["--duong_co_so",str(p/"g.csv"),"--ty_trong_muc_tieu",str(p/"t.csv"),"--cau_hinh",str(p/"c.json"),"--thu_muc_dau_ra",str(out),"--git_commit","abc"]),0);self.assertEqual({x.name for x in out.iterdir()},set(TEN_TEP_THANH_CONG))
+    def test_18_cau_hinh_basis_chua_xac_nhan_la_kieu_chinh_thuc(self):
+        c = cfg(co_so_gia=CO_SO_GIA_CHUA_XAC_NHAN)
+        self.assertIsInstance(c, cau_hinh_mo_phong)
+        self.assertFalse(c.co_so_gia_da_xac_nhan)
+        self.assertEqual(c.thanh_tu_dien()["co_so_gia"], "CHUA_XAC_NHAN")
+        k = chay_mo_phong([bar("A",D1),bar("A",D2)],[tg(D1,"A",".1")],c)
+        self.assertEqual(k.cau_hinh.co_so_gia, "CHUA_XAC_NHAN")
+    def test_19_engine_fail_closed_corporate_action_khi_basis_chua_xac_nhan(self):
+        event = su_kien_doanh_nghiep("A","chia_tach",D2,None,Decimal(2),None,"x")
+        with self.assertRaisesRegex(ValueError, PRICE_BASIS_UNCONFIRMED):
+            chay_mo_phong([bar("A",D1),bar("A",D2)],[tg(D1,"A",".1")],cfg(co_so_gia=CO_SO_GIA_CHUA_XAC_NHAN),[event])
+        with self.assertRaisesRegex(ValueError, PRICE_BASIS_UNCONFIRMED):
+            chuan_hoa_su_kien([{"ma":"A","loai_su_kien":"chia_tach","ngay_hieu_luc":D2,"ty_le":2,"nguon":"x"}],co_so_gia=CO_SO_GIA_CHUA_XAC_NHAN)
+    def test_20_engine_tu_choi_cau_hinh_khong_phai_kieu_chinh_thuc(self):
+        fake = SimpleNamespace(**cfg().thanh_tu_dien())
+        with self.assertRaisesRegex(TypeError, "cau_hinh_mo_phong"):
+            chay_mo_phong([bar("A",D1),bar("A",D2)],[tg(D1,"A",".1")],fake)
 
 if __name__ == "__main__": unittest.main()

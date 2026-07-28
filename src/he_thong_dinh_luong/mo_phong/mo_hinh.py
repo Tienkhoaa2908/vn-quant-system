@@ -9,6 +9,15 @@ from typing import Iterable, Mapping
 SO_KHONG = Decimal("0")
 MOT = Decimal("1")
 DON_VI_HOP_LE = {"dong", "nghin_dong"}
+CO_SO_GIA_DIEU_CHINH = "dieu_chinh"
+CO_SO_GIA_KHONG_DIEU_CHINH = "khong_dieu_chinh"
+CO_SO_GIA_CHUA_XAC_NHAN = "CHUA_XAC_NHAN"
+CO_SO_GIA_HOP_LE = frozenset({
+    CO_SO_GIA_DIEU_CHINH,
+    CO_SO_GIA_KHONG_DIEU_CHINH,
+    CO_SO_GIA_CHUA_XAC_NHAN,
+})
+PRICE_BASIS_UNCONFIRMED = "PRICE_BASIS_UNCONFIRMED"
 
 
 def so_thap_phan(gia_tri: object, ten: str, *, cho_phep_rong: bool = False) -> Decimal | None:
@@ -91,12 +100,16 @@ class cau_hinh_mo_phong:
             raise ValueError("lai_suat_phi_rui_ro phai lon hon -1.")
         if self.che_do_ma_khong_xuat_hien not in {"giu_nguyen", "muc_tieu_bang_0"}:
             raise ValueError("che_do_ma_khong_xuat_hien khong hop le.")
-        if self.co_so_gia not in {"dieu_chinh", "khong_dieu_chinh"}:
+        if self.co_so_gia not in CO_SO_GIA_HOP_LE:
             raise ValueError("co_so_gia khong hop le.")
         if self.don_vi_gia not in DON_VI_HOP_LE or self.don_vi_tien not in DON_VI_HOP_LE:
             raise ValueError("don_vi_gia va don_vi_tien khong hop le.")
         if self.don_vi_gia != self.don_vi_tien:
             raise ValueError("don_vi_gia va don_vi_tien phai thong nhat; khong duoc tron don vi.")
+
+    @property
+    def co_so_gia_da_xac_nhan(self) -> bool:
+        return self.co_so_gia != CO_SO_GIA_CHUA_XAC_NHAN
 
     @classmethod
     def tu_mapping(cls, du_lieu: Mapping[str, object]) -> "cau_hinh_mo_phong":
@@ -359,6 +372,8 @@ def chuan_hoa_ty_trong(cac_dong: Iterable[Mapping[str, object]]) -> list[ty_tron
 
 
 def chuan_hoa_su_kien(cac_dong: Iterable[Mapping[str, object]], *, co_so_gia: str) -> list[su_kien_doanh_nghiep]:
+    if co_so_gia not in CO_SO_GIA_HOP_LE:
+        raise ValueError("co_so_gia khong hop le khi chuan hoa su kien.")
     ket_qua: list[su_kien_doanh_nghiep] = []
     da_gap: set[tuple[object, ...]] = set()
     for so_dong, dong in enumerate(cac_dong, 2):
@@ -388,6 +403,11 @@ def chuan_hoa_su_kien(cac_dong: Iterable[Mapping[str, object]], *, co_so_gia: st
             raise ValueError("Trung su kien doanh nghiep.")
         da_gap.add(khoa)
         ket_qua.append(su_kien)
-    if ket_qua and co_so_gia == "dieu_chinh":
+    if ket_qua and co_so_gia == CO_SO_GIA_DIEU_CHINH:
         raise ValueError("Du lieu gia dieu_chinh kem corporate actions co nguy co tinh hai lan.")
+    if ket_qua and co_so_gia == CO_SO_GIA_CHUA_XAC_NHAN:
+        raise ValueError(
+            f"{PRICE_BASIS_UNCONFIRMED}: khong duoc chuan hoa corporate actions "
+            "khi co_so_gia=CHUA_XAC_NHAN."
+        )
     return sorted(ket_qua, key=lambda muc: (muc.ngay_hieu_luc or muc.ngay_thanh_toan or date.min, muc.ma, muc.loai_su_kien))
