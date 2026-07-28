@@ -1,11 +1,17 @@
-"""Universe point-in-time, fail closed va khong survivorship bias."""
+"""Universe point-in-time va candidate union ky thuat, deu fail closed."""
 from __future__ import annotations
 
 from collections import defaultdict
 from datetime import date, datetime
 from typing import Iterable
 
-from .mo_hinh import BanGhiPointInTime, BanGhiUniverse, TrangThaiUniverse, xac_thuc_timestamp
+from .mo_hinh import (
+    BanGhiPointInTime,
+    BanGhiUniverse,
+    ThanhGiaCoPhieu,
+    TrangThaiUniverse,
+    xac_thuc_timestamp,
+)
 
 
 def xac_dinh_universe(
@@ -15,6 +21,7 @@ def xac_dinh_universe(
     thoi_diem_tao_tin_hieu: datetime,
     cac_ma: Iterable[str] | None = None,
 ) -> list[TrangThaiUniverse]:
+    """Chon membership PIT moi nhat cho strict_ohlcv."""
     signal_time = xac_thuc_timestamp(thoi_diem_tao_tin_hieu, "thoi_diem_tao_tin_hieu")
     records = list(ban_ghi)
     keys = [r.khoa() for r in records]
@@ -47,6 +54,35 @@ def xac_dinh_universe(
             thuoc_universe=chosen.thuoc_universe,
             ly_do=None if chosen.thuoc_universe else "khong_thuoc_universe",
             ban_ghi=chosen,
+        ))
+    return result
+
+
+def xac_dinh_technical_candidate_union(
+    du_lieu_gia: Iterable[ThanhGiaCoPhieu],
+    *,
+    ngay: date,
+    cac_ma: Iterable[str],
+) -> list[TrangThaiUniverse]:
+    """Danh gia candidate union tai dung T; khong carry membership hoac bar gan nhat.
+
+    Candidate union chi la ho so thu thap. Tai tung ngay, mot ma chi duoc coi la
+    thuoc universe ky thuat khi co bar dung ngay T. Warm-up, MA250, feature,
+    thanh khoan va open T+1 duoc danh gia rieng trong eligibility.
+    """
+    symbols = tuple(sorted(set(cac_ma)))
+    if not symbols:
+        raise ValueError("technical_candidate_union_v1 khong duoc rong.")
+    bar_keys = {(row.ma, row.ngay) for row in du_lieu_gia}
+    result: list[TrangThaiUniverse] = []
+    for symbol in symbols:
+        has_bar_t = (symbol, ngay) in bar_keys
+        result.append(TrangThaiUniverse(
+            ngay=ngay,
+            ma=symbol,
+            thuoc_universe=has_bar_t,
+            ly_do=None if has_bar_t else "thieu_bar_t",
+            ban_ghi=None,
         ))
     return result
 
