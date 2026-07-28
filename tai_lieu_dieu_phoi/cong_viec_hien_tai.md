@@ -1,39 +1,38 @@
 # Công việc hiện tại
 
-Cập nhật: 2026-07-27
+Cập nhật: 2026-07-28
 
 ## Mục tiêu vòng
 
-Tao PR dieu phoi hau Moc 4 de ghi nhan PR #16 da merge bang merge commit `67d09c85a3f3fef855b536172e43966a3269d5ce` va CI post-merge main #355 da dat.
+Tạo PR điều phối hậu gộp PR #21 để ghi nhận merge commit `ae807ee1ae06d81b655b8a4961673a4d9ebd629c` và CI post-merge main #379 đã đạt. Chỉ cập nhật tài liệu điều phối; chưa chạy lại Mốc 4 và chưa triển khai Mốc 5.
 
 ## Nền
 
 - Repository: `Tienkhoaa2908/vn-quant-system`.
-- Main bat buoc: `67d09c85a3f3fef855b536172e43966a3269d5ce`.
-- PR #16: merged bang merge commit `67d09c85a3f3fef855b536172e43966a3269d5ce`.
-- CI main: workflow `kiem_tra_tu_dong`, run #355, Run ID `30281747970`, Ubuntu Job `90029586084`, Windows Job `90029585961`, completed/success.
-- PR #13 va PR #14: closed, unmerged, da duoc PR #16 thay the.
+- Main bắt buộc: `ae807ee1ae06d81b655b8a4961673a4d9ebd629c`.
+- PR #21: merged bằng merge commit `ae807ee1ae06d81b655b8a4961673a4d9ebd629c`.
+- CI main: workflow `kiem_tra_tu_dong`, run #379, Run ID `30341585611`, Ubuntu Job `90218164153`, Windows Job `90218164026`, completed/success.
+- PR #20 vẫn Open/Draft và không bị sửa.
 
 ## Phạm vi
 
-1. Noi QD-0064 vao `DECISIONS.md`.
-2. Cap nhat dung bon tai lieu dieu phoi con lai ve current state sau merge.
-3. Chi thay doi dung nam tai lieu duoc phep.
-4. Khong sua code, test, workflow, README, dac ta/kien truc Moc 4, dependency hoac lockfile.
-5. Khong chay lai Tier A, du lieu that hoac pipeline.
-6. Khong mo Tier B, LightGBM, SSI hoac Moc 5.
+1. Cập nhật đúng bốn tài liệu điều phối bắt buộc.
+2. Ghi nhận PR #21 đã gộp và CI hậu gộp trên `main` đã đạt.
+3. Chỉ mở bước chuẩn bị chạy lại Mốc 4 kỹ thuật trên tập rộng.
+4. Không sửa code, test, workflow, dependency, lockfile hoặc dữ liệu vận hành.
+5. Không chạy pipeline, không huấn luyện và không backtest trong vòng này.
+6. Không triển khai Mốc 5; PR #20 tiếp tục tạm dừng.
 
 ## Cửa hoàn tất
 
-- Diff chi co dung nam tai lieu duoc phep.
-- QD-0063 va QD-0064 cung ton tai.
-- Diff ky thuat so voi `67d09c85a3f3fef855b536172e43966a3269d5ce` bang 0.
-- Mot commit duy nhat `chot Moc 4 sau merge va CI main`.
-- PR moi Open, Draft, chua merge.
+- Diff chỉ có đúng bốn tài liệu điều phối.
+- Merge commit PR #21 và CI main #379 được ghi chính xác.
+- Cửa nghiên cứu chính thức tiếp tục `FAIL`.
+- PR điều phối mới Open/Draft/chưa merge.
 
 ## Cấm hiện hành
 
-Khong force-push, amend, squash hoac merge PR moi. Khong research claim; khong dien giai NAV/AUC/Sharpe thanh hieu qua dau tu.
+Không force-push, amend, squash hoặc merge PR mới. Không research claim; không diễn giải publication hoặc chỉ số Mốc 4 thành hiệu quả đầu tư.
 
 ## Cap nhat QD-0061: contract benchmark close-only
 
@@ -186,3 +185,12 @@ tuc, chua doi chieu HOSE EOD, kiem ke corporate actions chua day du va price
 basis chua xac nhan. Khong duoc dien giai publication thanh bang chung alpha,
 hieu qua mo hinh, hieu qua dau tu, tin hieu van hanh hay khuyen nghi giao dich.
 Moc 4 chua chay lai; Moc 5 chua trien khai.
+
+## Công việc hiện hành sau gộp PR #21
+
+- PR #21 đã merge tại `ae807ee1ae06d81b655b8a4961673a4d9ebd629c`.
+- CI hậu gộp main #379 / Run ID `30341585611` đã `completed/success` trên Ubuntu và Windows.
+- Việc tiếp theo chỉ là chuẩn bị đặc tả vận hành cho lần chạy lại Mốc 4 kỹ thuật trên tập rộng.
+- Chưa được chạy pipeline, huấn luyện, xếp hạng hoặc backtest cho tới khi có vòng chuyên trách và cửa đầu vào riêng.
+- PR #20 giữ Open/Draft; Mốc 5 tiếp tục tạm dừng.
+- Cửa nghiên cứu chính thức vẫn `FAIL`: membership PIT chưa liên tục, HOSE EOD chưa đối chiếu đạt, corporate actions chưa đầy đủ và price basis chưa xác nhận.
