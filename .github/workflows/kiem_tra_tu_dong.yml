@@ -9,6 +9,9 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   kiem_tra_ubuntu:
     runs-on: ubuntu-24.04
