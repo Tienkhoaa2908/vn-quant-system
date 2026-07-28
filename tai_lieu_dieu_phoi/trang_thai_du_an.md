@@ -113,3 +113,77 @@ Pipeline chay dung mot lan. External verifier ban dau tao false blocker `G2B2_NO
 - Khong research claim; NAV/AUC/Sharpe khong duoc dien giai thanh hieu qua dau tu, alpha, kha nang giao dich that hay khuyen nghi dau tu.
 - Tier B chua chay; khong LightGBM, SSI.
 - `MOC_5_NOT_OPENED`.
+Cap nhat: 2026-07-28
+
+## VN100 data gate — QD-0067
+
+- Repository: `Tienkhoaa2908/vn-quant-system`.
+- Branch: `du_lieu-vn100-toan-phan`.
+- PR #21: Open/Draft/chua merge.
+- 121/121 ma da co raw; 121/121 SHA-256 khop; 231.151 dong.
+- 45 ma dat OHLCV strict; 76 ma chi loi high/low.
+- 121 ma dat open/close/volume; 0 ma bi loai khoi hop dong rut gon.
+- 159 cap ma-ngay bat thuong tren 35 ngay lich.
+
+QD-0067 giu OHLCV strict lam hop dong mac dinh va phe duyet hop dong
+open/close/volume chi cho kiem tra ky thuat Moc 4. Publication rut gon bat bien,
+khong mang high/low, co raw SHA-256 va bon canh bao bat buoc.
+
+Cua nghien cuu chinh thuc van fail do membership PIT, HOSE EOD, corporate
+actions va price basis. Moc 4 tren tap 121 ma chua chay lai. Khong huan luyen,
+khong backtest. Moc 5 chua trien khai.
+
+## Publication hop dong gia rut gon VN100 ngay 2026-07-28
+
+Publication ngoai tuyen da hoan tat tren 121 raw da co, khong goi KBS, khong tai
+lai va khong sua du lieu goc:
+
+```text
+ma_lan_chay: vn100_rut_gon_20260728_38b67395
+so_du_lieu_goc: 121
+so_ma_dat: 121
+so_ma_bi_loai: 0
+tong_so_dong: 231151
+hai_lan_cong_bo_cung_byte: true
+```
+
+SHA-256 san pham:
+
+```text
+du_lieu_gia_mo_dong_khoi_luong.csv
+121cd49d401b1ba0d3a97a8f44aac0d2a9f7a7acb9b573d0fa1a2131de1545d6
+
+bao_cao_do_phu_hop_dong_rut_gon.json
+af3dd7edfd741fcd6a82d832f89fbfdc5d73701ad428f336b829f4cfdd971b92
+
+bao_cao_ma_bi_loai.json
+e46592af96417155ebcd8902bfb23f95926b7d8696bdffb77bf750d88ff6ff8d
+
+manifest.json
+88825dbd21364ef23116409b2979f885757c0a29dd1a7af8debfa1df60f0f0ef
+
+sha256.txt
+461cf6573a45746a84db7ebd2987920b19b059db931d6f0bf95cbb45ec2e8a04
+```
+
+Toan bo san pham publication va raw nam ngoai kho ma, khong duoc commit vao Git.
+
+Ngoai le do phu bat buoc:
+
+- ITA ket thuc tai `2024-09-25`;
+- BCG ket thuc tai `2025-10-08`;
+- TMS ket thuc tai `2026-07-23`;
+- DSE va VPL co lich su ngan theo ngay bat dau du lieu cua tung ma;
+- khong forward-fill va khong mang gia cuoi cung sang ngay sau;
+- khong bien thieu du lieu thanh loi suat bang 0;
+- eligibility va MA250 phai duoc danh gia theo tung cap `ma-ngay`;
+- hop 121 ma chi la union thu thap, khong phai universe co dinh dung theo moi
+  thoi diem.
+
+Publication nay chi xac nhan hop dong ky thuat open/close/volume va tinh tai lap
+byte. Cua nghien cuu chinh thuc van `FAIL` do lich su thanh phan VN100 chua lien
+tuc, chua doi chieu HOSE EOD, kiem ke corporate actions chua day du va price
+basis chua xac nhan. Khong duoc dien giai publication thanh bang chung alpha,
+hieu qua mo hinh, hieu qua dau tu, tin hieu van hanh hay khuyen nghi giao dich.
+Moc 4 chua chay lai; Moc 5 chua trien khai.
+
