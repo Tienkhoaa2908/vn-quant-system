@@ -1,15 +1,15 @@
 # Trạng thái dự án
 
-Cập nhật gần nhất: 2026-07-27
+Cập nhật gần nhất: 2026-07-28
 
 ## Kho mã nguồn
 
 - Kho: `Tienkhoaa2908/vn-quant-system`.
-- Main hien hanh: `67d09c85a3f3fef855b536172e43966a3269d5ce`.
-- PR #16 da merge bang merge commit `67d09c85a3f3fef855b536172e43966a3269d5ce`.
-- CI post-merge tren main: workflow `kiem_tra_tu_dong`, run #355, Run ID `30281747970`, `completed/success`.
-- PR #13 va PR #14 da dong, khong merge, do PR #16 thay the.
-- Mốc 4 da complete; Mốc 5 chua mo.
+- Main hiện hành: `ae807ee1ae06d81b655b8a4961673a4d9ebd629c`.
+- PR #21 đã merge bằng merge commit `ae807ee1ae06d81b655b8a4961673a4d9ebd629c`.
+- CI post-merge trên main: workflow `kiem_tra_tu_dong`, run #379, Run ID `30341585611`, `completed/success`.
+- Ubuntu Job `90218164153` và Windows Job `90218164026` đều success.
+- Mốc 4 technical rerun trên tập rộng mới chỉ được mở ở mức chuẩn bị; Mốc 5 tiếp tục tạm dừng.
 
 ## Portability công bố Mốc 4
 
@@ -118,8 +118,8 @@ Cap nhat: 2026-07-28
 ## VN100 data gate — QD-0067
 
 - Repository: `Tienkhoaa2908/vn-quant-system`.
-- Branch: `du_lieu-vn100-toan-phan`.
-- PR #21: Open/Draft/chua merge.
+- Branch triển khai đã gộp: `du_lieu-vn100-toan-phan`.
+- PR #21: merged bằng merge commit `ae807ee1ae06d81b655b8a4961673a4d9ebd629c`.
 - 121/121 ma da co raw; 121/121 SHA-256 khop; 231.151 dong.
 - 45 ma dat OHLCV strict; 76 ma chi loi high/low.
 - 121 ma dat open/close/volume; 0 ma bi loai khoi hop dong rut gon.
@@ -187,3 +187,12 @@ basis chua xac nhan. Khong duoc dien giai publication thanh bang chung alpha,
 hieu qua mo hinh, hieu qua dau tu, tin hieu van hanh hay khuyen nghi giao dich.
 Moc 4 chua chay lai; Moc 5 chua trien khai.
 
+## Trạng thái hậu gộp PR #21
+
+- `PR21_MERGED`: merge commit `ae807ee1ae06d81b655b8a4961673a4d9ebd629c`.
+- `MAIN_CI_379_SUCCESS`: workflow `kiem_tra_tu_dong`, run #379, Run ID `30341585611`, event `push`, branch `main`, `completed/success`.
+- Ubuntu Job `90218164153` và Windows Job `90218164026` đều success.
+- Hợp đồng giá rút gọn 121 mã và tính tái lập publication đã được đưa vào `main`.
+- Chỉ mở chuẩn bị chạy lại Mốc 4 kỹ thuật trên tập rộng; chưa chạy pipeline, chưa huấn luyện và chưa backtest.
+- PR #20 vẫn Open/Draft và không thay đổi; Mốc 5 tiếp tục tạm dừng.
+- Cửa nghiên cứu chính thức vẫn `FAIL` do lịch sử thành phần VN100 chưa liên tục, chưa đối chiếu HOSE EOD, hành động doanh nghiệp chưa đầy đủ và cơ sở giá chưa xác nhận.
