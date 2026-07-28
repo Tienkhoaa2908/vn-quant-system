@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import csv
 from datetime import datetime, timezone
+from decimal import Decimal
 import json
 from pathlib import Path
 import tempfile
@@ -27,6 +29,17 @@ class TestKiemToanSanPhamM4(unittest.TestCase):
                 git_commit="b" * 40,
                 thoi_diem_utc=datetime(2026, 7, 28, tzinfo=timezone.utc),
             ).thu_muc_san_pham
+            with (product / "so_cai.csv").open(encoding="utf-8", newline="") as handle:
+                ledger_rows = list(csv.DictReader(handle))
+            bad_ledger = [
+                {
+                    "chien_luoc": row["chien_luoc"], "ngay": row["ngay"],
+                    "cash": row["tien_mat_cuoi_ngay"], "diff": row["chenh_lech_doi_soat"],
+                }
+                for row in ledger_rows
+                if Decimal(row["tien_mat_cuoi_ngay"]) < 0 or Decimal(row["chenh_lech_doi_soat"]) != 0
+            ]
+            self.assertFalse(bad_ledger, bad_ledger[:5])
             ok1, audit1 = kiem_toan_san_pham(
                 thu_muc_san_pham=product, thu_muc_bao_cao=root / "audit1", ma_kiem_toan="audit_fixture",
             )
