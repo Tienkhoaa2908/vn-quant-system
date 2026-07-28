@@ -50,6 +50,7 @@ from .runner_io import (
     _doc_universe,
     _json_text,
     _signal_time,
+    _xac_thuc_benchmark_identity,
 )
 from .runner_core import (
     _benchmark_metadata_ok,
@@ -521,8 +522,9 @@ def chay_nghien_cuu_moc_4(
         "BENCHMARK_RAW_SOURCE_PHAI_GIU_BAT_BIEN",
         "KHONG_CORRECTION_OVERLAY",
         "KHONG_LIGHTGBM_KHONG_SSI_KHONG_MOC_5",
-        "KHONG_DUOC_TUYEN_BO_HIEU_QUA_CHIEN_LUOC",
     ]
+    if config.muc_dich_lan_chay == "kiem_tra_ky_thuat":
+        limitations.append("KHONG_DUOC_TUYEN_BO_HIEU_QUA_CHIEN_LUOC")
     research_gate_reasons = [
         "VN100_POINT_IN_TIME_HISTORY_INCOMPLETE",
         "HOSE_EOD_CROSSCHECK_INCOMPLETE",
