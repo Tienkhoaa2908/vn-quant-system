@@ -9,6 +9,9 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   kiem_tra_ubuntu:
     runs-on: ubuntu-24.04
@@ -93,3 +96,126 @@ jobs:
           name: phien-ban-ci-windows
           path: phien-ban-ci-windows.txt
           if-no-files-found: error
+
+  cong_bo_tai_lieu:
+    needs: [kiem_tra_ubuntu, kiem_tra_windows]
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Lay nhanh dau PR
+        uses: actions/checkout@v4
+        with:
+          ref: du_lieu-vn100-toan-phan
+          fetch-depth: 0
+      - name: Ghi nam tai lieu publication
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          paths = [
+              Path("tai_lieu/cua_du_lieu_vn100.md"),
+              Path("tai_lieu_dieu_phoi/trang_thai_du_an.md"),
+              Path("tai_lieu_dieu_phoi/cong_viec_hien_tai.md"),
+              Path("tai_lieu_dieu_phoi/ban_giao_doan_chat.md"),
+              Path("tai_lieu_dieu_phoi/ke_hoach_tong_the.md"),
+          ]
+          block = r'''
+
+## Publication hop dong gia rut gon VN100 ngay 2026-07-28
+
+Publication ngoai tuyen da hoan tat tren 121 raw da co, khong goi KBS, khong tai
+lai va khong sua du lieu goc:
+
+```text
+ma_lan_chay: vn100_rut_gon_20260728_38b67395
+so_du_lieu_goc: 121
+so_ma_dat: 121
+so_ma_bi_loai: 0
+tong_so_dong: 231151
+hai_lan_cong_bo_cung_byte: true
+```
+
+SHA-256 san pham:
+
+```text
+du_lieu_gia_mo_dong_khoi_luong.csv
+121cd49d401b1ba0d3a97a8f44aac0d2a9f7a7acb9b573d0fa1a2131de1545d6
+
+bao_cao_do_phu_hop_dong_rut_gon.json
+af3dd7edfd741fcd6a82d832f89fbfdc5d73701ad428f336b829f4cfdd971b92
+
+bao_cao_ma_bi_loai.json
+e46592af96417155ebcd8902bfb23f95926b7d8696bdffb77bf750d88ff6ff8d
+
+manifest.json
+88825dbd21364ef23116409b2979f885757c0a29dd1a7af8debfa1df60f0f0ef
+
+sha256.txt
+461cf6573a45746a84db7ebd2987920b19b059db931d6f0bf95cbb45ec2e8a04
+```
+
+Toan bo san pham publication va raw nam ngoai kho ma, khong duoc commit vao Git.
+
+Ngoai le do phu bat buoc:
+
+- ITA ket thuc tai `2024-09-25`;
+- BCG ket thuc tai `2025-10-08`;
+- TMS ket thuc tai `2026-07-23`;
+- DSE va VPL co lich su ngan theo ngay bat dau du lieu cua tung ma;
+- khong forward-fill va khong mang gia cuoi cung sang ngay sau;
+- khong bien thieu du lieu thanh loi suat bang 0;
+- eligibility va MA250 phai duoc danh gia theo tung cap `ma-ngay`;
+- hop 121 ma chi la union thu thap, khong phai universe co dinh dung theo moi
+  thoi diem.
+
+Publication nay chi xac nhan hop dong ky thuat open/close/volume va tinh tai lap
+byte. Cua nghien cuu chinh thuc van `FAIL` do lich su thanh phan VN100 chua lien
+tuc, chua doi chieu HOSE EOD, kiem ke corporate actions chua day du va price
+basis chua xac nhan. Khong duoc dien giai publication thanh bang chung alpha,
+hieu qua mo hinh, hieu qua dau tu, tin hieu van hanh hay khuyen nghi giao dich.
+Moc 4 chua chay lai; Moc 5 chua trien khai.
+'''
+          marker = "## Publication hop dong gia rut gon VN100 ngay 2026-07-28"
+          for path in paths:
+              original = path.read_text(encoding="utf-8")
+              if marker in original:
+                  raise SystemExit(f"publication block da ton tai: {path}")
+              path.write_text(original.rstrip() + block + "\n", encoding="utf-8", newline="\n")
+          PY
+          cat > /tmp/vn100-doc-sha256.txt <<'EOF'
+          9267dc0848247eb4e93d19fabe867a656f11e5f469eea8f8c46a0a8b7a9cb805  tai_lieu/cua_du_lieu_vn100.md
+          34e1ff55b539e906052e988cd0be082d5d73ea2ad302cb89fd20f798a6e55720  tai_lieu_dieu_phoi/trang_thai_du_an.md
+          22d10a79b01b0d762cab897d94a85a501e6a24d2483d16dcdd5b7e0028cee4a0  tai_lieu_dieu_phoi/cong_viec_hien_tai.md
+          877907f323a01646db340414ebbf1e59c54d44e5c22cbe23828d806c731700d3  tai_lieu_dieu_phoi/ban_giao_doan_chat.md
+          0bcc72b662250d222a2ca019ab4f86951800ded6e9f4534eee3d39e5a176210d  tai_lieu_dieu_phoi/ke_hoach_tong_the.md
+          EOF
+          sed -i 's/^          //' /tmp/vn100-doc-sha256.txt
+          sha256sum -c /tmp/vn100-doc-sha256.txt
+      - name: Don cong cu tam va tao commit
+        shell: bash
+        run: |
+          rm -f tests/test_tao_tai_lieu_publication_vn100_tam.py
+          git show 38b673950812682841fe43581dafb1d4f50f6451:.github/workflows/kiem_tra_tu_dong.yml > .github/workflows/kiem_tra_tu_dong.yml
+          rm -f .github/workflows/chuan_bi_tai_lieu_publication_vn100.yml
+          rm -f .github/VN100_PUBLICATION_TRIGGER.tmp
+          printf 'delete me to trigger final CI\n' > .github/VN100_PUBLICATION_FINAL_TRIGGER.tmp
+          git diff --check
+          git diff --name-only 38b673950812682841fe43581dafb1d4f50f6451 | sort > /tmp/actual.txt
+          cat > /tmp/expected.txt <<'EOF'
+          .github/VN100_PUBLICATION_FINAL_TRIGGER.tmp
+          tai_lieu/cua_du_lieu_vn100.md
+          tai_lieu_dieu_phoi/ban_giao_doan_chat.md
+          tai_lieu_dieu_phoi/cong_viec_hien_tai.md
+          tai_lieu_dieu_phoi/ke_hoach_tong_the.md
+          tai_lieu_dieu_phoi/trang_thai_du_an.md
+          EOF
+          sed -i 's/^          //' /tmp/expected.txt
+          diff -u /tmp/expected.txt /tmp/actual.txt
+          git config user.name "Tienkhoaa2908"
+          git config user.email "236086801+Tienkhoaa2908@users.noreply.github.com"
+          git add tai_lieu/cua_du_lieu_vn100.md tai_lieu_dieu_phoi .github/workflows/kiem_tra_tu_dong.yml
+          git add -A tests/test_tao_tai_lieu_publication_vn100_tam.py .github/workflows/chuan_bi_tai_lieu_publication_vn100.yml .github/VN100_PUBLICATION_TRIGGER.tmp .github/VN100_PUBLICATION_FINAL_TRIGGER.tmp
+          git diff --cached --check
+          git commit -m "chuan bi publication gia rut gon VN100"
+          git push origin HEAD:du_lieu-vn100-toan-phan
