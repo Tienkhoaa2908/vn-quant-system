@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+from datetime import date
 from decimal import Decimal, InvalidOperation
 import hashlib
 from io import StringIO
@@ -29,6 +30,9 @@ RESEARCH_REASONS = (
 )
 FORBIDDEN_FEATURE = "bien_do_cao_thap_chuan_hoa"
 RECONCILIATION_TOLERANCE = Decimal("1E-18")
+TOP_K = 2
+PURGE_SESSIONS = 20
+EMBARGO_SESSIONS = 0
 
 
 def _sha256(path: Path) -> str:
@@ -40,7 +44,10 @@ def _sha256(path: Path) -> str:
 
 
 def _json(path: Path) -> dict[str, object]:
-    value = json.loads(path.read_text(encoding="utf-8"))
+    value = json.loads(
+        path.read_text(encoding="utf-8"),
+        parse_constant=lambda raw: (_ for _ in ()).throw(ValueError(f"{path.name} chua {raw}")),
+    )
     if not isinstance(value, dict):
         raise ValueError(f"{path.name} phai la JSON object")
     return value
@@ -67,6 +74,29 @@ def _decimal(value: object, name: str, *, allow_empty: bool = False) -> Decimal 
     return result
 
 
+def _int(value: object, name: str) -> int:
+    text = str(value).strip()
+    if not text or not text.lstrip("-").isdigit():
+        raise ValueError(f"{name} khong phai int")
+    return int(text)
+
+
+def _date(value: object, name: str) -> date:
+    try:
+        return date.fromisoformat(str(value).strip())
+    except ValueError as exc:
+        raise ValueError(f"{name} khong dung YYYY-MM-DD") from exc
+
+
+def _bool(value: object, name: str) -> bool:
+    text = str(value).strip().lower()
+    if text == "true":
+        return True
+    if text == "false":
+        return False
+    raise ValueError(f"{name} khong phai true/false")
+
+
 def _check_manifest(root: Path, errors: list[str]) -> dict[str, object]:
     manifest = _json(root / "manifest.json")
     for key, expected in (
@@ -78,9 +108,11 @@ def _check_manifest(root: Path, errors: list[str]) -> dict[str, object]:
         if manifest.get(key) != expected:
             errors.append(f"MANIFEST_VERSION:{key}")
     files = manifest.get("files")
-    if not isinstance(files, Mapping) or set(files) != set(EXPECTED_PRODUCTS):
-        errors.append("MANIFEST_PRODUCT_SET")
+    if not isinstance(files, Mapping):
+        errors.append("MANIFEST_FILES")
         return manifest
+    if set(files) != set(EXPECTED_PRODUCTS):
+        errors.append("MANIFEST_PRODUCT_SET")
     actual_names = {path.name for path in root.iterdir() if path.is_file()}
     if actual_names != {*EXPECTED_PRODUCTS, "manifest.json"}:
         errors.append("PRODUCT_DIRECTORY_SET")
@@ -99,6 +131,7 @@ def _check_manifest(root: Path, errors: list[str]) -> dict[str, object]:
 
 def _check_config_and_metadata(root: Path, manifest: Mapping[str, object], errors: list[str]) -> int:
     config = _json(root / "cau_hinh.json")
+    report = _json(root / "bao_cao.json")
     m4 = config.get("moc_4")
     m3 = config.get("mo_phong")
     if not isinstance(m4, Mapping) or not isinstance(m3, Mapping):
@@ -117,12 +150,12 @@ def _check_config_and_metadata(root: Path, manifest: Mapping[str, object], error
         "benchmark_price_basis_confirmed": False,
         "candidate_union_is_point_in_time": False,
         "label_horizon": 20,
-        "purge_phien": 20,
-        "embargo_phien": 0,
+        "purge_phien": PURGE_SESSIONS,
+        "embargo_phien": EMBARGO_SESSIONS,
         "so_thang_train_toi_thieu": 24,
         "so_thang_validation": 6,
         "so_thang_test": 1,
-        "top_k": 2,
+        "top_k": TOP_K,
         "cua_so_thanh_khoan": 20,
         "nguong_gtgd_tb_toi_thieu": 0.0,
         "ty_le_coverage_toi_thieu": 0.0,
@@ -185,11 +218,16 @@ def _check_config_and_metadata(root: Path, manifest: Mapping[str, object], error
             errors.append(f"METADATA:{key}")
     if metadata.get("research_gate_reasons") != list(RESEARCH_REASONS):
         errors.append("METADATA:research_gate_reasons")
+    if report.get("research_gate") != "FAIL":
+        errors.append("REPORT:research_gate")
+    if report.get("research_gate_reasons") != list(RESEARCH_REASONS):
+        errors.append("REPORT:research_gate_reasons")
+
     expected_count = metadata.get("candidate_union_expected_count")
     observed_count = metadata.get("candidate_union_observed_count")
     publication_expected = metadata.get("publication_expected_symbol_count")
     publication_observed = metadata.get("publication_observed_symbol_count")
-    if not isinstance(expected_count, int) or expected_count <= 0:
+    if not isinstance(expected_count, int) or isinstance(expected_count, bool) or expected_count <= 0:
         errors.append("METADATA:candidate_union_expected_count")
         return 0
     if not (expected_count == observed_count == publication_expected == publication_observed):
@@ -210,23 +248,130 @@ def _check_features(root: Path, errors: list[str]) -> None:
         errors.append("FEATURE_COLUMNS_REDUCED")
 
 
+def _check_folds(root: Path, errors: list[str]) -> None:
+    _, rows = _csv(root / "folds.csv")
+    seen: set[str] = set()
+    previous_test_start: date | None = None
+    for row in rows:
+        fold = row.get("fold", "")
+        if not fold or fold in seen:
+            errors.append("FOLD_DUPLICATE")
+            continue
+        seen.add(fold)
+        try:
+            train_start = _date(row.get("train_tu"), f"{fold}.train_tu")
+            train_end = _date(row.get("train_den"), f"{fold}.train_den")
+            validation_start = _date(row.get("validation_tu"), f"{fold}.validation_tu")
+            validation_end = _date(row.get("validation_den"), f"{fold}.validation_den")
+            test_start = _date(row.get("test_tu"), f"{fold}.test_tu")
+            test_end = _date(row.get("test_den"), f"{fold}.test_den")
+            cutoff_train = _date(row.get("cutoff_train"), f"{fold}.cutoff_train")
+            cutoff_validation = _date(row.get("cutoff_validation"), f"{fold}.cutoff_validation")
+            cutoff_refit = _date(row.get("cutoff_refit"), f"{fold}.cutoff_refit")
+        except ValueError:
+            errors.append(f"FOLD_DATE:{fold}")
+            continue
+        chronology_ok = (
+            train_start <= train_end < cutoff_train < validation_start
+            <= validation_end < cutoff_validation < test_start <= test_end
+            and validation_end < cutoff_refit < test_start
+            and cutoff_validation == cutoff_refit
+        )
+        if not chronology_ok:
+            errors.append(f"FOLD_CHRONOLOGY:{fold}")
+        if previous_test_start is not None and test_start <= previous_test_start:
+            errors.append(f"FOLD_TEST_ORDER:{fold}")
+        previous_test_start = test_start
+        try:
+            purge = _int(row.get("so_phien_purge"), f"{fold}.so_phien_purge")
+            embargo = _int(row.get("so_phien_embargo"), f"{fold}.so_phien_embargo")
+        except ValueError:
+            errors.append(f"FOLD_PURGE_EMBARGO_TYPE:{fold}")
+            continue
+        if purge != PURGE_SESSIONS:
+            errors.append(f"FOLD_PURGE:{fold}")
+        if embargo != EMBARGO_SESSIONS:
+            errors.append(f"FOLD_EMBARGO:{fold}")
+
+
+def _check_predictions(root: Path, errors: list[str]) -> None:
+    _, rows = _csv(root / "du_doan.csv")
+    seen: set[tuple[str, str, str, str, str]] = set()
+    for row in rows:
+        key = (
+            row.get("fold", ""), row.get("model_id", ""), row.get("vai_tro_du_lieu", ""),
+            row.get("ngay", ""), row.get("ma", ""),
+        )
+        if key in seen:
+            errors.append(f"PREDICTION_DUPLICATE:{'|'.join(key)}")
+        seen.add(key)
+        try:
+            probability = _decimal(row.get("xac_suat_nhan_1"), "prediction.probability")
+        except ValueError:
+            errors.append(f"PREDICTION_PROBABILITY_TYPE:{'|'.join(key)}")
+            continue
+        assert probability is not None
+        if probability < 0 or probability > 1:
+            errors.append(f"PREDICTION_PROBABILITY_RANGE:{'|'.join(key)}")
+
+
 def _check_ranking(root: Path, errors: list[str]) -> None:
     _, rows = _csv(root / "xep_hang.csv")
     groups: dict[tuple[str, str], list[dict[str, str]]] = {}
     for row in rows:
-        groups.setdefault((row["chien_luoc"], row["ngay"]), []).append(row)
+        groups.setdefault((row.get("chien_luoc", ""), row.get("ngay", "")), []).append(row)
     for key, items in groups.items():
-        expected = sorted(items, key=lambda row: (-float(row["diem"]), row["ma"]))
-        for index, row in enumerate(expected, 1):
-            if int(row["thu_hang"]) != index:
-                errors.append(f"RANK_ORDER:{key}")
+        parsed: list[tuple[dict[str, str], Decimal, int]] = []
+        symbols: set[str] = set()
+        invalid = False
+        for row in items:
+            symbol = row.get("ma", "")
+            if not symbol or symbol in symbols:
+                errors.append(f"RANK_DUPLICATE_SYMBOL:{key}")
+                invalid = True
+                continue
+            symbols.add(symbol)
+            try:
+                score = _decimal(row.get("diem"), "ranking.score")
+                rank = _int(row.get("thu_hang"), "ranking.rank")
+            except ValueError:
+                errors.append(f"RANK_VALUE_TYPE:{key}")
+                invalid = True
+                continue
+            assert score is not None
+            parsed.append((row, score, rank))
+        if invalid or not parsed:
+            continue
+        expected = sorted(parsed, key=lambda item: (-item[1], item[0]["ma"]))
+        actual = sorted(parsed, key=lambda item: item[2])
+        if [item[2] for item in actual] != list(range(1, len(actual) + 1)):
+            errors.append(f"RANK_SEQUENCE:{key}")
+        if [item[0]["ma"] for item in actual] != [item[0]["ma"] for item in expected]:
+            expected_by_score: dict[Decimal, list[str]] = {}
+            actual_by_score: dict[Decimal, list[str]] = {}
+            for row, score, _ in expected:
+                expected_by_score.setdefault(score, []).append(row["ma"])
+            for row, score, _ in actual:
+                actual_by_score.setdefault(score, []).append(row["ma"])
+            tie_error = any(
+                len(symbols_at_score) > 1
+                and actual_by_score.get(score) != symbols_at_score
+                for score, symbols_at_score in expected_by_score.items()
+            )
+            errors.append(f"RANK_TIE_BREAK:{key}" if tie_error else f"RANK_ORDER:{key}")
+        for index, (row, _, rank) in enumerate(actual, 1):
+            try:
+                selected = _bool(row.get("duoc_chon"), "ranking.selected")
+                weight = _decimal(row.get("ty_trong_muc_tieu"), "ranking.weight")
+            except ValueError:
+                errors.append(f"RANK_SELECTION_TYPE:{key}")
                 break
-            selected = row["duoc_chon"] == "true"
-            if selected != (index <= 2):
+            expected_selected = index <= min(TOP_K, len(actual))
+            if selected != expected_selected or rank != index:
                 errors.append(f"RANK_TOP_K:{key}")
                 break
-            expected_weight = Decimal("0.5") if selected else Decimal("0")
-            if _decimal(row["ty_trong_muc_tieu"], "ranking.weight") != expected_weight:
+            expected_weight = Decimal("1") / Decimal(TOP_K) if selected else Decimal("0")
+            if weight != expected_weight:
                 errors.append(f"RANK_WEIGHT:{key}")
                 break
 
@@ -243,58 +388,104 @@ def _check_backtest(root: Path, errors: list[str]) -> list[dict[str, object]]:
     nav_by_key: dict[tuple[str, str], Decimal] = {}
     nav_dates: dict[str, list[str]] = {}
     for row in nav_rows:
-        nav = _decimal(row["nav"], "nav")
-        cash = _decimal(row["tien_mat"], "nav.cash")
+        try:
+            nav = _decimal(row.get("nav"), "nav")
+            cash = _decimal(row.get("tien_mat"), "nav.cash")
+        except ValueError:
+            errors.append("NAV_VALUE_TYPE")
+            continue
         assert nav is not None and cash is not None
-        if nav <= 0 or cash < 0:
-            errors.append("NAV_OR_CASH_NEGATIVE")
-        key = (row["chien_luoc"], row["ngay"])
+        if nav <= 0:
+            errors.append("NAV_NON_POSITIVE")
+        if cash < 0:
+            errors.append("CASH_NEGATIVE")
+        key = (row.get("chien_luoc", ""), row.get("ngay", ""))
         if key in nav_by_key:
             errors.append("NAV_DUPLICATE")
         nav_by_key[key] = nav
-        nav_dates.setdefault(row["chien_luoc"], []).append(row["ngay"])
-    for strategy in nav_dates:
-        nav_dates[strategy] = sorted(set(nav_dates[strategy]))
+        nav_dates.setdefault(key[0], []).append(key[1])
+    for strategy, dates in nav_dates.items():
+        if dates != sorted(dates) or len(dates) != len(set(dates)):
+            errors.append(f"NAV_DATE_ORDER:{strategy}")
+        nav_dates[strategy] = sorted(set(dates))
+
     reconciliation: list[dict[str, object]] = []
+    ledger_keys: set[tuple[str, str]] = set()
     for row in ledger_rows:
-        key = (row["chien_luoc"], row["ngay"])
-        ledger_nav = _decimal(row["nav"], "ledger.nav")
-        cash = _decimal(row["tien_mat_cuoi_ngay"], "ledger.cash")
-        diff = _decimal(row["chenh_lech_doi_soat"], "ledger.reconciliation")
-        assert ledger_nav is not None and cash is not None and diff is not None
+        key = (row.get("chien_luoc", ""), row.get("ngay", ""))
+        if key in ledger_keys:
+            errors.append("LEDGER_DUPLICATE")
+        ledger_keys.add(key)
+        try:
+            ledger_nav = _decimal(row.get("nav"), "ledger.nav")
+            cash = _decimal(row.get("tien_mat_cuoi_ngay"), "ledger.cash")
+            difference = _decimal(row.get("chenh_lech_doi_soat"), "ledger.reconciliation")
+        except ValueError:
+            errors.append("LEDGER_VALUE_TYPE")
+            continue
+        assert ledger_nav is not None and cash is not None and difference is not None
         nav = nav_by_key.get(key)
         if nav is None or nav != ledger_nav:
             errors.append("NAV_LEDGER_MISMATCH")
-        if cash < 0 or abs(diff) > RECONCILIATION_TOLERANCE:
-            errors.append("LEDGER_INVALID")
+        if cash < 0:
+            errors.append("CASH_NEGATIVE")
+        if abs(difference) > RECONCILIATION_TOLERANCE:
+            errors.append("RECONCILIATION_TOLERANCE_EXCEEDED")
         reconciliation.append({
             "chien_luoc": key[0], "ngay": key[1], "nav": str(nav or ""),
-            "nav_so_cai": str(ledger_nav), "chenh_lech": str((nav - ledger_nav) if nav is not None else ""),
+            "nav_so_cai": str(ledger_nav),
+            "chenh_lech": str((nav - ledger_nav) if nav is not None else ""),
         })
+    if set(nav_by_key) != ledger_keys:
+        errors.append("NAV_LEDGER_KEY_SET")
+
     for row in position_rows:
-        quantity = _decimal(row["so_luong"], "position.quantity")
-        value = _decimal(row["gia_tri_thi_truong"], "position.value")
+        try:
+            quantity = _decimal(row.get("so_luong"), "position.quantity")
+            value = _decimal(row.get("gia_tri_thi_truong"), "position.value")
+        except ValueError:
+            errors.append("POSITION_VALUE_TYPE")
+            continue
         assert quantity is not None and value is not None
         if quantity < 0 or value < 0:
             errors.append("POSITION_NEGATIVE")
     for row in fill_rows:
-        quantity = _decimal(row["so_luong"], "fill.quantity")
-        price = _decimal(row["gia_khop"], "fill.price")
+        try:
+            quantity = _decimal(row.get("so_luong"), "fill.quantity")
+            price = _decimal(row.get("gia_khop"), "fill.price")
+        except ValueError:
+            errors.append("FILL_VALUE_TYPE")
+            continue
         assert quantity is not None and price is not None
         if quantity <= 0 or price <= 0:
             errors.append("FILL_INVALID")
+
+    orders: dict[tuple[str, str], dict[str, str]] = {}
     for row in order_rows:
-        execution = row["ngay_thuc_thi"]
+        order_key = (row.get("chien_luoc", ""), row.get("ma_lenh", ""))
+        if order_key in orders:
+            errors.append("ORDER_DUPLICATE")
+        orders[order_key] = row
+        execution = row.get("ngay_thuc_thi", "")
         if not execution:
             continue
-        dates = nav_dates.get(row["chien_luoc"], [])
+        dates = nav_dates.get(row.get("chien_luoc", ""), [])
+        signal = row.get("ngay_tin_hieu", "")
         try:
-            index = dates.index(row["ngay_tin_hieu"])
+            index = dates.index(signal)
         except ValueError:
             errors.append("ORDER_SIGNAL_NOT_IN_NAV")
             continue
         if index + 1 >= len(dates) or execution != dates[index + 1]:
             errors.append("ORDER_NOT_EXACT_T1")
+    for row in fill_rows:
+        key = (row.get("chien_luoc", ""), row.get("ma_lenh", ""))
+        order = orders.get(key)
+        if order is None:
+            errors.append("FILL_WITHOUT_ORDER")
+        elif row.get("ngay_khop", "") != order.get("ngay_thuc_thi", ""):
+            errors.append("FILL_EXECUTION_DATE_MISMATCH")
+
     reconciliation.sort(key=lambda row: (str(row["chien_luoc"]), str(row["ngay"])))
     return reconciliation
 
@@ -343,12 +534,19 @@ def kiem_toan_san_pham(
     ma_kiem_toan: str,
 ) -> tuple[bool, Path]:
     root = Path(thu_muc_san_pham)
+    destination = Path(thu_muc_bao_cao)
+    if destination.exists():
+        raise FileExistsError("Khong ghi de thu muc audit")
+    if not ma_kiem_toan or "/" in ma_kiem_toan or "\\" in ma_kiem_toan:
+        raise ValueError("ma_kiem_toan khong hop le")
     errors: list[str] = []
     reconciliation: list[dict[str, object]] = []
     try:
         manifest = _check_manifest(root, errors)
         expected_count = _check_config_and_metadata(root, manifest, errors)
         _check_features(root, errors)
+        _check_folds(root, errors)
+        _check_predictions(root, errors)
         _check_ranking(root, errors)
         reconciliation = _check_backtest(root, errors)
     except Exception as exc:
@@ -367,13 +565,17 @@ def kiem_toan_san_pham(
         "huan_luyen_lai": False,
         "san_pham_bi_sua": False,
     }
-    report = (json.dumps(report_obj, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8")
-    destination = _publish(Path(thu_muc_bao_cao), report, _csv_text(reconciliation))
-    return passed, destination
+    report = (
+        json.dumps(report_obj, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n"
+    ).encode("utf-8")
+    published = _publish(destination, report, _csv_text(reconciliation))
+    return passed, published
 
 
 def tao_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="python -m he_thong_dinh_luong.nghien_cuu_moc_4.kiem_toan_san_pham")
+    parser = argparse.ArgumentParser(
+        prog="python -m he_thong_dinh_luong.nghien_cuu_moc_4.kiem_toan_san_pham"
+    )
     parser.add_argument("--thu-muc-san-pham", type=Path, required=True)
     parser.add_argument("--thu-muc-bao-cao", type=Path, required=True)
     parser.add_argument("--ma-kiem-toan", required=True)
@@ -387,7 +589,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         thu_muc_bao_cao=args.thu_muc_bao_cao,
         ma_kiem_toan=args.ma_kiem_toan,
     )
-    print(json.dumps({"hop_le": passed, "thu_muc_bao_cao": str(destination)}, ensure_ascii=False, sort_keys=True))
+    print(json.dumps({
+        "hop_le": passed, "thu_muc_bao_cao": str(destination),
+    }, ensure_ascii=False, sort_keys=True))
     return 0 if passed else 2
 
 
