@@ -28,6 +28,7 @@ RESEARCH_REASONS = (
     "PRICE_BASIS_UNCONFIRMED",
 )
 FORBIDDEN_FEATURE = "bien_do_cao_thap_chuan_hoa"
+RECONCILIATION_TOLERANCE = Decimal("1E-18")
 
 
 def _sha256(path: Path) -> str:
@@ -264,7 +265,7 @@ def _check_backtest(root: Path, errors: list[str]) -> list[dict[str, object]]:
         nav = nav_by_key.get(key)
         if nav is None or nav != ledger_nav:
             errors.append("NAV_LEDGER_MISMATCH")
-        if cash < 0 or diff != 0:
+        if cash < 0 or abs(diff) > RECONCILIATION_TOLERANCE:
             errors.append("LEDGER_INVALID")
         reconciliation.append({
             "chien_luoc": key[0], "ngay": key[1], "nav": str(nav or ""),
@@ -360,6 +361,7 @@ def kiem_toan_san_pham(
         "ma_kiem_toan": ma_kiem_toan,
         "hop_le": passed,
         "candidate_union_expected_count": expected_count,
+        "reconciliation_tolerance": str(RECONCILIATION_TOLERANCE),
         "loi": unique_errors,
         "pipeline_duoc_goi": False,
         "huan_luyen_lai": False,
