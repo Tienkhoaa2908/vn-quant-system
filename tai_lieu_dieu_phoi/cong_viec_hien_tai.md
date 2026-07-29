@@ -1,6 +1,47 @@
 # Công việc hiện tại
 
-Cập nhật: 2026-07-28
+Cập nhật: 2026-07-29
+
+## Mục tiêu vòng 01E
+
+Đóng cửa điều phối hậu gộp PR #23 và ghi nhận lần chạy lại kỹ thuật Mốc 4 trên tập rộng. Vòng này chỉ cập nhật bốn tài liệu điều phối; không sửa mã, kiểm thử, workflow, dependency, lockfile, PR #20 hoặc mã Mốc 5.
+
+## Nền bắt buộc
+
+- Repository: `Tienkhoaa2908/vn-quant-system`.
+- Base chính xác: `3ff2ed3c8b18eebd9095e9af182b004f4d0aee67`.
+- PR #23 đã merge bằng merge commit `3ff2ed3c8b18eebd9095e9af182b004f4d0aee67`; head đã gộp `f813cd3cda4c0129f53deb9ffb8a9a42f18b5220`.
+- CI hậu gộp `main`: Run ID `30436034585`, Ubuntu Job `90523874732`, Windows Job `90523875099`, đều thành công.
+
+## Kết quả chạy rộng đã khóa
+
+- Nguồn: `121` mã, `231151` dòng.
+- `120` mã có dự báo; `TMS` bị loại có kiểm soát do thiếu lịch sử đặc trưng bắt buộc.
+- `36` fold, `34` fold thành công.
+- `fold_035` và `fold_036` có `test_rong` tại biên cuối dữ liệu vì thiếu `20` phiên tương lai để tạo nhãn.
+- `3840` dự báo Logistic và `3840` dự báo động lượng.
+- `23` tệp sản phẩm.
+- Hai lượt kiểm toán độc lập đều đạt và giống nhau tuyệt đối theo byte/SHA-256.
+- Đầu vào không đổi trước và sau chạy.
+- Logistic chỉ là đường chuẩn kỹ thuật và yếu hơn động lượng trong lần chạy này.
+- Cấm diễn giải thành alpha, tín hiệu vận hành, khả năng giao dịch thực hoặc khuyến nghị đầu tư.
+
+## Cửa nghiên cứu và Mốc 5
+
+- `RESEARCH_GATE=FAIL`.
+- `VN100_POINT_IN_TIME_HISTORY_INCOMPLETE`.
+- `HOSE_EOD_CROSSCHECK_INCOMPLETE`.
+- `CORPORATE_ACTION_INVENTORY_INCOMPLETE`.
+- `PRICE_BASIS_UNCONFIRMED`.
+- Mốc 5 tiếp tục tạm dừng; PR #20 không bị sửa; không triển khai mã Mốc 5.
+
+## Cửa hoàn tất vòng 01E
+
+- Net diff chỉ có đúng bốn tài liệu điều phối.
+- Kiểm tra ngoại tuyến đầy đủ đạt.
+- Nhánh `dieu_phoi-hau-gop-pr23` được đẩy từ đúng base.
+- PR mới phải giữ Open/Draft/chưa merge.
+- Không squash, không rebase, không merge `main`.
 
 ## Mục tiêu vòng
 
