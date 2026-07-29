@@ -1,5 +1,20 @@
 # Kế hoạch tổng thể
 
+Cập nhật: 2026-07-29
+
+## Điểm kiểm soát hiện hành sau gộp PR #23
+
+- PR #23 đã gộp bằng merge commit `3ff2ed3c8b18eebd9095e9af182b004f4d0aee67`; head đã gộp `f813cd3cda4c0129f53deb9ffb8a9a42f18b5220`.
+- CI hậu gộp `main` đã đạt: Run ID `30436034585`, Ubuntu Job `90523874732`, Windows Job `90523875099`.
+- Lần chạy lại kỹ thuật Mốc 4 trên tập rộng đã hoàn tất với `121` mã nguồn, `231151` dòng, `120` mã có dự báo và `TMS` bị loại có kiểm soát do thiếu lịch sử đặc trưng.
+- Có `36` fold, `34` fold thành công; `fold_035` và `fold_036` có `test_rong` tại biên cuối dữ liệu vì thiếu `20` phiên tương lai.
+- Có `3840` dự báo Logistic, `3840` dự báo động lượng và đúng `23` tệp sản phẩm.
+- Hai lượt kiểm toán độc lập đều đạt và giống nhau theo byte/SHA-256; đầu vào không đổi trước và sau chạy.
+- Logistic chỉ là đường chuẩn kỹ thuật và yếu hơn động lượng trong lần chạy này.
+- Không được diễn giải thành alpha, tín hiệu vận hành, khả năng giao dịch thực hoặc khuyến nghị đầu tư.
+- `RESEARCH_GATE=FAIL`; giữ nguyên `VN100_POINT_IN_TIME_HISTORY_INCOMPLETE`, `HOSE_EOD_CROSSCHECK_INCOMPLETE`, `CORPORATE_ACTION_INVENTORY_INCOMPLETE`, `PRICE_BASIS_UNCONFIRMED`.
+- Mốc 5 tiếp tục tạm dừng; PR #20 không bị sửa; không triển khai mã Mốc 5.
+
 ## Mốc 0 — Nền tảng và kiểm tra dữ liệu
 
 Trạng thái: **đã hoàn thành và đã gộp**.
