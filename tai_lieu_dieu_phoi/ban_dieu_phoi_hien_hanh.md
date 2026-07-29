@@ -79,8 +79,10 @@ Không tiếp tục phát prompt thử tải raw trong cùng môi trường. Raw
 DATA-EVIDENCE-BATCH-01
 branch: data-evidence-batch-01
 pull_request: 28
-state: OPEN_DRAFT_UNMERGED
+state: OPEN_READY_UNMERGED
 base: 60779f0607f00d32bc499fb4ca2f7797dfbb0870
+verified_ci_run: 30462309283
+verified_ci_conclusion: success
 ```
 
 Outcome:
@@ -110,7 +112,21 @@ một manifest
 - runbook một lệnh;
 - negative/boundary tests.
 
-## 7. Corpus acquisition batch 01
+## 7. CI PR #28
+
+```text
+workflow: kiem_tra_tu_dong
+run_number: 418
+run_id: 30462309283
+ubuntu_job: 90611234969
+ubuntu_tests: 406
+ubuntu_result: success
+windows_job: 90611235250
+windows_tests: 406
+windows_result: success
+```
+
+## 8. Corpus acquisition batch 01
 
 ```text
 RB HOSE-Index 4.0 — required
@@ -123,7 +139,7 @@ Các URL trong manifest phải là URL đã quan sát. Không suy direct attachm
 
 Batch này không khóa research range và không nâng Tier 2 thành canonical.
 
-## 8. Cửa PR #28
+## 9. Cửa PR #28
 
 PR chỉ được nghiệm thu khi:
 
@@ -136,7 +152,9 @@ PR chỉ được nghiệm thu khi:
 - PR #20 không thay đổi;
 - Mốc 5 không mở.
 
-## 9. Next gate duy nhất
+Các cửa kỹ thuật trên đã đạt ở CI #418. PR vẫn phải merge bằng quyết định của đoạn `00`.
+
+## 10. Next gate duy nhất
 
 Sau khi PR #28 merge, chạy đúng một batch command trên workstation và gửi metadata evidence ZIP hoặc batch summary cùng SHA-256.
 
