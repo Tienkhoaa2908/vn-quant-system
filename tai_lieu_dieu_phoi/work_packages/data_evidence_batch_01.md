@@ -1,12 +1,15 @@
 # DATA-EVIDENCE-BATCH-01
 
-Trạng thái: `IMPLEMENTED_PENDING_CI`
+Trạng thái: `READY_FOR_REVIEW`
 
 Anchor:
 
 ```text
 main: 60779f0607f00d32bc499fb4ca2f7797dfbb0870
 last_merged_pr: 27
+active_pr: 28
+verified_ci_run: 30462309283
+verified_ci_conclusion: success
 ```
 
 ## 1. Outcome
@@ -96,8 +99,20 @@ Một tài liệu chỉ được `ACQUIRED` sau khi:
 
 ### CI
 
-- full regression Ubuntu;
-- full regression Windows;
+```text
+workflow: kiem_tra_tu_dong
+run_number: 418
+run_id: 30462309283
+ubuntu_job: 90611234969
+ubuntu_tests: 406
+ubuntu_result: success
+windows_job: 90611235250
+windows_tests: 406
+windows_result: success
+```
+
+- full regression Ubuntu đạt;
+- full regression Windows đạt;
 - không dependency/workflow/lockfile change.
 
 ### Safety
