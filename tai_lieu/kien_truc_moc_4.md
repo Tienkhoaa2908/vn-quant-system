@@ -641,3 +641,72 @@ Pipeline chay dung mot lan. External verifier ban dau tao false blocker `G2B2_NO
 - PR #13 va PR #14 tiep tuc Open/Draft cho toi khi CI cuoi cua PR #16 duoc xac minh.
 - PR #16 tiep tuc Open/Draft, chua Ready va chua merge.
 - Tier B va Moc 5 chua mo.
+
+## 31. Kien truc dual-contract, publication v2 va auditor v1
+
+### 31.1 Bien hop dong
+
+Parser co hai entry path khong giao nhau. `strict_ohlcv` tiep tuc doc schema
+OHLCV va universe PIT cu. `reduced_open_close_volume_v1` chi doc publication
+reduced khi config opt-in; truyen `--ohlcv`/`--universe` vao reduced path bi tu
+choi, va truyen reduced publication vao strict path cung bi tu choi. Khong co
+schema sniffing.
+
+Reduced path dung `technical_candidate_union_v1`, mot candidate union khong PIT.
+Profile `technical_candidate_union_121` la metadata cua lan chay hien tai, khong
+phai constant runtime. Parser doi soat expected symbol/row counts tu profile,
+coverage va publication manifest voi observed CSV counts.
+
+### 31.2 Feature graph
+
+Strict graph giu 24 feature. Reduced graph dung cung code close-only cho 23
+feature va bo duy nhat node `bien_do_cao_thap_chuan_hoa`. Khong co node thay
+the, high/low synthetic, fill-forward hay fallback. Eligibility theo cap
+ma-ngay duoc tinh tu bar T, lich su exact-session, MA250/feature, liquidity
+`close * volume` va open dung T+1.
+
+### 31.3 Typed price-basis boundary
+
+`cau_hinh_mo_phong` co ba trang thai hop le:
+
+```text
+dieu_chinh
+khong_dieu_chinh
+CHUA_XAC_NHAN
+```
+
+Trang thai thu ba khong anh xa sang hai trang thai dau. Reduced adapter tao
+`cau_hinh_mo_phong` truc tiep qua validation chinh thuc; khong dung
+`SimpleNamespace` hay object duck-typed. Engine kiem tra dung kieu
+`cau_hinh_mo_phong` va fail closed neu danh sach corporate action khong rong khi
+basis la `CHUA_XAC_NHAN`. Stock basis va benchmark basis di qua hai metadata
+channel rieng; khong co equality constraint.
+
+### 31.4 Publication v2
+
+Publisher v2 mo rong 16 product v1 bang sau bang chi tiet backtest:
+`lenh.csv`, `khop_lenh.csv`, `so_cai.csv`, `vi_the.csv`, `nav.csv` va
+`su_kien_da_ap_dung.csv`. Tong tap publication la 22 product cong
+`manifest.json`, tuc 23 tep. Ghi tep theo create-only, fsync, staging cung
+filesystem va atomic replace; destination ton tai thi fail closed.
+
+### 31.5 Auditor process boundary
+
+Auditor v1 la module stdlib-only va khong co import dependency den runner,
+logistic trainer, adapter backtest hay engine. No doc product bytes va manifest,
+kiem tra hash/size va cac invariant ngu nghia, roi ghi mot publication audit moi
+ben ngoai thu muc product. Auditor khong thay doi input. Test guard AST/import va
+mock call bat buoc fail neu pipeline, trainer hay backtest bi import/goi.
+
+Hai audit cung product va audit ID tao cung JSON, CSV doi soat va `sha256.txt`.
+Ma tran am bao gom product set/hash, fold/purge/embargo, prediction, ranking va
+tie-break, top-k/weight, exact T+1, cash/position, NAV-ledger, reconciliation,
+research gate va existing destination.
+
+### 31.6 Research boundary
+
+Moi reduced publication ghi `research_gate=FAIL` va
+`PRICE_BASIS_UNCONFIRMED`. Output khong duoc chuyen thanh operational signal,
+trading recommendation, alpha claim hay research conclusion. Strict contract
+khong bi thay doi boi bien kien truc reduced nay.
+

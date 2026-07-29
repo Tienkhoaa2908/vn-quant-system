@@ -11,9 +11,16 @@ from .phong_ve import xac_thuc_cau_truc_huu_han, xac_thuc_so_huu_han
 MUC_DICH_HOP_LE = {"kiem_tra_ky_thuat", "nghien_cuu"}
 TAN_SUAT_MAU_HOP_LE = {"cuoi_thang"}
 CO_SO_GIA_HOP_LE = {"gia_dieu_chinh", "gia_khong_dieu_chinh"}
+STOCK_PRICE_BASIS_CHUA_XAC_NHAN = "CHUA_XAC_NHAN"
+PRICE_CONTRACT_STRICT = "strict_ohlcv"
+PRICE_CONTRACT_REDUCED = "reduced_open_close_volume_v1"
+UNIVERSE_CONTRACT_PIT = "pit_membership_v1"
+UNIVERSE_CONTRACT_TECHNICAL = "technical_candidate_union_v1"
+BENCHMARK_CONTRACT = "close_only"
+BENCHMARK_UNIT = "index_points"
+PRICE_BASIS_UNCONFIRMED = "PRICE_BASIS_UNCONFIRMED"
 VAI_TRO_HOP_LE = {"train", "validation", "refit_train_validation", "test"}
 VAI_TRO_DU_DOAN_HOP_LE = {"validation", "test"}
-BENCHMARK_CONTRACT = "close_only"
 CANH_BAO_BENCHMARK_CLOSE_ONLY = "BENCHMARK_CLOSE_ONLY"
 CANH_BAO_BENCHMARK_SEMANTICS = "BENCHMARK_OHLC_SEMANTICS_CHUA_XAC_NHAN"
 
@@ -24,6 +31,16 @@ class ThanhCoGiaDongCua(Protocol):
     ma: str
     ngay: date
     gia_dong_cua: float
+
+
+class ThanhGiaCoPhieu(ThanhCoGiaDongCua, Protocol):
+    """Giao dien toi thieu cho feature, eligibility va open T+1."""
+
+    gia_mo_cua: float
+    khoi_luong: int
+    nguon: str
+    phien_ban: str
+    co_so_gia: str
 
 
 def xac_thuc_timestamp(value: datetime, ten: str) -> datetime:
@@ -54,6 +71,12 @@ def _str_that(value: object, ten: str) -> str:
     return value
 
 
+def _optional_str(value: object, ten: str) -> str | None:
+    if value is None:
+        return None
+    return _str_that(value, ten)
+
+
 def _float_that(value: object, ten: str) -> float:
     if not isinstance(value, (int, float)) or isinstance(value, bool):
         raise TypeError(f"{ten} phai la so; khong ep chuoi thanh so.")
@@ -77,6 +100,23 @@ def _ty_le(value: object, ten: str) -> float:
     if result > 1.0:
         raise ValueError(f"{ten} phai trong [0,1].")
     return result
+
+
+_CAU_HINH_CHUNG = {
+    "muc_dich_lan_chay", "tan_suat_mau_mo_hinh", "benchmark",
+    "corporate_actions_day_du", "label_horizon", "purge_phien", "embargo_phien",
+    "so_thang_train_toi_thieu", "so_thang_validation", "so_thang_test", "top_k",
+    "cua_so_thanh_khoan", "nguong_gtgd_tb_toi_thieu", "ty_le_coverage_toi_thieu",
+    "so_ma_eligible_toi_thieu", "feature_order", "feature_bat_buoc", "C_grid",
+    "solver", "max_iter", "class_weight", "seed", "thu_muc_dau_ra",
+}
+_CAU_HINH_LEGACY = _CAU_HINH_CHUNG | {"co_so_gia", "co_so_gia_da_xac_nhan"}
+_CAU_HINH_CONTRACT_V1 = _CAU_HINH_CHUNG | {
+    "price_contract", "universe_contract", "stock_price_basis",
+    "stock_price_basis_confirmed", "benchmark_contract", "benchmark_unit",
+    "benchmark_price_basis_confirmed", "candidate_union_name",
+    "candidate_union_expected_count", "candidate_union_is_point_in_time",
+}
 
 
 @dataclass(frozen=True)
@@ -106,19 +146,32 @@ class CauHinhMoc4:
     class_weight: None
     seed: int
     thu_muc_dau_ra: Path
+    price_contract: str = PRICE_CONTRACT_STRICT
+    universe_contract: str = UNIVERSE_CONTRACT_PIT
+    candidate_union_name: str | None = None
+    candidate_union_expected_count: int | None = None
+    candidate_union_is_point_in_time: bool | None = None
+    benchmark_contract: str = BENCHMARK_CONTRACT
+    benchmark_unit: str = BENCHMARK_UNIT
+    benchmark_price_basis_confirmed: bool = False
+    schema_hop_dong_moi: bool = False
+
+    @property
+    def stock_price_basis(self) -> str:
+        return self.co_so_gia
+
+    @property
+    def stock_price_basis_confirmed(self) -> bool:
+        return self.co_so_gia_da_xac_nhan
+
+    @property
+    def la_reduced(self) -> bool:
+        return self.price_contract == PRICE_CONTRACT_REDUCED
 
     @classmethod
     def tu_mapping(cls, data: Mapping[str, object]) -> "CauHinhMoc4":
-        expected = {
-            "muc_dich_lan_chay", "tan_suat_mau_mo_hinh", "benchmark", "co_so_gia",
-            "co_so_gia_da_xac_nhan", "corporate_actions_day_du", "label_horizon",
-            "purge_phien", "embargo_phien", "so_thang_train_toi_thieu",
-            "so_thang_validation", "so_thang_test", "top_k", "cua_so_thanh_khoan",
-            "nguong_gtgd_tb_toi_thieu", "ty_le_coverage_toi_thieu",
-            "so_ma_eligible_toi_thieu", "feature_order",
-            "feature_bat_buoc", "C_grid", "solver", "max_iter", "class_weight",
-            "seed", "thu_muc_dau_ra",
-        }
+        schema_moi = "price_contract" in data
+        expected = _CAU_HINH_CONTRACT_V1 if schema_moi else _CAU_HINH_LEGACY
         missing = sorted(expected - set(data))
         extra = sorted(set(data) - expected)
         if missing:
@@ -143,12 +196,37 @@ class CauHinhMoc4:
             raise TypeError("C_grid phai la list khong rong.")
         parsed_c = tuple(_float_that(x, "C_grid") for x in c_grid)
 
+        if schema_moi:
+            basis = _str_that(data["stock_price_basis"], "stock_price_basis")
+            basis_confirmed = _bool_that(data["stock_price_basis_confirmed"], "stock_price_basis_confirmed")
+            price_contract = _str_that(data["price_contract"], "price_contract")
+            universe_contract = _str_that(data["universe_contract"], "universe_contract")
+            candidate_name = _optional_str(data["candidate_union_name"], "candidate_union_name")
+            candidate_count_raw = data["candidate_union_expected_count"]
+            candidate_count = None if candidate_count_raw is None else _int_that(candidate_count_raw, "candidate_union_expected_count", min_value=1)
+            candidate_pit_raw = data["candidate_union_is_point_in_time"]
+            candidate_pit = None if candidate_pit_raw is None else _bool_that(candidate_pit_raw, "candidate_union_is_point_in_time")
+            benchmark_contract = _str_that(data["benchmark_contract"], "benchmark_contract")
+            benchmark_unit = _str_that(data["benchmark_unit"], "benchmark_unit")
+            benchmark_confirmed = _bool_that(data["benchmark_price_basis_confirmed"], "benchmark_price_basis_confirmed")
+        else:
+            basis = _str_that(data["co_so_gia"], "co_so_gia")
+            basis_confirmed = _bool_that(data["co_so_gia_da_xac_nhan"], "co_so_gia_da_xac_nhan")
+            price_contract = PRICE_CONTRACT_STRICT
+            universe_contract = UNIVERSE_CONTRACT_PIT
+            candidate_name = None
+            candidate_count = None
+            candidate_pit = None
+            benchmark_contract = BENCHMARK_CONTRACT
+            benchmark_unit = BENCHMARK_UNIT
+            benchmark_confirmed = False
+
         result = cls(
             muc_dich_lan_chay=_str_that(data["muc_dich_lan_chay"], "muc_dich_lan_chay"),
             tan_suat_mau_mo_hinh=_str_that(data["tan_suat_mau_mo_hinh"], "tan_suat_mau_mo_hinh"),
             benchmark=_str_that(data["benchmark"], "benchmark"),
-            co_so_gia=_str_that(data["co_so_gia"], "co_so_gia"),
-            co_so_gia_da_xac_nhan=_bool_that(data["co_so_gia_da_xac_nhan"], "co_so_gia_da_xac_nhan"),
+            co_so_gia=basis,
+            co_so_gia_da_xac_nhan=basis_confirmed,
             corporate_actions_day_du=_bool_that(data["corporate_actions_day_du"], "corporate_actions_day_du"),
             label_horizon=_int_that(data["label_horizon"], "label_horizon", min_value=1),
             purge_phien=_int_that(data["purge_phien"], "purge_phien", min_value=0),
@@ -169,6 +247,15 @@ class CauHinhMoc4:
             class_weight=data["class_weight"] if data["class_weight"] is None else (_ for _ in ()).throw(ValueError("class_weight MVP phai la null.")),
             seed=_int_that(data["seed"], "seed", min_value=0),
             thu_muc_dau_ra=Path(_str_that(data["thu_muc_dau_ra"], "thu_muc_dau_ra")),
+            price_contract=price_contract,
+            universe_contract=universe_contract,
+            candidate_union_name=candidate_name,
+            candidate_union_expected_count=candidate_count,
+            candidate_union_is_point_in_time=candidate_pit,
+            benchmark_contract=benchmark_contract,
+            benchmark_unit=benchmark_unit,
+            benchmark_price_basis_confirmed=benchmark_confirmed,
+            schema_hop_dong_moi=schema_moi,
         )
         result.xac_thuc_mvp()
         return result
@@ -180,8 +267,16 @@ class CauHinhMoc4:
             raise ValueError("MVP chi ho tro tan_suat_mau_mo_hinh=cuoi_thang.")
         if self.benchmark != "VNINDEX":
             raise ValueError("MVP khoa benchmark=VNINDEX.")
-        if self.co_so_gia not in CO_SO_GIA_HOP_LE:
-            raise ValueError("co_so_gia khong hop le.")
+        if self.price_contract not in {PRICE_CONTRACT_STRICT, PRICE_CONTRACT_REDUCED}:
+            raise ValueError("price_contract khong hop le.")
+        if self.universe_contract not in {UNIVERSE_CONTRACT_PIT, UNIVERSE_CONTRACT_TECHNICAL}:
+            raise ValueError("universe_contract khong hop le.")
+        if self.benchmark_contract != BENCHMARK_CONTRACT:
+            raise ValueError("benchmark_contract phai bang close_only.")
+        if self.benchmark_unit != BENCHMARK_UNIT:
+            raise ValueError("benchmark_unit phai bang index_points.")
+        if self.benchmark_price_basis_confirmed:
+            raise ValueError("benchmark_price_basis_confirmed phai bang false trong hop dong hien tai.")
         if self.label_horizon != 20:
             raise ValueError("MVP khoa label_horizon=20.")
         if self.purge_phien < self.label_horizon:
@@ -194,30 +289,67 @@ class CauHinhMoc4:
             raise ValueError("MVP khoa C_grid=[0.1, 1.0, 10.0].")
         if self.solver != "lbfgs" or self.max_iter != 1000 or self.seed != 20260725:
             raise ValueError("solver, max_iter hoac seed khong dung hop dong MVP.")
-        if self.muc_dich_lan_chay == "nghien_cuu":
-            if not self.co_so_gia_da_xac_nhan:
-                raise ValueError("nghien_cuu tu choi co_so_gia chua xac nhan.")
-            if self.co_so_gia == "gia_khong_dieu_chinh" and not self.corporate_actions_day_du:
-                raise ValueError("nghien_cuu gia_khong_dieu_chinh can corporate actions day du.")
+
+        if self.la_reduced:
+            from .dac_trung import FEATURE_ORDER_REDUCED_OPEN_CLOSE_VOLUME_V1
+            if self.universe_contract != UNIVERSE_CONTRACT_TECHNICAL:
+                raise ValueError("Reduced mode bat buoc universe_contract=technical_candidate_union_v1.")
+            if self.muc_dich_lan_chay != "kiem_tra_ky_thuat":
+                raise ValueError(PRICE_BASIS_UNCONFIRMED)
+            if self.co_so_gia != STOCK_PRICE_BASIS_CHUA_XAC_NHAN or self.co_so_gia_da_xac_nhan:
+                raise ValueError(PRICE_BASIS_UNCONFIRMED)
+            if self.corporate_actions_day_du:
+                raise ValueError("Reduced mode khong duoc khai bao corporate_actions_day_du=true.")
+            if not self.candidate_union_name or self.candidate_union_expected_count is None:
+                raise ValueError("Reduced mode bat buoc ho so candidate union day du.")
+            if self.candidate_union_is_point_in_time is not False:
+                raise ValueError("candidate_union_is_point_in_time phai bang false.")
+            if self.feature_order != FEATURE_ORDER_REDUCED_OPEN_CLOSE_VOLUME_V1:
+                raise ValueError("feature_order reduced khong dung 23 dac trung canonical.")
+            if self.feature_bat_buoc != FEATURE_ORDER_REDUCED_OPEN_CLOSE_VOLUME_V1:
+                raise ValueError("feature_bat_buoc reduced khong dung 23 dac trung canonical.")
+            canonical = (
+                self.purge_phien == 20 and self.embargo_phien == 0
+                and self.so_thang_train_toi_thieu == 24 and self.so_thang_validation == 6
+                and self.so_thang_test == 1 and self.top_k == 2
+                and self.cua_so_thanh_khoan == 20
+                and self.nguong_gtgd_tb_toi_thieu == 0.0
+                and self.ty_le_coverage_toi_thieu == 0.0
+                and self.so_ma_eligible_toi_thieu == 0
+            )
+            if not canonical:
+                raise ValueError("Reduced mode phai giu nguyen cau hinh canonical Moc 4.")
+        else:
+            if self.universe_contract != UNIVERSE_CONTRACT_PIT:
+                raise ValueError("strict_ohlcv bat buoc universe_contract=pit_membership_v1.")
+            if any(value is not None for value in (self.candidate_union_name, self.candidate_union_expected_count, self.candidate_union_is_point_in_time)):
+                raise ValueError("strict_ohlcv khong duoc khai bao candidate union profile.")
+            if self.co_so_gia not in CO_SO_GIA_HOP_LE:
+                raise ValueError("co_so_gia khong hop le.")
+            if self.muc_dich_lan_chay == "nghien_cuu":
+                if not self.co_so_gia_da_xac_nhan:
+                    raise ValueError("nghien_cuu tu choi co_so_gia chua xac nhan.")
+                if self.co_so_gia == "gia_khong_dieu_chinh" and not self.corporate_actions_day_du:
+                    raise ValueError("nghien_cuu gia_khong_dieu_chinh can corporate actions day du.")
 
     def canh_bao_muc_dich(self) -> tuple[str, ...]:
         warnings: list[str] = []
         if self.muc_dich_lan_chay == "kiem_tra_ky_thuat":
             warnings.append("CHI_KIEM_TRA_KY_THUAT_KHONG_KET_LUAN_HIEU_QUA")
         if not self.co_so_gia_da_xac_nhan:
-            warnings.append("CO_SO_GIA_CHUA_XAC_NHAN")
-        if self.co_so_gia == "gia_khong_dieu_chinh" and not self.corporate_actions_day_du:
+            warnings.append(PRICE_BASIS_UNCONFIRMED)
+            if not self.la_reduced:
+                warnings.append("CO_SO_GIA_CHUA_XAC_NHAN")
+        if self.la_reduced or (self.co_so_gia == "gia_khong_dieu_chinh" and not self.corporate_actions_day_du):
             warnings.append("CORPORATE_ACTIONS_CHUA_DAY_DU")
         warnings.extend((CANH_BAO_BENCHMARK_CLOSE_ONLY, CANH_BAO_BENCHMARK_SEMANTICS))
-        return tuple(warnings)
+        return tuple(dict.fromkeys(warnings))
 
     def thanh_mapping(self) -> dict[str, object]:
-        return {
+        result: dict[str, object] = {
             "muc_dich_lan_chay": self.muc_dich_lan_chay,
             "tan_suat_mau_mo_hinh": self.tan_suat_mau_mo_hinh,
             "benchmark": self.benchmark,
-            "co_so_gia": self.co_so_gia,
-            "co_so_gia_da_xac_nhan": self.co_so_gia_da_xac_nhan,
             "corporate_actions_day_du": self.corporate_actions_day_du,
             "label_horizon": self.label_horizon,
             "purge_phien": self.purge_phien,
@@ -239,6 +371,22 @@ class CauHinhMoc4:
             "seed": self.seed,
             "thu_muc_dau_ra": str(self.thu_muc_dau_ra),
         }
+        if self.schema_hop_dong_moi:
+            result.update({
+                "price_contract": self.price_contract,
+                "universe_contract": self.universe_contract,
+                "stock_price_basis": self.stock_price_basis,
+                "stock_price_basis_confirmed": self.stock_price_basis_confirmed,
+                "benchmark_contract": self.benchmark_contract,
+                "benchmark_unit": self.benchmark_unit,
+                "benchmark_price_basis_confirmed": self.benchmark_price_basis_confirmed,
+                "candidate_union_name": self.candidate_union_name,
+                "candidate_union_expected_count": self.candidate_union_expected_count,
+                "candidate_union_is_point_in_time": self.candidate_union_is_point_in_time,
+            })
+        else:
+            result.update({"co_so_gia": self.co_so_gia, "co_so_gia_da_xac_nhan": self.co_so_gia_da_xac_nhan})
+        return result
 
 
 @dataclass(frozen=True)
@@ -270,9 +418,39 @@ class ThanhOHLCV:
 
 
 @dataclass(frozen=True)
+class ThanhGiaMoDongKhoiLuong:
+    ma: str
+    ngay: date
+    gia_mo_cua: float
+    gia_dong_cua: float
+    khoi_luong: int
+    nguon: str
+    phien_ban: str
+    co_so_gia: str
+    raw_sha256: str
+
+    def __post_init__(self) -> None:
+        if not self.ma or self.ma != self.ma.upper():
+            raise ValueError("ma reduced phai la chu hoa khong rong.")
+        if not isinstance(self.ngay, date):
+            raise TypeError("ngay reduced phai la date.")
+        for ten in ("gia_mo_cua", "gia_dong_cua"):
+            value = xac_thuc_so_huu_han(getattr(self, ten), ten)
+            if value <= 0:
+                raise ValueError(f"{ten} phai la so duong.")
+        if not isinstance(self.khoi_luong, int) or isinstance(self.khoi_luong, bool) or self.khoi_luong < 0:
+            raise ValueError("khoi_luong reduced phai la int khong am.")
+        if not self.nguon or not self.phien_ban:
+            raise ValueError("Reduced row thieu nguon/phien_ban.")
+        if self.co_so_gia != STOCK_PRICE_BASIS_CHUA_XAC_NHAN:
+            raise ValueError(PRICE_BASIS_UNCONFIRMED)
+        if len(self.raw_sha256) != 64 or self.raw_sha256.lower() != self.raw_sha256 or any(ch not in "0123456789abcdef" for ch in self.raw_sha256):
+            raise ValueError("raw_sha256 phai la 64 ky tu hex chu thuong.")
+
+
+@dataclass(frozen=True)
 class ThanhBenchmarkDongCua:
     """Thanh benchmark canonical khong mang OHLC/volume chua xac nhan."""
-
     ma: str
     ngay: date
     gia_dong_cua: float
@@ -333,10 +511,7 @@ class BanGhiPointInTime:
         xac_thuc_timestamp(self.thoi_diem_cong_bo, "thoi_diem_cong_bo")
 
     def khoa(self) -> tuple[object, ...]:
-        return (
-            self.loai_du_lieu, self.khoa_ban_ghi, self.ngay_hieu_luc,
-            self.thoi_diem_cong_bo, self.nguon, self.phien_ban,
-        )
+        return (self.loai_du_lieu, self.khoa_ban_ghi, self.ngay_hieu_luc, self.thoi_diem_cong_bo, self.nguon, self.phien_ban)
 
 
 @dataclass(frozen=True)
@@ -493,12 +668,12 @@ def xac_thuc_co_so_gia_va_su_kien(cau_hinh: CauHinhMoc4, *, so_su_kien: int) -> 
     """Khoa hop dong co so gia truoc khi chuyen corporate actions vao engine."""
     if not isinstance(so_su_kien, int) or isinstance(so_su_kien, bool) or so_su_kien < 0:
         raise TypeError("so_su_kien phai la int khong am; khong ep kieu ngam.")
+    if cau_hinh.la_reduced and so_su_kien > 0:
+        raise ValueError("Reduced mode khong duoc ap dung corporate actions khi price basis chua xac nhan.")
     if cau_hinh.co_so_gia == "gia_dieu_chinh" and so_su_kien > 0:
         raise ValueError("gia_dieu_chinh khong duoc kem corporate actions.")
-    if (
-        cau_hinh.muc_dich_lan_chay == "nghien_cuu"
-        and cau_hinh.co_so_gia == "gia_khong_dieu_chinh"
-        and not cau_hinh.corporate_actions_day_du
-    ):
+    if cau_hinh.muc_dich_lan_chay == "nghien_cuu" and not cau_hinh.stock_price_basis_confirmed:
+        raise ValueError(PRICE_BASIS_UNCONFIRMED)
+    if cau_hinh.muc_dich_lan_chay == "nghien_cuu" and cau_hinh.co_so_gia == "gia_khong_dieu_chinh" and not cau_hinh.corporate_actions_day_du:
         raise ValueError("nghien_cuu gia_khong_dieu_chinh can corporate actions day du.")
     return cau_hinh.canh_bao_muc_dich()

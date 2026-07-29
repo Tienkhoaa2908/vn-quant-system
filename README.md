@@ -348,3 +348,37 @@ Pipeline chay dung mot lan. External verifier ban dau tao false blocker `G2B2_NO
 - PR #13 va PR #14 tiep tuc Open/Draft cho toi khi CI cuoi cua PR #16 duoc xac minh.
 - PR #16 tiep tuc Open/Draft, chua Ready va chua merge.
 - Tier B va Moc 5 chua mo.
+
+## Runtime rut gon Moc 4 cho kiem tra ky thuat
+
+Moc 4 co hai hop dong input tach biet:
+
+- `strict_ohlcv`: mac dinh, giu tuong thich nguoc va tiep tuc yeu cau open/high/low/close/volume;
+- `reduced_open_close_volume_v1`: opt-in ro rang, chi dung cho `kiem_tra_ky_thuat`, khong tu nhan dang schema.
+
+Reduced runtime dung `technical_candidate_union_v1`. Day la candidate union
+phuc vu kiem tra ky thuat, khong phai universe point-in-time. Ten profile hien
+tai la `technical_candidate_union_121`; count phai duoc doc tu profile va
+publication manifest, khong hard-code trong runtime chung.
+
+Feature reduced co dung 23 truong, loai duy nhat
+`bien_do_cao_thap_chuan_hoa`. High/low khong ton tai trong input reduced, khong
+duoc dung hay suy dung va khong co feature thay the. Close duoc dung cho
+feature, label, MA250, regime va valuation; `close * volume` cho thanh khoan;
+open dung cho phien T+1.
+
+Stock basis va benchmark basis duoc cong bo rieng. Stock reduced la
+`CHUA_XAC_NHAN` voi confirmed=false. Benchmark la `close_only`, don vi
+`index_points`, confirmed=false. `CHUA_XAC_NHAN` khong dong nghia voi gia dieu
+chinh hoac gia khong dieu chinh. M3 engine nhan trang thai nay qua cau hinh typed
+va tu choi corporate actions.
+
+Publication v2 co tong 23 tep: 22 san pham nghiep vu va `manifest.json`.
+Auditor `m4_product_audit_v1` chi doc, deterministic, khong goi pipeline,
+huan luyen hay backtest va khong sua san pham. Auditor doi soat hash, fold,
+prediction, ranking, T+1, cash, position, NAV/ledger va reconciliation.
+
+Reduced research gate luon `FAIL` voi `PRICE_BASIS_UNCONFIRMED`. Khong duoc dung
+bat ky dau ra nao cua mode nay lam tin hieu van hanh, khuyen nghi giao dich hay
+bang chung ve alpha/hieu qua dau tu.
+

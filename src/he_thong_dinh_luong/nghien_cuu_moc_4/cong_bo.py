@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import csv
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 import hashlib
 from io import StringIO
 import json
@@ -11,13 +11,17 @@ import os
 from pathlib import Path
 import shutil
 import tempfile
-from typing import Iterable, Mapping
+from typing import Iterable, Mapping, Sequence
 
 TEN_SAN_PHAM = (
     "cau_hinh.json", "bao_cao_do_phu.json", "universe_theo_ngay.csv", "feature_raw.csv",
     "feature_sau_tien_xu_ly.csv", "nhan.csv", "folds.csv", "mo_hinh.csv",
     "he_so_logistic.csv", "du_doan.csv", "xep_hang.csv", "ty_trong_muc_tieu.csv",
     "chi_so_mo_hinh.json", "chi_so_ranking.json", "chi_so_backtest.json", "bao_cao.json",
+)
+TEN_SAN_PHAM_V2 = TEN_SAN_PHAM + (
+    "lenh.csv", "khop_lenh.csv", "so_cai.csv", "vi_the.csv", "nav.csv",
+    "su_kien_da_ap_dung.csv",
 )
 
 METADATA_BAT_BUOC = {
@@ -26,6 +30,24 @@ METADATA_BAT_BUOC = {
     "phien_ban_universe", "nguon_benchmark", "phien_ban_benchmark", "co_so_gia",
     "muc_dich_lan_chay", "cau_hinh_feature", "cau_hinh_label", "cau_hinh_fold",
     "cau_hinh_model", "cau_hinh_ranking", "canh_bao", "gioi_han",
+}
+METADATA_BAT_BUOC_V2 = {
+    "git_commit", "ma_lan_chay", "thoi_diem_utc", "python_version", "uv_version",
+    "scikit_learn_version", "muc_dich_lan_chay", "price_contract", "universe_contract",
+    "candidate_union_name", "candidate_union_expected_count",
+    "candidate_union_observed_count", "candidate_union_is_point_in_time",
+    "publication_expected_row_count", "publication_observed_row_count",
+    "publication_expected_symbol_count", "publication_observed_symbol_count",
+    "stock_price_basis", "stock_price_basis_confirmed", "benchmark_contract",
+    "benchmark_unit", "benchmark_price_basis", "benchmark_price_basis_confirmed",
+    "stock_benchmark_price_basis_equality_required", "corporate_actions_applied",
+    "corporate_actions_inventory_complete", "high_low_present_in_stock_input",
+    "high_low_used", "high_low_synthesized", "replacement_feature_for_high_low",
+    "research_gate", "research_gate_reasons", "technical_validation_only",
+    "nguon_ohlcv", "phien_ban_ohlcv", "nguon_universe", "phien_ban_universe",
+    "nguon_benchmark", "phien_ban_benchmark", "cau_hinh_feature",
+    "cau_hinh_label", "cau_hinh_fold", "cau_hinh_model", "cau_hinh_ranking",
+    "canh_bao", "gioi_han",
 }
 
 
@@ -38,15 +60,8 @@ def _bytes(value: str | bytes) -> bytes:
 
 
 def _fsync_dir(path: Path) -> bool:
-    """Fsync directory tren POSIX; bao unsupported tren Windows.
-
-    File fsync va atomic replace van duoc thuc hien tren moi nen tang. Python
-    tren Windows khong ho tro mo directory bang ``os.open(..., O_RDONLY)``;
-    ham vi vay tra ``False`` thay vi gia lap directory fsync thanh cong.
-    """
     if os.name == "nt":
         return False
-
     flags = os.O_RDONLY
     if hasattr(os, "O_DIRECTORY"):
         flags |= os.O_DIRECTORY
@@ -72,8 +87,6 @@ def _validate_finite(value: object, path: str = "root") -> None:
     if isinstance(value, (list, tuple)):
         for index, item in enumerate(value):
             _validate_finite(item, f"{path}[{index}]")
-        return
-    # Decimal/date/datetime and other deterministic domain values are serialized as strings upstream.
 
 
 def _validate_json_bytes(payload: bytes, name: str) -> None:
@@ -106,12 +119,12 @@ def _validate_product_payload(name: str, payload: bytes) -> None:
         _validate_csv_bytes(payload, name)
 
 
-def _validate_metadata(metadata: Mapping[str, object]) -> dict[str, object]:
-    missing = sorted(METADATA_BAT_BUOC - set(metadata))
+def _validate_metadata(metadata: Mapping[str, object], required: set[str]) -> dict[str, object]:
+    missing = sorted(required - set(metadata))
     if missing:
         raise ValueError(f"Metadata manifest thieu: {', '.join(missing)}.")
     extra_empty = [
-        key for key in METADATA_BAT_BUOC
+        key for key in required
         if metadata.get(key) is None or metadata.get(key) == "" or metadata.get(key) == {}
     ]
     if extra_empty:
@@ -146,23 +159,26 @@ def _input_bytes(value: Path | str | bytes) -> bytes:
     return path.read_bytes()
 
 
-def cong_bo_san_pham(
+def _cong_bo(
     thu_muc_dich: Path,
     san_pham: Mapping[str, str | bytes],
     *,
     metadata: Mapping[str, object],
     dau_vao: Mapping[str, Path | str | bytes],
+    ten_san_pham: Sequence[str],
+    metadata_bat_buoc: set[str],
+    manifest_versions: Mapping[str, str] | None = None,
 ) -> Path:
     destination = Path(thu_muc_dich)
     if destination.exists():
         raise FileExistsError("Khong ghi de thu muc san pham.")
-    missing = sorted(set(TEN_SAN_PHAM) - set(san_pham))
-    extra = sorted(set(san_pham) - set(TEN_SAN_PHAM))
+    missing = sorted(set(ten_san_pham) - set(san_pham))
+    extra = sorted(set(san_pham) - set(ten_san_pham))
     if missing or extra:
         raise ValueError(f"Tap san pham sai hop dong; thieu={missing}, thua={extra}.")
     if not dau_vao:
         raise ValueError("Manifest bat buoc co it nhat mot dau vao de tinh SHA-256.")
-    normalized_metadata = _validate_metadata(metadata)
+    normalized_metadata = _validate_metadata(metadata, metadata_bat_buoc)
     input_hashes: dict[str, dict[str, object]] = {}
     for name in sorted(dau_vao):
         if not name:
@@ -174,7 +190,7 @@ def cong_bo_san_pham(
     staging = Path(tempfile.mkdtemp(prefix=f".{destination.name}.staging-", dir=destination.parent))
     try:
         hashes: dict[str, dict[str, object]] = {}
-        for name in TEN_SAN_PHAM:
+        for name in ten_san_pham:
             payload = _bytes(san_pham[name])
             _validate_product_payload(name, payload)
             path = staging / name
@@ -183,12 +199,14 @@ def cong_bo_san_pham(
                 handle.flush()
                 os.fsync(handle.fileno())
             hashes[name] = {"sha256": hashlib.sha256(payload).hexdigest(), "size": len(payload)}
-        manifest = {
+        manifest: dict[str, object] = {
             "trang_thai": "thanh_cong",
             "metadata": dict(sorted(normalized_metadata.items())),
             "inputs": input_hashes,
             "files": hashes,
         }
+        if manifest_versions:
+            manifest.update(manifest_versions)
         manifest_bytes = (
             json.dumps(manifest, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False) + "\n"
         ).encode("utf-8")
@@ -203,6 +221,39 @@ def cong_bo_san_pham(
     except Exception:
         shutil.rmtree(staging, ignore_errors=True)
         raise
+
+
+def cong_bo_san_pham(
+    thu_muc_dich: Path,
+    san_pham: Mapping[str, str | bytes],
+    *,
+    metadata: Mapping[str, object],
+    dau_vao: Mapping[str, Path | str | bytes],
+) -> Path:
+    """Cong bo v1 khong thay doi hop dong strict hien hanh."""
+    return _cong_bo(
+        thu_muc_dich, san_pham, metadata=metadata, dau_vao=dau_vao,
+        ten_san_pham=TEN_SAN_PHAM, metadata_bat_buoc=METADATA_BAT_BUOC,
+    )
+
+
+def cong_bo_san_pham_v2(
+    thu_muc_dich: Path,
+    san_pham: Mapping[str, str | bytes],
+    *,
+    metadata: Mapping[str, object],
+    dau_vao: Mapping[str, Path | str | bytes],
+) -> Path:
+    return _cong_bo(
+        thu_muc_dich, san_pham, metadata=metadata, dau_vao=dau_vao,
+        ten_san_pham=TEN_SAN_PHAM_V2, metadata_bat_buoc=METADATA_BAT_BUOC_V2,
+        manifest_versions={
+            "manifest_schema_version": "m4_manifest_v2",
+            "product_contract_version": "m4_products_v2",
+            "model_contract_version": "m4_logistic_reduced_open_close_volume_v1",
+            "audit_contract_version": "m4_product_audit_v1",
+        },
+    )
 
 
 COT_FEATURE_SAU_TIEN_XU_LY = ("fold", "stage", "model_id", "vai_tro_du_lieu", "ngay", "ma")
@@ -271,3 +322,69 @@ def tao_csv_du_doan(predictions: Iterable[object]) -> str:
         rows.append(row)
     rows.sort(key=lambda x: (str(x["fold"]), str(x["model_id"]), str(x["vai_tro_du_lieu"]), str(x["ngay"]), str(x["ma"])))
     return _csv_on_dinh(rows, COT_DU_DOAN)
+
+
+def _value(value: object) -> object:
+    if isinstance(value, (date, datetime)):
+        return value.isoformat()
+    return "" if value is None else str(value)
+
+
+def tao_san_pham_backtest_v2(logistic: object, baseline: object) -> dict[str, str]:
+    """Cong bo chi tiet hai chuoi OOS; khong tai tinh hoac chay lai engine."""
+    strategies = (("logistic", logistic), ("momentum_baseline", baseline))
+
+    def combine(attr: str, fields: tuple[str, ...]) -> str:
+        rows: list[dict[str, object]] = []
+        for strategy, result in strategies:
+            for item in getattr(result, attr):
+                row = {"chien_luoc": strategy}
+                row.update({name: _value(getattr(item, name)) for name in fields})
+                rows.append(row)
+        rows.sort(key=lambda row: tuple(str(row[name]) for name in ("chien_luoc", *fields)))
+        return _csv_on_dinh(rows, ("chien_luoc", *fields))
+
+    lenh_fields = (
+        "ma_lenh", "ngay_tin_hieu", "ngay_thuc_thi", "ma", "chieu", "so_luong",
+        "loai_lenh", "trang_thai", "ly_do_tu_choi_hoac_het_han",
+        "so_luong_yeu_cau", "so_luong_bi_giam", "ly_do_giam",
+    )
+    khop_fields = (
+        "ma_lenh", "ma", "ngay_khop", "chieu", "so_luong", "gia_mo_cua",
+        "gia_khop", "gia_tri_giao_dich", "phi", "thue", "chi_phi_truot_gia",
+        "so_luong_yeu_cau", "so_luong_bi_giam", "ly_do_giam",
+    )
+    ledger_fields = (
+        "ngay", "tien_mat_dau_ngay", "dong_tien_su_kien", "tien_mua", "tien_ban",
+        "phi", "thue", "tien_mat_cuoi_ngay", "gia_tri_vi_the", "nav",
+        "lai_lo_da_thuc_hien", "lai_lo_da_thuc_hien_luy_ke", "lai_lo_chua_thuc_hien",
+        "co_tuc_tien_mat", "co_tuc_tien_mat_luy_ke", "chi_phi_truot_gia",
+        "phi_mua", "phi_ban", "thue_ban", "phi_mua_luy_ke", "phi_ban_luy_ke",
+        "thue_ban_luy_ke", "chenh_lech_doi_soat",
+    )
+    position_fields = (
+        "ngay", "ma", "so_luong", "gia_von", "gia_dong_cua",
+        "gia_tri_thi_truong", "lai_lo_chua_thuc_hien",
+    )
+    nav_fields = ("ngay", "nav", "loi_nhuan_phien", "tien_mat", "ty_trong_tien_mat")
+
+    event_rows: list[dict[str, object]] = []
+    event_keys: set[str] = set()
+    for strategy, result in strategies:
+        for raw in getattr(result, "su_kien_da_ap_dung"):
+            text = json.dumps(raw, ensure_ascii=False, sort_keys=True, separators=(",", ":"), default=str)
+            key = f"{strategy}|{text}"
+            if key in event_keys:
+                raise ValueError("Trung su_kien_da_ap_dung trong san pham v2.")
+            event_keys.add(key)
+            event_rows.append({"chien_luoc": strategy, "su_kien_json": text})
+    event_rows.sort(key=lambda row: (str(row["chien_luoc"]), str(row["su_kien_json"])))
+
+    return {
+        "lenh.csv": combine("lenh", lenh_fields),
+        "khop_lenh.csv": combine("khop_lenh", khop_fields),
+        "so_cai.csv": combine("so_cai", ledger_fields),
+        "vi_the.csv": combine("vi_the_hang_ngay", position_fields),
+        "nav.csv": combine("nav", nav_fields),
+        "su_kien_da_ap_dung.csv": _csv_on_dinh(event_rows, ("chien_luoc", "su_kien_json")),
+    }

@@ -1,57 +1,81 @@
 """Runner dau-cuoi Moc 4, chi doc tep cuc bo va cong bo san pham bat bien."""
 from __future__ import annotations
 
-import csv
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta, timezone
-from decimal import Decimal
-from io import StringIO
 import json
-from math import isfinite
 from pathlib import Path
 import platform
-import subprocess
-from typing import Iterable, Mapping, Sequence
+from typing import Mapping
 
 import sklearn
+
+from he_thong_dinh_luong.mo_phong.mo_hinh import (
+    CO_SO_GIA_CHUA_XAC_NHAN,
+    cau_hinh_mo_phong,
+)
 
 from .adapter_mo_phong import chay_backtest_oos_lien_tuc, chuyen_ty_trong_test, metric_backtest_oos
 from .baseline import du_doan_baseline_test, metric_baseline_test, xep_hang_baseline_test
 from .chi_so import metric_model_test, metric_ranking_test
 from .cong_bo import (
     TEN_SAN_PHAM,
+    TEN_SAN_PHAM_V2,
     cong_bo_san_pham,
+    cong_bo_san_pham_v2,
     tao_csv_du_doan,
     tao_csv_feature_sau_tien_xu_ly,
+    tao_san_pham_backtest_v2,
 )
-from .dac_trung import FEATURE_ORDER_MAC_DINH, phien_cuoi_thang, tao_feature_cuoi_thang
+from .dac_trung import phien_cuoi_thang, tao_feature_cuoi_thang
 from .do_phu import DongLoai, bao_cao_do_phu
 from .eligibility import danh_gia_eligibility, phien_t1_chinh_thuc
 from .logistic import du_doan_test, huan_luyen_logistic
 from .mo_hinh import (
     BENCHMARK_CONTRACT,
-    BanGhiPointInTime,
-    BanGhiUniverse,
+    BENCHMARK_UNIT,
+    PRICE_BASIS_UNCONFIRMED,
+    STOCK_PRICE_BASIS_CHUA_XAC_NHAN,
     CauHinhMoc4,
-    DongFeature,
-    DongNhan,
-    DongXepHang,
     DuDoan,
-    FoldWalkForward,
-    MauMoHinh,
-    ThanhOHLCV,
+    ThanhGiaCoPhieu,
     xac_thuc_co_so_gia_va_su_kien,
 )
 from .nhan import tao_nhan
-from .phong_ve import xac_thuc_cau_truc_huu_han, xac_thuc_so_huu_han
-from .universe import chon_ban_ghi_pit, xac_dinh_universe
+from .runner_io import (
+    _DocOHLCV,
+    _DocPublicationRutGon,
+    _csv_text,
+    _doc_benchmark_dong_cua,
+    _doc_calendar,
+    _doc_ohlcv,
+    _doc_pit,
+    _doc_publication_rut_gon,
+    _doc_universe,
+    _json_text,
+    _signal_time,
+    _xac_thuc_benchmark_identity,
+)
+from .runner_core import (
+    _benchmark_metadata_ok,
+    _ma_co_gap_pit,
+    _m3_config,
+    _m3_events,
+    _m3_price_rows,
+    _model_audit_rows,
+    _oos_window,
+    _phien_yeu_cau_coverage_pit,
+    _processed_rows,
+    _product_rows_targets,
+    _research_fail_closed,
+    _samples,
+    _uv_version,
+)
+from .universe import xac_dinh_technical_candidate_union, xac_dinh_universe
 from .walk_forward import loc_mau_theo_fold, tao_folds, xac_thuc_prediction_test
 from .xep_hang import xep_hang_test
 
 UTC = timezone.utc
-MUI_GIO_VIET_NAM = timezone(timedelta(hours=7))
-GIO_TAO_TIN_HIEU = time(15, 0)
-
 
 
 @dataclass(frozen=True)
@@ -68,40 +92,78 @@ class KetQuaNghienCuuMoc4:
     canh_bao: tuple[str, ...]
 
 
-from .runner_io import (
-    _DocBenchmarkDongCua, _DocOHLCV, _DocPIT, _read_csv, _parse_date, _parse_datetime, _parse_bool, _parse_float, _parse_int, _unique, _doc_ohlcv, _doc_benchmark_dong_cua, _xac_thuc_benchmark_identity, _doc_calendar, _doc_universe, _doc_pit, _signal_time, _json_ready, _json_text, _csv_text,
-)
-from .runner_core import (
-    _samples, _m3_price_rows, _m3_config, _m3_events, _uv_version, _backtest_metrics, _processed_rows, _model_audit_rows, _oos_window, _benchmark_metadata_ok, _phien_yeu_cau_coverage_pit, _ma_co_gap_pit, _research_fail_closed, _product_rows_targets,
-)
+@dataclass(frozen=True)
+class _TaiLieuGiaCoPhieu:
+    rows: tuple[ThanhGiaCoPhieu, ...]
+    nguon: str
+    phien_ban: str
+    ma_loi_gia: tuple[str, ...] = ()
+    ma_loi_volume: tuple[str, ...] = ()
+    khoa_loi_gia: tuple[tuple[str, date], ...] = ()
+    khoa_loi_volume: tuple[tuple[str, date], ...] = ()
 
-def chay_nghien_cuu_moc_4(
+
+def _m3_config_reduced(data: Mapping[str, object]) -> cau_hinh_mo_phong:
+    """Tao cau hinh M3 typed voi basis chua xac nhan; khong anh xa sang basis khac."""
+    if STOCK_PRICE_BASIS_CHUA_XAC_NHAN != CO_SO_GIA_CHUA_XAC_NHAN:
+        raise AssertionError("Hop dong basis M3/M4 khong dong nhat.")
+    mapping = dict(data)
+    mapping["co_so_gia"] = CO_SO_GIA_CHUA_XAC_NHAN
+    if mapping.get("che_do_ma_khong_xuat_hien") != "muc_tieu_bang_0":
+        raise ValueError("Backtest Moc 4 bat buoc che_do_ma_khong_xuat_hien=muc_tieu_bang_0.")
+    return cau_hinh_mo_phong.tu_mapping(mapping)
+
+
+def _phien_yeu_cau_candidate_union(
     *,
-    duong_dan_cau_hinh: Path,
-    duong_dan_ohlcv: Path,
-    duong_dan_benchmark: Path,
-    duong_dan_lich_benchmark: Path,
-    duong_dan_universe: Path,
-    duong_dan_corporate_actions: Path,
-    thu_muc_dau_ra: Path,
-    ma_lan_chay: str,
-    git_commit: str,
-    thoi_diem_utc: datetime | None = None,
-) -> KetQuaNghienCuuMoc4:
-    """Chay toan bo pipeline M4 tu tep cuc bo; khong co bat ky loi goi mang nao."""
-    paths = {
-        "cau_hinh": Path(duong_dan_cau_hinh),
-        "ohlcv": Path(duong_dan_ohlcv),
-        "benchmark": Path(duong_dan_benchmark),
-        "lich_benchmark": Path(duong_dan_lich_benchmark),
-        "universe": Path(duong_dan_universe),
-        "corporate_actions": Path(duong_dan_corporate_actions),
-    }
+    calendar: tuple[date, ...],
+    sample_dates: tuple[date, ...],
+    symbols: tuple[str, ...],
+    sessions_by_symbol: Mapping[str, set[date]],
+) -> dict[str, set[date]]:
+    """Chi kiem tra trong khoang quan sat cua tung ma; khong carry sau ngay cuoi."""
+    result: dict[str, set[date]] = {symbol: set() for symbol in symbols}
+    for symbol in symbols:
+        observed = sessions_by_symbol.get(symbol, set())
+        if not observed:
+            continue
+        start, end = min(observed), max(observed)
+        result[symbol].update(day for day in calendar if start <= day <= end)
+        for day in sample_dates:
+            t1 = phien_t1_chinh_thuc(calendar, day)
+            if t1 is not None and start <= t1 <= end:
+                result[symbol].add(t1)
+    return result
+
+
+def _validate_run_id_and_sha(ma_lan_chay: str, git_commit: str) -> None:
     if not ma_lan_chay or "/" in ma_lan_chay or "\\" in ma_lan_chay or ma_lan_chay in {".", ".."}:
         raise ValueError("ma_lan_chay khong hop le.")
     if len(git_commit) != 40 or any(ch not in "0123456789abcdefABCDEF" for ch in git_commit):
         raise ValueError("git_commit phai la SHA 40 ky tu hexa.")
-    config_raw = json.loads(paths["cau_hinh"].read_text(encoding="utf-8"), parse_constant=lambda x: (_ for _ in ()).throw(ValueError(f"Cau hinh chua {x}.")))
+
+
+def chay_nghien_cuu_moc_4(
+    *,
+    duong_dan_cau_hinh: Path,
+    duong_dan_benchmark: Path,
+    duong_dan_lich_benchmark: Path,
+    duong_dan_corporate_actions: Path,
+    thu_muc_dau_ra: Path,
+    ma_lan_chay: str,
+    git_commit: str,
+    duong_dan_ohlcv: Path | None = None,
+    duong_dan_universe: Path | None = None,
+    thu_muc_publication_gia_rut_gon: Path | None = None,
+    thoi_diem_utc: datetime | None = None,
+) -> KetQuaNghienCuuMoc4:
+    """Chay pipeline M4 tu tep cuc bo; khong co bat ky loi goi mang nao."""
+    _validate_run_id_and_sha(ma_lan_chay, git_commit)
+    config_path = Path(duong_dan_cau_hinh)
+    config_raw = json.loads(
+        config_path.read_text(encoding="utf-8"),
+        parse_constant=lambda x: (_ for _ in ()).throw(ValueError(f"Cau hinh chua {x}.")),
+    )
     if not isinstance(config_raw, dict):
         raise ValueError("Cau hinh goc phai la object.")
     m4_raw = config_raw.get("moc_4", config_raw)
@@ -111,35 +173,75 @@ def chay_nghien_cuu_moc_4(
     m4_mapping = dict(m4_raw)
     m4_mapping["thu_muc_dau_ra"] = str(m4_mapping.get("thu_muc_dau_ra", "."))
     config = CauHinhMoc4.tu_mapping(m4_mapping)
-    stock_doc = _doc_ohlcv(paths["ohlcv"])
-    benchmark_doc = _doc_benchmark_dong_cua(
-        paths["benchmark"], expected_symbol=config.benchmark,
-    )
-    calendar = _doc_calendar(paths["lich_benchmark"])
-    universe_records, universe_source, universe_version = _doc_universe(paths["universe"])
-    pit_doc = _doc_pit(paths["corporate_actions"])
-    benchmark_source = benchmark_doc.nguon
-    benchmark_version = benchmark_doc.phien_ban
-    if (
-        any(row.co_so_gia != config.co_so_gia for row in stock_doc.rows)
-        or benchmark_doc.co_so_gia != config.co_so_gia
-    ):
-        raise ValueError("Co so gia OHLCV/benchmark khong khop cau hinh.")
+
+    common_paths = {
+        "cau_hinh": config_path,
+        "benchmark": Path(duong_dan_benchmark),
+        "lich_benchmark": Path(duong_dan_lich_benchmark),
+        "corporate_actions": Path(duong_dan_corporate_actions),
+    }
+    publication_doc: _DocPublicationRutGon | None = None
+    if config.la_reduced:
+        if thu_muc_publication_gia_rut_gon is None:
+            raise ValueError("Reduced mode bat buoc --thu-muc-publication-gia-rut-gon.")
+        if duong_dan_ohlcv is not None or duong_dan_universe is not None:
+            raise ValueError("Reduced mode cam --ohlcv va --universe; khong tu nhan dang schema.")
+        assert config.candidate_union_expected_count is not None
+        publication_doc = _doc_publication_rut_gon(
+            Path(thu_muc_publication_gia_rut_gon),
+            candidate_union_expected_count=config.candidate_union_expected_count,
+        )
+        stock_rows: tuple[ThanhGiaCoPhieu, ...] = publication_doc.rows
+        stock_doc = _TaiLieuGiaCoPhieu(
+            rows=stock_rows,
+            nguon=publication_doc.nguon,
+            phien_ban=publication_doc.phien_ban,
+        )
+        universe_records = ()
+        universe_source = config.candidate_union_name or "technical_candidate_union"
+        universe_version = config.universe_contract
+        paths = {**common_paths, **publication_doc.input_paths}
+    else:
+        if duong_dan_ohlcv is None or duong_dan_universe is None:
+            raise ValueError("strict_ohlcv bat buoc --ohlcv va --universe.")
+        if thu_muc_publication_gia_rut_gon is not None:
+            raise ValueError("strict_ohlcv cam publication reduced.")
+        strict_doc: _DocOHLCV = _doc_ohlcv(Path(duong_dan_ohlcv))
+        stock_doc = strict_doc
+        stock_rows = strict_doc.rows
+        universe_records, universe_source, universe_version = _doc_universe(Path(duong_dan_universe))
+        paths = {**common_paths, "ohlcv": Path(duong_dan_ohlcv), "universe": Path(duong_dan_universe)}
+
+    benchmark_doc = _doc_benchmark_dong_cua(common_paths["benchmark"], expected_symbol=config.benchmark)
+    calendar = _doc_calendar(common_paths["lich_benchmark"])
+    pit_doc = _doc_pit(common_paths["corporate_actions"])
+    if any(row.co_so_gia != config.stock_price_basis for row in stock_rows):
+        raise ValueError("Stock price basis khong khop cau hinh.")
+    if config.la_reduced and pit_doc.event_rows:
+        raise ValueError("Reduced mode khong duoc co corporate action de ap dung.")
 
     sample_dates = phien_cuoi_thang(calendar)
-    symbols = tuple(sorted({record.ma for record in universe_records} | {row.ma for row in stock_doc.rows}
-                           | set(stock_doc.ma_loi_gia) | set(stock_doc.ma_loi_volume)))
+    if config.la_reduced:
+        symbols = tuple(sorted({row.ma for row in stock_rows}))
+    else:
+        symbols = tuple(sorted(
+            {record.ma for record in universe_records}
+            | {row.ma for row in stock_rows}
+            | set(stock_doc.ma_loi_gia)
+            | set(stock_doc.ma_loi_volume)
+        ))
     features = tao_feature_cuoi_thang(
-        stock_doc.rows, benchmark_doc.rows, lich_benchmark=calendar,
+        stock_rows, benchmark_doc.rows, lich_benchmark=calendar,
+        feature_order=config.feature_order,
         feature_bat_buoc=config.feature_bat_buoc,
     )
     labels = tao_nhan(
-        stock_doc.rows, benchmark_doc.rows, cac_ngay_tin_hieu=sample_dates,
+        stock_rows, benchmark_doc.rows, cac_ngay_tin_hieu=sample_dates,
         label_horizon=config.label_horizon, lich_benchmark=calendar,
     )
     feature_map = {(row.ngay, row.ma): row for row in features}
     label_map = {(row.ngay, row.ma): row for row in labels}
-    stock_bar_map = {(row.ngay, row.ma): row for row in stock_doc.rows}
+    stock_bar_map = {(row.ngay, row.ma): row for row in stock_rows}
     universe_rows: list[object] = []
     exclusion_rows: list[DongLoai] = []
     eligible: set[tuple[date, str]] = set()
@@ -149,9 +251,12 @@ def chay_nghien_cuu_moc_4(
     benchmark_metadata_missing: list[date] = []
     for day in sample_dates:
         signal_time = _signal_time(day)
-        states = xac_dinh_universe(
-            universe_records, ngay=day, thoi_diem_tao_tin_hieu=signal_time, cac_ma=symbols,
-        )
+        if config.la_reduced:
+            states = xac_dinh_technical_candidate_union(stock_rows, ngay=day, cac_ma=symbols)
+        else:
+            states = xac_dinh_universe(
+                universe_records, ngay=day, thoi_diem_tao_tin_hieu=signal_time, cac_ma=symbols,
+            )
         universe_rows.extend(states)
         metadata_ok = _benchmark_metadata_ok(
             pit_doc.records, day=day, signal_time=signal_time, expected_symbol=config.benchmark,
@@ -159,7 +264,7 @@ def chay_nghien_cuu_moc_4(
         if not metadata_ok:
             benchmark_metadata_missing.append(day)
         t1 = phien_t1_chinh_thuc(calendar, day)
-        denominator = sum(state.thuoc_universe for state in states)
+        denominator = len(symbols) if config.la_reduced else sum(state.thuoc_universe for state in states)
         numerator = 0
         for state in states:
             key = (day, state.ma)
@@ -230,8 +335,8 @@ def chay_nghien_cuu_moc_4(
         )
         logistic_validation.extend(result.validation_predictions)
         processed_rows.extend(_processed_rows(fold, selected, result, config.feature_order))
-
         fold_failure_reason: str | None = None
+        test_predictions: list[DuDoan] = []
         if not result.thanh_cong:
             fold_failure_reason = result.ly_do_that_bai or "fold_that_bai"
         elif not selected["test"]:
@@ -240,7 +345,6 @@ def chay_nghien_cuu_moc_4(
             test_predictions = list(du_doan_test(result, selected["test"]))
             if not test_predictions:
                 fold_failure_reason = "khong_co_prediction_test"
-
         model_rows.extend(_model_audit_rows(
             fold=fold, training=result, fold_failure_reason=fold_failure_reason,
         ))
@@ -263,11 +367,9 @@ def chay_nghien_cuu_moc_4(
                     "fold": fold.fold, "stage": stage_name, "model_id": model_id,
                     "feature": "__intercept__", "he_so": "", "intercept": float(intercept[0]),
                 })
-
         if fold_failure_reason is not None:
             fold_errors.append({"fold": fold.fold, "ly_do": fold_failure_reason})
             continue
-
         logistic_test.extend(test_predictions)
         baseline_test.extend(du_doan_baseline_test(
             fold=fold.fold, samples=selected["test"], momentum_theo_khoa=momentum_map,
@@ -282,34 +384,39 @@ def chay_nghien_cuu_moc_4(
     successful_test_dates = sorted(set(successful_test_dates))
 
     sessions_by_symbol: dict[str, set[date]] = {symbol: set() for symbol in symbols}
-    for row in stock_doc.rows:
+    for row in stock_rows:
         sessions_by_symbol.setdefault(row.ma, set()).add(row.ngay)
-    observed_start_by_symbol: dict[str, date] = {}
-    for symbol, days in sessions_by_symbol.items():
-        if days:
-            observed_start_by_symbol[symbol] = min(days)
-    for symbol, day in (*stock_doc.khoa_loi_gia, *stock_doc.khoa_loi_volume):
-        current = observed_start_by_symbol.get(symbol)
-        if current is None or day < current:
-            observed_start_by_symbol[symbol] = day
-    required_by_symbol = _phien_yeu_cau_coverage_pit(
-        calendar=calendar, sample_dates=sample_dates, universe_records=universe_records,
-        symbols=symbols, sessions_by_symbol=sessions_by_symbol,
-        ngay_bat_dau_theo_ma=observed_start_by_symbol,
-    )
+    observed_start_by_symbol = {
+        symbol: min(days) for symbol, days in sessions_by_symbol.items() if days
+    }
+    if config.la_reduced:
+        required_by_symbol = _phien_yeu_cau_candidate_union(
+            calendar=calendar, sample_dates=sample_dates, symbols=symbols,
+            sessions_by_symbol=sessions_by_symbol,
+        )
+    else:
+        for symbol, day in (*stock_doc.khoa_loi_gia, *stock_doc.khoa_loi_volume):
+            current = observed_start_by_symbol.get(symbol)
+            if current is None or day < current:
+                observed_start_by_symbol[symbol] = day
+        required_by_symbol = _phien_yeu_cau_coverage_pit(
+            calendar=calendar, sample_dates=sample_dates, universe_records=universe_records,
+            symbols=symbols, sessions_by_symbol=sessions_by_symbol,
+            ngay_bat_dau_theo_ma=observed_start_by_symbol,
+        )
     gap_symbols = _ma_co_gap_pit(required_by_symbol, sessions_by_symbol)
     warmup_symbols = sorted({
         row.ma for row in features
         if any("ma250" in reason or "thieu_warm_up" in reason for reason in row.ly_do)
     })
     failed_symbols = [symbol for symbol in symbols if not sessions_by_symbol.get(symbol)]
-    missing_ca = (
-        symbols if config.co_so_gia == "gia_khong_dieu_chinh"
-        and not config.corporate_actions_day_du else ()
-    )
+    missing_ca = symbols if (
+        not config.la_reduced and config.co_so_gia == "gia_khong_dieu_chinh"
+        and not config.corporate_actions_day_du
+    ) else ()
     coverage = bao_cao_do_phu(
         exclusion_rows, loi_fold=fold_errors, cac_ngay_yeu_cau=calendar,
-        cac_ngay_thuc_te=[row.ngay for row in stock_doc.rows], cac_ma_universe=symbols,
+        cac_ngay_thuc_te=[row.ngay for row in stock_rows], cac_ma_universe=symbols,
         phien_co_du_lieu_theo_ma=sessions_by_symbol,
         phien_yeu_cau_theo_ma=required_by_symbol,
         coverage_theo_ngay=coverage_by_day,
@@ -318,14 +425,12 @@ def chay_nghien_cuu_moc_4(
         ma_loi_volume=stock_doc.ma_loi_volume, ma_thieu_corporate_actions=missing_ca,
         ngay_it_hon_top_k=less_top_k, nguon_ohlcv=stock_doc.nguon,
         phien_ban_ohlcv=stock_doc.phien_ban, nguon_universe=universe_source,
-        phien_ban_universe=universe_version, nguon_benchmark=benchmark_source,
-        phien_ban_benchmark=benchmark_version, co_so_gia=config.co_so_gia,
+        phien_ban_universe=universe_version, nguon_benchmark=benchmark_doc.nguon,
+        phien_ban_benchmark=benchmark_doc.phien_ban, co_so_gia=config.stock_price_basis,
     )
 
-    m3_config = _m3_config(m3_raw, config.co_so_gia)
-    warnings = list(xac_thuc_co_so_gia_va_su_kien(
-        config, so_su_kien=len(pit_doc.event_rows),
-    ))
+    m3_config = _m3_config_reduced(m3_raw) if config.la_reduced else _m3_config(m3_raw, config.co_so_gia)
+    warnings = list(xac_thuc_co_so_gia_va_su_kien(config, so_su_kien=len(pit_doc.event_rows)))
     if stock_doc.ma_loi_gia:
         warnings.append("DU_LIEU_LOI_GIA_DA_LOAI_CO_KIEM_SOAT")
     if stock_doc.ma_loi_volume:
@@ -345,10 +450,10 @@ def chay_nghien_cuu_moc_4(
     oos_start, metric_start, oos_end = _oos_window(
         calendar, successful_test_dates, horizon=config.label_horizon,
     )
-    events = _m3_events(
+    events = [] if config.la_reduced else _m3_events(
         pit_doc.records, config.co_so_gia, oos_start=oos_start, oos_end=oos_end,
     )
-    price_rows = _m3_price_rows(stock_doc.rows, eligible=eligible)
+    price_rows = _m3_price_rows(stock_rows, eligible=eligible)
     logistic_backtest = chay_backtest_oos_lien_tuc(
         rankings=logistic_rankings, du_lieu_gia=price_rows, cau_hinh_mo_phong=m3_config,
         cac_su_kien=events, ngay_tai_can_bang=successful_test_dates,
@@ -361,16 +466,18 @@ def chay_nghien_cuu_moc_4(
         cac_ma_lien_quan=symbols, ten_chien_luoc="m4_momentum_oos",
         oos_start=oos_start, oos_end=oos_end,
     )
-    logistic_model_metrics = metric_model_test(logistic_test)
-    baseline_model_metrics = metric_baseline_test(baseline_test)
-    logistic_ranking_metrics = metric_ranking_test(logistic_rankings)
-    baseline_ranking_metrics = metric_ranking_test(baseline_rankings)
-    logistic_backtest_metrics = metric_backtest_oos(
-        logistic_backtest, oos_start=oos_start, metric_start=metric_start, oos_end=oos_end,
-    )
-    baseline_backtest_metrics = metric_backtest_oos(
-        baseline_backtest, oos_start=oos_start, metric_start=metric_start, oos_end=oos_end,
-    )
+    model_metrics = {
+        "logistic": metric_model_test(logistic_test),
+        "momentum_baseline": metric_baseline_test(baseline_test),
+    }
+    ranking_metrics = {
+        "logistic": metric_ranking_test(logistic_rankings),
+        "momentum_baseline": metric_ranking_test(baseline_rankings),
+    }
+    backtest_metrics = {
+        "logistic": metric_backtest_oos(logistic_backtest, oos_start=oos_start, metric_start=metric_start, oos_end=oos_end),
+        "momentum_baseline": metric_backtest_oos(baseline_backtest, oos_start=oos_start, metric_start=metric_start, oos_end=oos_end),
+    }
 
     all_predictions = [*logistic_validation, *logistic_test, *baseline_test]
     all_rankings = [*logistic_rankings, *baseline_rankings]
@@ -389,7 +496,8 @@ def chay_nghien_cuu_moc_4(
         universe_product_rows.append({
             "ngay": state.ngay, "ma": state.ma, "thuoc_universe": state.thuoc_universe,
             "ly_do": state.ly_do, "ngay_hieu_luc": record.ngay_hieu_luc if record else None,
-            "nguon": record.nguon if record else None, "phien_ban": record.phien_ban if record else None,
+            "nguon": record.nguon if record else (universe_source if config.la_reduced else None),
+            "phien_ban": record.phien_ban if record else (universe_version if config.la_reduced else None),
             "thoi_diem_cong_bo": record.thoi_diem_cong_bo if record else None,
         })
     feature_product_rows = []
@@ -426,29 +534,34 @@ def chay_nghien_cuu_moc_4(
         *_product_rows_targets("momentum_baseline", baseline_targets),
     ]
 
-    model_metrics = {"logistic": logistic_model_metrics, "momentum_baseline": baseline_model_metrics}
-    ranking_metrics = {"logistic": logistic_ranking_metrics, "momentum_baseline": baseline_ranking_metrics}
-    backtest_metrics = {"logistic": logistic_backtest_metrics, "momentum_baseline": baseline_backtest_metrics}
-    is_technical = config.muc_dich_lan_chay == "kiem_tra_ky_thuat"
     limitations = [
         "BENCHMARK_EXACT_OFFICIAL_OHLC_CHUA_CO",
         "BENCHMARK_RAW_SOURCE_PHAI_GIU_BAT_BIEN",
         "KHONG_CORRECTION_OVERLAY",
         "KHONG_LIGHTGBM_KHONG_SSI_KHONG_MOC_5",
     ]
-    if is_technical:
+    if config.muc_dich_lan_chay == "kiem_tra_ky_thuat":
         limitations.append("KHONG_DUOC_TUYEN_BO_HIEU_QUA_CHIEN_LUOC")
+    research_gate_reasons = [
+        "VN100_POINT_IN_TIME_HISTORY_INCOMPLETE",
+        "HOSE_EOD_CROSSCHECK_INCOMPLETE",
+        "CORPORATE_ACTION_INVENTORY_INCOMPLETE",
+        PRICE_BASIS_UNCONFIRMED,
+    ] if config.la_reduced else []
     report = {
         "ma_lan_chay": ma_lan_chay,
         "benchmark_contract": BENCHMARK_CONTRACT,
+        "benchmark_unit": BENCHMARK_UNIT,
         "benchmark_policy": {
             "features_va_labels_chi_dung_close": True,
             "open_high_low_volume_duoc_dung": False,
             "correction_overlay_duoc_phep": False,
             "raw_source_bat_buoc_giu_bat_bien": True,
             "exact_official_ohlc_hien_co": False,
-            "chi_kiem_tra_ky_thuat": is_technical,
+            "chi_kiem_tra_ky_thuat": config.muc_dich_lan_chay == "kiem_tra_ky_thuat",
         },
+        "research_gate": "FAIL" if config.la_reduced else None,
+        "research_gate_reasons": research_gate_reasons,
         "so_fold": len(folds),
         "oos_start": oos_start, "ngay_bat_dau_metric": metric_start, "oos_end": oos_end,
         "so_fold_thanh_cong": successful_fold_count,
@@ -473,8 +586,11 @@ def chay_nghien_cuu_moc_4(
         },
         "canh_bao": warnings, "gioi_han": limitations,
     }
+    m3_output = dict(m3_raw)
+    if config.la_reduced:
+        m3_output["co_so_gia"] = STOCK_PRICE_BASIS_CHUA_XAC_NHAN
     products: dict[str, str | bytes] = {
-        "cau_hinh.json": _json_text({"moc_4": config.thanh_mapping(), "mo_phong": m3_raw}),
+        "cau_hinh.json": _json_text({"moc_4": config.thanh_mapping(), "mo_phong": m3_output}),
         "bao_cao_do_phu.json": _json_text(coverage),
         "universe_theo_ngay.csv": _csv_text(
             ("ngay", "ma", "thuoc_universe", "ly_do", "ngay_hieu_luc", "nguon", "phien_ban", "thoi_diem_cong_bo"),
@@ -495,56 +611,52 @@ def chay_nghien_cuu_moc_4(
             fold_rows,
         ),
         "mo_hinh.csv": _csv_text(
-            (
-                "fold", "stage", "selection_model_id", "refit_model_id", "model_id",
-                "thanh_cong", "C", "scaler_mean", "scaler_scale", "coefficients",
-                "intercept", "n_iter", "converged", "convergence_warning",
-                "candidate_errors", "feature_order", "train_cutoff",
-                "validation_cutoff", "test_cutoff", "scikit_learn_version",
-                "validation_log_loss", "validation_auc", "ly_do_that_bai",
-                "thoi_diem_huan_luyen", "thoi_diem_tao_tin_hieu",
-                "cutoff_feature", "cutoff_nhan",
-            ),
+            ("fold", "stage", "selection_model_id", "refit_model_id", "model_id",
+             "thanh_cong", "C", "scaler_mean", "scaler_scale", "coefficients",
+             "intercept", "n_iter", "converged", "convergence_warning",
+             "candidate_errors", "feature_order", "train_cutoff",
+             "validation_cutoff", "test_cutoff", "scikit_learn_version",
+             "validation_log_loss", "validation_auc", "ly_do_that_bai",
+             "thoi_diem_huan_luyen", "thoi_diem_tao_tin_hieu",
+             "cutoff_feature", "cutoff_nhan"),
             model_rows,
         ),
         "he_so_logistic.csv": _csv_text(
-            ("fold", "stage", "model_id", "feature", "he_so", "intercept"),
-            coefficient_rows,
+            ("fold", "stage", "model_id", "feature", "he_so", "intercept"), coefficient_rows,
         ),
         "du_doan.csv": tao_csv_du_doan(all_predictions),
         "xep_hang.csv": _csv_text(
             ("chien_luoc", "fold", "model_id", "ngay", "ma", "diem", "thu_hang", "duoc_chon", "ty_trong_muc_tieu", "nhan", "loi_nhuan_tuong_doi"),
             ranking_rows,
         ),
-        "ty_trong_muc_tieu.csv": _csv_text(("chien_luoc", "ngay_tin_hieu", "ma", "ty_trong_muc_tieu"), target_rows),
+        "ty_trong_muc_tieu.csv": _csv_text(
+            ("chien_luoc", "ngay_tin_hieu", "ma", "ty_trong_muc_tieu"), target_rows,
+        ),
         "chi_so_mo_hinh.json": _json_text(model_metrics),
         "chi_so_ranking.json": _json_text(ranking_metrics),
         "chi_so_backtest.json": _json_text(backtest_metrics),
         "bao_cao.json": _json_text(report),
     }
-    if set(products) != set(TEN_SAN_PHAM):
-        raise AssertionError("Runner khong dung 16 san pham truoc manifest.")
+    if config.la_reduced:
+        products.update(tao_san_pham_backtest_v2(logistic_backtest, baseline_backtest))
+        expected_products = TEN_SAN_PHAM_V2
+    else:
+        expected_products = TEN_SAN_PHAM
+    if set(products) != set(expected_products):
+        raise AssertionError("Runner khong dung tap san pham theo contract.")
+
     timestamp = thoi_diem_utc or datetime.now(UTC)
     if timestamp.tzinfo is None or timestamp.utcoffset() != timedelta(0):
         raise ValueError("thoi_diem_utc runner phai timezone-aware UTC.")
-    metadata = {
+    common_metadata = {
         "git_commit": git_commit.lower(), "ma_lan_chay": ma_lan_chay,
         "thoi_diem_utc": timestamp.astimezone(UTC).isoformat().replace("+00:00", "Z"),
         "python_version": platform.python_version(), "uv_version": _uv_version(),
         "scikit_learn_version": sklearn.__version__,
-        "benchmark_contract": BENCHMARK_CONTRACT,
-        "benchmark_policy": {
-            "features_va_labels_chi_dung_close": True,
-            "open_high_low_volume_duoc_dung": False,
-            "correction_overlay_duoc_phep": False,
-            "raw_source_bat_buoc_giu_bat_bien": True,
-            "exact_official_ohlc_hien_co": False,
-            "chi_kiem_tra_ky_thuat": is_technical,
-        },
         "nguon_ohlcv": stock_doc.nguon, "phien_ban_ohlcv": stock_doc.phien_ban,
         "nguon_universe": universe_source, "phien_ban_universe": universe_version,
-        "nguon_benchmark": benchmark_source, "phien_ban_benchmark": benchmark_version,
-        "co_so_gia": config.co_so_gia, "muc_dich_lan_chay": config.muc_dich_lan_chay,
+        "nguon_benchmark": benchmark_doc.nguon, "phien_ban_benchmark": benchmark_doc.phien_ban,
+        "muc_dich_lan_chay": config.muc_dich_lan_chay,
         "cau_hinh_feature": {
             "feature_order": list(config.feature_order),
             "feature_bat_buoc": list(config.feature_bat_buoc),
@@ -565,13 +677,18 @@ def chay_nghien_cuu_moc_4(
         "cau_hinh_fold": {
             "expanding": True, "purge_phien": config.purge_phien,
             "embargo_phien": config.embargo_phien,
+            "so_thang_train_toi_thieu": config.so_thang_train_toi_thieu,
             "so_thang_validation": config.so_thang_validation,
             "so_thang_test": config.so_thang_test,
             "oos_start": oos_start.isoformat(),
             "ngay_bat_dau_metric": metric_start.isoformat(),
             "oos_end": oos_end.isoformat(),
         },
-        "cau_hinh_model": {"standard_scaler": True, "penalty": "l2", "solver": config.solver, "max_iter": config.max_iter, "C_grid": list(config.C_grid), "seed": config.seed},
+        "cau_hinh_model": {
+            "standard_scaler": True, "penalty": "l2", "solver": config.solver,
+            "max_iter": config.max_iter, "C_grid": list(config.C_grid),
+            "class_weight": config.class_weight, "seed": config.seed,
+        },
         "cau_hinh_ranking": {
             "top_k": config.top_k, "tie_break": "ma_tang_dan",
             "ty_trong": "1/top_k", "phan_thieu": "tien_mat",
@@ -581,7 +698,54 @@ def chay_nghien_cuu_moc_4(
         "canh_bao": warnings, "gioi_han": limitations,
     }
     destination = Path(thu_muc_dau_ra) / ma_lan_chay
-    published = cong_bo_san_pham(destination, products, metadata=metadata, dau_vao=paths)
+    if config.la_reduced:
+        assert publication_doc is not None
+        metadata = {
+            **common_metadata,
+            "price_contract": config.price_contract,
+            "universe_contract": config.universe_contract,
+            "candidate_union_name": config.candidate_union_name,
+            "candidate_union_expected_count": config.candidate_union_expected_count,
+            "candidate_union_observed_count": len(symbols),
+            "candidate_union_is_point_in_time": False,
+            "publication_expected_row_count": publication_doc.publication_expected_row_count,
+            "publication_observed_row_count": publication_doc.publication_observed_row_count,
+            "publication_expected_symbol_count": publication_doc.publication_expected_symbol_count,
+            "publication_observed_symbol_count": publication_doc.publication_observed_symbol_count,
+            "stock_price_basis": config.stock_price_basis,
+            "stock_price_basis_confirmed": False,
+            "benchmark_contract": BENCHMARK_CONTRACT,
+            "benchmark_unit": BENCHMARK_UNIT,
+            "benchmark_price_basis": benchmark_doc.co_so_gia,
+            "benchmark_price_basis_confirmed": False,
+            "stock_benchmark_price_basis_equality_required": False,
+            "corporate_actions_applied": False,
+            "corporate_actions_inventory_complete": False,
+            "high_low_present_in_stock_input": False,
+            "high_low_used": False,
+            "high_low_synthesized": False,
+            "replacement_feature_for_high_low": False,
+            "research_gate": "FAIL",
+            "research_gate_reasons": research_gate_reasons,
+            "technical_validation_only": True,
+        }
+        published = cong_bo_san_pham_v2(destination, products, metadata=metadata, dau_vao=paths)
+    else:
+        metadata = {
+            **common_metadata,
+            "benchmark_contract": BENCHMARK_CONTRACT,
+            "benchmark_policy": {
+                "features_va_labels_chi_dung_close": True,
+                "open_high_low_volume_duoc_dung": False,
+                "correction_overlay_duoc_phep": False,
+                "raw_source_bat_buoc_giu_bat_bien": True,
+                "exact_official_ohlc_hien_co": False,
+                "chi_kiem_tra_ky_thuat": config.muc_dich_lan_chay == "kiem_tra_ky_thuat",
+            },
+            "co_so_gia": config.co_so_gia,
+        }
+        published = cong_bo_san_pham(destination, products, metadata=metadata, dau_vao=paths)
+
     logistic_nav = logistic_backtest.nav[-1].nav if logistic_backtest.nav else m3_config.von_ban_dau
     baseline_nav = baseline_backtest.nav[-1].nav if baseline_backtest.nav else m3_config.von_ban_dau
     return KetQuaNghienCuuMoc4(
@@ -589,7 +753,8 @@ def chay_nghien_cuu_moc_4(
         so_fold_thanh_cong=successful_fold_count,
         so_du_doan_test_logistic=len(logistic_test),
         so_du_doan_test_baseline=len(baseline_test),
-        so_lenh_logistic=len(logistic_backtest.lenh), so_lenh_baseline=len(baseline_backtest.lenh),
+        so_lenh_logistic=len(logistic_backtest.lenh),
+        so_lenh_baseline=len(baseline_backtest.lenh),
         nav_cuoi_logistic=logistic_nav, nav_cuoi_baseline=baseline_nav,
         canh_bao=tuple(warnings),
     )

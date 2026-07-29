@@ -469,3 +469,49 @@ Gioi han bien hinh: thay byte high/low khong duoc thay doi cac cot nghiep vu
 Tuy nhien `raw_sha256` bat buoc thay doi de provenance trung thuc; vi vay byte
 CSV day du khong the bat bien neu byte raw thay doi. Kiem thu phai khoa ro ngoai
 le provenance nay, khong duoc giu hash cu hoac gia mao tinh bat bien.
+
+## QD-0068: Runtime rut gon Moc 4, publication v2 va auditor doc lap
+
+`strict_ohlcv` tiep tuc la hop dong mac dinh va giu tuong thich nguoc. Runtime
+khong tu nhan dang schema; hop dong rut gon chi duoc kich hoat ro rang bang
+`price_contract=reduced_open_close_volume_v1` va chi hop le voi
+`muc_dich_lan_chay=kiem_tra_ky_thuat`.
+
+`technical_candidate_union_v1` la tap ung vien ky thuat theo ho so thu thap,
+khong phai universe thanh phan point-in-time. Ho so hien tai co ten
+`technical_candidate_union_121`, nhung so ma va so dong khong duoc hard-code
+trong runtime chung; runtime doc so du kien tu run profile/publication manifest
+va doi soat lai so quan sat.
+
+Feature order reduced co dung 23 truong. Truong duy nhat bi loai so voi strict la
+`bien_do_cao_thap_chuan_hoa`. High/low khong duoc doc trong schema reduced,
+khong duoc dung, tao, noi suy, dien, sua hoac thay bang feature khac. Feature,
+label, MA250, regime va valuation dung close; thanh khoan dung `close * volume`;
+thuc thi dung open dung phien T+1.
+
+Metadata stock va benchmark la hai hop dong doc lap. Stock reduced ghi
+`stock_price_basis=CHUA_XAC_NHAN` va `stock_price_basis_confirmed=false`.
+Benchmark ghi `benchmark_contract=close_only`, `benchmark_unit=index_points` va
+`benchmark_price_basis_confirmed=false`. Khong co yeu cau hai price basis bang
+nhau. `CHUA_XAC_NHAN` la trang thai basis rieng, khong duoc anh xa, dien giai
+hoac xu ly nhu `dieu_chinh` hay `khong_dieu_chinh`. Cau hinh mo phong M3 phai
+mang trang thai nay bang `cau_hinh_mo_phong` da xac thuc; engine fail closed neu
+co corporate action.
+
+Publication v2 gom 22 san pham nghiep vu va `manifest.json`, tong cong 23 tep.
+Ngoai 16 san pham v1, v2 bo sung `lenh.csv`, `khop_lenh.csv`, `so_cai.csv`,
+`vi_the.csv`, `nav.csv` va `su_kien_da_ap_dung.csv`. Manifest ghi tach stock va
+benchmark basis, contract/version, count du kien/quan sat, research gate va cac
+cam ket khong dung/suy dung high/low.
+
+Auditor `m4_product_audit_v1` la chuong trinh chi doc. Auditor khong import hoac
+goi pipeline, trainer, model refit hay backtest engine; khong sua san pham; kiem
+tra tap tep, SHA-256, config, fold chronology, purge/embargo, prediction,
+ranking/tie-break/top-k, T+1, cash, position, NAV/ledger va reconciliation. Hai
+lan audit cung input va cung ma audit phai tao cung byte va SHA-256.
+
+Research gate cua reduced runtime luon `FAIL` va bat buoc co ma
+`PRICE_BASIS_UNCONFIRMED`. Dau ra chi la bang chung kiem tra ky thuat; cam dung
+lam tin hieu van hanh, khuyen nghi giao dich, ket luan alpha, hieu qua dau tu
+hoac kha nang giao dich that.
+

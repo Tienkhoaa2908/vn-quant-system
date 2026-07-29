@@ -7,10 +7,10 @@ from math import sqrt
 from statistics import fmean
 from typing import Iterable, Sequence, TypeVar
 
-from .mo_hinh import DongFeature, ThanhCoGiaDongCua, ThanhOHLCV
+from .mo_hinh import DongFeature, ThanhCoGiaDongCua, ThanhGiaCoPhieu
 from .phong_ve import xac_thuc_so_huu_han
 
-FEATURE_ORDER_MAC_DINH = (
+FEATURE_ORDER_STRICT_OHLCV_V1 = (
     "khoang_cach_ma20", "khoang_cach_ma60", "khoang_cach_ma120", "khoang_cach_ma250",
     "gia_tren_ma250", "ty_le_dinh_52_tuan", "loi_nhuan_20", "loi_nhuan_60",
     "loi_nhuan_120", "loi_nhuan_250", "dong_luong_12_1", "suc_manh_tuong_doi_120",
@@ -19,6 +19,11 @@ FEATURE_ORDER_MAC_DINH = (
     "gtgd_hien_tai_tren_tb60", "so_phien_volume_0_60", "vnindex_tren_ma250",
     "vnindex_momentum_60", "vnindex_bien_dong_20", "vnindex_bien_dong_60",
 )
+FEATURE_ORDER_REDUCED_OPEN_CLOSE_VOLUME_V1 = tuple(
+    name for name in FEATURE_ORDER_STRICT_OHLCV_V1
+    if name != "bien_do_cao_thap_chuan_hoa"
+)
+FEATURE_ORDER_MAC_DINH = FEATURE_ORDER_STRICT_OHLCV_V1
 
 _BAR_DONG_CUA = TypeVar("_BAR_DONG_CUA", bound=ThanhCoGiaDongCua)
 
@@ -31,8 +36,7 @@ def _lich_chinh_thuc(lich_benchmark: Iterable[date]) -> tuple[date, ...]:
         raise TypeError("Lich benchmark chi duoc chua date.")
     if len(raw) != len(set(raw)):
         raise ValueError("Lich benchmark trung ngay.")
-    ordered = tuple(sorted(raw))
-    return ordered
+    return tuple(sorted(raw))
 
 
 def phien_cuoi_thang(lich_benchmark: Iterable[date]) -> tuple[date, ...]:
@@ -82,11 +86,12 @@ def _feature_calendar_aligned(
     symbol: str,
     T: date,
     calendar: Sequence[date],
-    stock_map: dict[date, ThanhOHLCV],
+    stock_map: dict[date, ThanhGiaCoPhieu],
     benchmark_map: dict[date, ThanhCoGiaDongCua],
+    feature_order: Sequence[str],
 ) -> tuple[dict[str, float | bool | int | None], tuple[str, ...]]:
     index = {day: i for i, day in enumerate(calendar)}[T]
-    values: dict[str, float | bool | int | None] = {name: None for name in FEATURE_ORDER_MAC_DINH}
+    values: dict[str, float | bool | int | None] = {name: None for name in feature_order}
     reasons: set[str] = set()
     if stock_map.get(T) is None:
         reasons.add("thieu_bar_t")
@@ -94,9 +99,9 @@ def _feature_calendar_aligned(
         reasons.add("thieu_bar_benchmark_t")
 
     def missing(feature: str, side: str) -> None:
-        reasons.add(f"thieu_bar_{side}_{feature}")
+        if feature != "bien_do_cao_thap_chuan_hoa" or feature in values:
+            reasons.add(f"thieu_bar_{side}_{feature}")
 
-    # Trend and endpoint returns on exact benchmark sessions.
     for n in (20, 60, 120, 250):
         ma_dates = _window(calendar, index, n)
         ma_rows = _bars_exact(stock_map, ma_dates) if ma_dates is not None else None
@@ -117,7 +122,6 @@ def _feature_calendar_aligned(
         else:
             values[f"loi_nhuan_{n}"] = end_row.gia_dong_cua / start_row.gia_dong_cua - 1.0
 
-    # Momentum 12-1 uses exact T-20 and T-250 endpoints.
     t20, t250 = _endpoint(calendar, index, 20), _endpoint(calendar, index, 250)
     row20, row250 = stock_map.get(t20) if t20 else None, stock_map.get(t250) if t250 else None
     if row20 is None or row250 is None:
@@ -125,7 +129,6 @@ def _feature_calendar_aligned(
     else:
         values["dong_luong_12_1"] = row20.gia_dong_cua / row250.gia_dong_cua - 1.0
 
-    # Relative strength requires exact stock and benchmark T/T-120 endpoints.
     t120 = _endpoint(calendar, index, 120)
     s0, s1 = stock_map.get(t120) if t120 else None, stock_map.get(T)
     b0, b1 = benchmark_map.get(t120) if t120 else None, benchmark_map.get(T)
@@ -139,7 +142,6 @@ def _feature_calendar_aligned(
             - (b1.gia_dong_cua / b0.gia_dong_cua - 1.0)
         )
 
-    # Volatility requires every bar in the exact N+1 benchmark-session window.
     for n in (20, 60):
         vol_dates = _window(calendar, index, n + 1)
         stock_rows = _bars_exact(stock_map, vol_dates) if vol_dates is not None else None
@@ -158,15 +160,18 @@ def _feature_calendar_aligned(
                 _returns([float(x.gia_dong_cua) for x in benchmark_rows])
             )
 
-    current = stock_map.get(T)
-    if current is None:
-        missing("bien_do_cao_thap_chuan_hoa", "co_phieu")
-    else:
-        values["bien_do_cao_thap_chuan_hoa"] = (
-            current.gia_cao_nhat - current.gia_thap_nhat
-        ) / current.gia_dong_cua
+    if "bien_do_cao_thap_chuan_hoa" in values:
+        current = stock_map.get(T)
+        if current is None:
+            missing("bien_do_cao_thap_chuan_hoa", "co_phieu")
+        elif not hasattr(current, "gia_cao_nhat") or not hasattr(current, "gia_thap_nhat"):
+            raise ValueError("strict_ohlcv bat buoc high/low; khong duoc suy dung.")
+        else:
+            values["bien_do_cao_thap_chuan_hoa"] = (
+                float(getattr(current, "gia_cao_nhat"))
+                - float(getattr(current, "gia_thap_nhat"))
+            ) / current.gia_dong_cua
 
-    # Liquidity windows are exact benchmark sessions; missing stock bars are never replaced.
     for n in (20, 60):
         liq_dates = _window(calendar, index, n)
         liq_rows = _bars_exact(stock_map, liq_dates) if liq_dates is not None else None
@@ -180,7 +185,6 @@ def _feature_calendar_aligned(
                 values["gtgd_hien_tai_tren_tb60"] = traded[-1] / average if average > 0.0 else 0.0
                 values["so_phien_volume_0_60"] = sum(1 for x in liq_rows if x.khoi_luong == 0)
 
-    # Benchmark regime uses the same official calendar and exact endpoints/windows.
     benchmark_ma_dates = _window(calendar, index, 250)
     benchmark_ma_rows = _bars_exact(benchmark_map, benchmark_ma_dates) if benchmark_ma_dates is not None else None
     if benchmark_ma_rows is None:
@@ -202,12 +206,21 @@ def _feature_calendar_aligned(
 
 
 def tao_feature_cuoi_thang(
-    du_lieu_co_phieu: Iterable[ThanhOHLCV],
+    du_lieu_co_phieu: Iterable[ThanhGiaCoPhieu],
     du_lieu_benchmark: Iterable[ThanhCoGiaDongCua],
     *,
     lich_benchmark: Iterable[date] | None = None,
+    feature_order: Sequence[str] = FEATURE_ORDER_MAC_DINH,
     feature_bat_buoc: Sequence[str] = FEATURE_ORDER_MAC_DINH,
 ) -> list[DongFeature]:
+    canonical_order = tuple(feature_order)
+    if canonical_order not in {
+        FEATURE_ORDER_STRICT_OHLCV_V1,
+        FEATURE_ORDER_REDUCED_OPEN_CLOSE_VOLUME_V1,
+    }:
+        raise ValueError("feature_order khong thuoc hai hop dong canonical.")
+    if not set(feature_bat_buoc).issubset(canonical_order):
+        raise ValueError("feature_bat_buoc phai la tap con cua feature_order.")
     stock_rows = list(du_lieu_co_phieu)
     benchmark_rows = list(du_lieu_benchmark)
     _validate_bars(stock_rows)
@@ -221,7 +234,7 @@ def tao_feature_cuoi_thang(
         lich_benchmark if lich_benchmark is not None else (x.ngay for x in benchmark_rows)
     )
     sample_dates = phien_cuoi_thang(official_calendar)
-    by_symbol: dict[str, dict[date, ThanhOHLCV]] = defaultdict(dict)
+    by_symbol: dict[str, dict[date, ThanhGiaCoPhieu]] = defaultdict(dict)
     for row in stock_rows:
         by_symbol[row.ma][row.ngay] = row
     benchmark_map = {x.ngay: x for x in benchmark_rows}
@@ -234,6 +247,7 @@ def tao_feature_cuoi_thang(
                 calendar=official_calendar,
                 stock_map=by_symbol[symbol],
                 benchmark_map=benchmark_map,
+                feature_order=canonical_order,
             )
             missing_required = tuple(
                 name for name in feature_bat_buoc
