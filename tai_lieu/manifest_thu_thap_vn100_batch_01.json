@@ -1,0 +1,62 @@
+{
+  "schema_version": "data_evidence_batch_v1",
+  "run_id": "vn100_pit_acquisition_batch_01",
+  "documents": [
+    {
+      "source_document_id": "rb-hose-index-4-0-2024-12-30",
+      "filename": "rb-hose-index-4-0-2024-12-30.pdf",
+      "publisher": "HOSE",
+      "document_type": "RULEBOOK",
+      "observed_url": "https://static2.vietstock.vn/vietstock/2024/12/30/20241230_20241230__qd_747_ban_hanh_hose_index_4_0.pdf",
+      "source_page_url": "https://www.phs.vn/tin-tuc/hose-quyet-dinh-ban-hanh-quy-tac-xay-dung-va-quan-ly-bo-chi-so-hose-index-phien-ban-40/6229735",
+      "rights_status": "RESTRICTED",
+      "source_tier": "TIER_2_OFFICIAL_SURROGATE",
+      "locator": "Quyet dinh va Quy tac HOSE-Index phien ban 4.0, 28 trang",
+      "required": true,
+      "expected_sha256": null,
+      "notes": "Tai lieu mang thuong hieu HOSE nhung byte duoc phuc vu tu static2.vietstock.vn; chua chain-verified voi official HOSE byte."
+    },
+    {
+      "source_document_id": "rc-hose-index-2024-01",
+      "filename": "rc-hose-index-2024-01.pdf",
+      "publisher": "HOSE",
+      "document_type": "PERIODIC_FULL_LIST",
+      "observed_url": "https://static2.vietstock.vn/vietstock/2024/1/15/20240115_20240115_cbtt___danh_sach_thanh_phan_hose_index_thang_1_2024.pdf",
+      "source_page_url": "https://www.phs.vn/tin-tuc/hose-danh-sach-thanh-phan-bo-chi-so-hose-index-thang-12024/6139322",
+      "rights_status": "RESTRICTED",
+      "source_tier": "TIER_2_OFFICIAL_SURROGATE",
+      "locator": "Danh sach thanh phan HOSE-Index thang 1/2024, 29 trang, hieu luc 05/02/2024 theo source page",
+      "required": true,
+      "expected_sha256": null,
+      "notes": "Dung de kiem thu complete-snapshot acquisition; khong tu dong khoa research range."
+    },
+    {
+      "source_document_id": "rc-hose-index-2024-07",
+      "filename": "rc-hose-index-2024-07.pdf",
+      "publisher": "HOSE",
+      "document_type": "PERIODIC_FULL_LIST",
+      "observed_url": "https://www.phs.vn/tin-tuc/hose-danh-sach-thanh-phan-bo-chi-so-hose-index-thang-72024/6191207",
+      "source_page_url": "https://www.phs.vn/tin-tuc/hose-danh-sach-thanh-phan-bo-chi-so-hose-index-thang-72024/6191207",
+      "rights_status": "RESTRICTED",
+      "source_tier": "TIER_2_OFFICIAL_SURROGATE",
+      "locator": "Attachment co ten 20240715_20240715-CBTT - Danh sach thanh phan HOSE-Index thang 7.2024.pdf",
+      "required": true,
+      "expected_sha256": null,
+      "notes": "Tai attachment bang browser va doi ten dung filename trong manifest; khong suy dien direct attachment URL."
+    },
+    {
+      "source_document_id": "rc-hose-index-2026-01",
+      "filename": "rc-hose-index-2026-01.pdf",
+      "publisher": "HOSE",
+      "document_type": "PERIODIC_FULL_LIST",
+      "observed_url": "https://static2.vietstock.vn/vietstock/2026/1/21/21012026_cbtt___danh_sach_thanh_phan_hose_index_thang_1_2026.pdf",
+      "source_page_url": null,
+      "rights_status": "RESTRICTED",
+      "source_tier": "TIER_2_OFFICIAL_SURROGATE",
+      "locator": "Danh sach thanh phan HOSE-Index ky 1/2026, 28 trang",
+      "required": false,
+      "expected_sha256": null,
+      "notes": "Tai lieu da quan sat duoc VN30 va cac bang thanh phan; van can raw-byte hash va content review chinh thuc."
+    }
+  ]
+}
