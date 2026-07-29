@@ -515,3 +515,43 @@ Research gate cua reduced runtime luon `FAIL` va bat buoc co ma
 lam tin hieu van hanh, khuyen nghi giao dich, ket luan alpha, hieu qua dau tu
 hoac kha nang giao dich that.
 
+## QD-0069: Hop dong lich su VN100 point-in-time interval v2
+
+`PIT_MEMBERSHIP_INTERVAL_V2` khoa `pit_membership_interval_v2` lam hop dong canonical cho nghien cuu. `pit_membership_v1` chi duoc giu cho compatibility va fixture; `technical_candidate_union_v1` chi phuc vu technical validation va khong phai point-in-time membership. Runtime phai nhan contract version ro rang; khong auto-detect va khong auto-convert giua ba contract.
+
+`HALF_OPEN_INTERVAL` khoa interval canonical theo quy uoc half-open:
+
+```text
+[ngay_hieu_luc, ngay_ket_thuc_hieu_luc)
+```
+
+Membership tai ngay `T` chi nam trong interval khi:
+
+```text
+ngay_hieu_luc <= T
+AND T < ngay_ket_thuc_hieu_luc
+```
+
+Khong co interval canonical mo vo han, thieu `ngay_ket_thuc_hieu_luc` hoac co end chua duoc chung minh.
+
+`TIMEZONE_AWARE_PUBLICATION_CUTOFF` yeu cau membership chi duoc dung khi dong thoi dat interval predicate va:
+
+```text
+thoi_diem_cong_bo <= thoi_diem_tao_tin_hieu
+```
+
+Hai timestamp phai co mui gio. Neu `ngay_cong_bo` bang `ngay_hieu_luc` nhung khong co gio cong bo dang tin cay, quy trinh fail closed voi `MEMBERSHIP_LOOKAHEAD_RISK`; khong tu gan gio.
+
+`TRI_STATE_MEMBERSHIP` khoa ba trang thai `MEMBER`, `NOT_MEMBER_PROVEN` va `UNKNOWN`. `UNKNOWN` bieu dien thieu bang chung, gap, conflict, identity mo ho hoac cutoff khong dat; no phai fail closed va khong duoc chuyen thanh `false` hay `NOT_MEMBER_PROVEN`.
+
+`RAW_ARCHIVE_OUTSIDE_GIT` yeu cau byte tai lieu nguon nam ngoai Git khi quyen luu tru chua ro. Git chi luu schema, fixture tong hop, manifest/hash, provenance metadata va runbook; khong commit tai lieu nguon co han che.
+
+`STABLE_INSTRUMENT_ID` yeu cau canonical membership lien ket `instrument_id`. `ma` la alias co hieu luc theo thoi gian, khong phai khoa vinh vien. MVP chi xu ly identity can thiet trong khoang nguon duoc thu thap, chua xay master-data toan thi truong.
+
+`RULEBOOK_AUTHORIZED_DERIVATION_ONLY` chi cho phep derive VN100 tu component indices khi rulebook dung giai doan cho phep va moi parent publication deu canonical, dong bo interval va dat cutoff. Khong duoc gia dinh quan he derive la bat bien qua cac phien ban rulebook.
+
+`EXPECTED_MEMBER_COUNT_FROM_CONTRACT` yeu cau framework doc `expected_member_count` tu rulebook/index contract ap dung cho tung giai doan, khong hard-code `100` trong framework chung. Voi VN100, mot segment chi canonical khi tai lieu chinh thuc chung minh `expected_member_count=100` va `observed_member_count` khop gia tri do.
+
+`TARGET_RANGE_PROVISIONAL` khoa pham vi thoi gian hien tai o trang thai provisional. Source inventory cua lat cat sau moi xac dinh khoang co the chung minh; khong tu thu hep, mo rong hoac thay doi khoang ma khong quay lai doan 00.
+
+`RESEARCH_GATE_REMAINS_FAIL`: lat cat nay chi khoa tai lieu va hop dong, chua thu thap du lieu, chua trien khai code va chua giai quyet blocker `VN100_POINT_IN_TIME_HISTORY_INCOMPLETE`. Ba blocker `HOSE_EOD_CROSSCHECK_INCOMPLETE`, `CORPORATE_ACTION_INVENTORY_INCOMPLETE` va `PRICE_BASIS_UNCONFIRMED` cung giu nguyen. PR #20 khong thay doi va Moc 5 chua mo.
