@@ -9,7 +9,10 @@ from .hanh_dong_doanh_nghiep import (
 )
 from .hop_dong import *
 from .preflight import DauVaoResearchPreflight, danh_gia_research_preflight
-from .thu_thap_bang_chung import tao_goi_bang_chung_tu_file
+from .thu_thap_bang_chung import (
+    tao_goi_bang_chung_theo_lo,
+    tao_goi_bang_chung_tu_file,
+)
 from .vn100_pit import (
     CongBoPitCandidate,
     kiem_tra_alias,
