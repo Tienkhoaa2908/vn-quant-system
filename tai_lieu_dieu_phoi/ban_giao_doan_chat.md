@@ -1,6 +1,37 @@
 # Bàn giao đoạn chat điều phối
 
-Cập nhật: 2026-07-28
+Cập nhật: 2026-07-29
+
+## Bàn giao 01E — hậu gộp PR #23
+
+- Kho: `Tienkhoaa2908/vn-quant-system`.
+- Nhánh điều phối: `dieu_phoi-hau-gop-pr23`, tạo trực tiếp từ base bắt buộc `3ff2ed3c8b18eebd9095e9af182b004f4d0aee67`.
+- PR #23 đã merge bằng merge commit `3ff2ed3c8b18eebd9095e9af182b004f4d0aee67`; head đã gộp là `f813cd3cda4c0129f53deb9ffb8a9a42f18b5220`.
+- CI hậu gộp `main`: Run ID `30436034585`; Ubuntu Job `90523874732`; Windows Job `90523875099`; tất cả đã thành công.
+
+## Bằng chứng chạy lại kỹ thuật Mốc 4 trên tập rộng
+
+- Publication nguồn: `121` mã, `231151` dòng.
+- `120` mã có dự báo và xếp hạng.
+- `TMS` được loại có kiểm soát do không đủ lịch sử cho các đặc trưng bắt buộc, chủ yếu MA250, MA120 và các cửa sổ liên quan.
+- Tổng `36` fold; `34` fold thành công.
+- `fold_035` và `fold_036` có `test_rong` tại biên cuối dữ liệu do thiếu `20` phiên tương lai để tạo nhãn; không phải lỗi huấn luyện.
+- Có `3840` dự báo test Logistic và `3840` dự báo test động lượng.
+- Publication có đúng `23` tệp sản phẩm.
+- Hai lượt kiểm toán độc lập đều đạt; các sản phẩm kiểm toán tương ứng giống nhau tuyệt đối theo byte và SHA-256.
+- Hash đầu vào khớp trước và sau chạy; đầu vào không thay đổi.
+- Logistic chỉ là đường chuẩn kỹ thuật và yếu hơn động lượng trong lần chạy này.
+- Không được diễn giải kết quả thành alpha, tín hiệu vận hành, khả năng giao dịch thực hoặc khuyến nghị đầu tư.
+
+## Điểm chặn và phạm vi tiếp theo
+
+- `RESEARCH_GATE=FAIL` với mã bắt buộc `PRICE_BASIS_UNCONFIRMED`.
+- Giữ nguyên `VN100_POINT_IN_TIME_HISTORY_INCOMPLETE`.
+- Giữ nguyên `HOSE_EOD_CROSSCHECK_INCOMPLETE`.
+- Giữ nguyên `CORPORATE_ACTION_INVENTORY_INCOMPLETE`.
+- Giữ nguyên `PRICE_BASIS_UNCONFIRMED`.
+- Mốc 5 tiếp tục tạm dừng; PR #20 không được sửa; không triển khai mã Mốc 5.
+- PR điều phối phải giữ Open/Draft/chưa merge; không squash, không rebase, không merge `main`.
 
 ## Nền
 
