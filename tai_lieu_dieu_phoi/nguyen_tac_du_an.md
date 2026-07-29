@@ -24,6 +24,28 @@ dữ liệu → kiểm tra chất lượng → tập cổ phiếu theo từng th
 14. Chưa dùng học sâu trước khi đường cơ sở và LightGBM đáng tin cậy.
 15. Không chuyển sang mốc mới khi mốc hiện tại chưa được gộp và xác minh trên `main`.
 
+## Quy tắc điều phối tăng tốc
+
+16. Đơn vị giao việc mặc định là `WORK_PACKAGE` theo kết quả, không phải lát cắt thao tác nhỏ.
+17. Một work package mặc định dùng một prompt, một nhánh, một Draft PR và một báo cáo cuối.
+18. Đoạn chuyên môn được tự đọc, thiết kế, triển khai, test, tự rà soát, sửa lỗi, commit, push, mở Draft PR và sửa CI trong cùng phạm vi mà không xin lại phép sau từng bước.
+19. Chỉ quay lại đoạn `00` khi cần đổi contract, mở scope, dùng quyền truy cập mới, thực hiện thao tác phá hủy, nâng noncanonical thành canonical, đổi research gate hoặc mở mốc mới.
+20. Mọi work package phải thực hiện capability preflight sớm. Capability bị chặn do môi trường chỉ được thử một fallback độc lập; sau đó phải dừng lặp, tạo action kit và tiếp tục các lane độc lập.
+21. Blocker của một lane không tự động dừng toàn bộ package.
+22. Tối đa hai work package active: một trên đường găng và một package song song không làm tăng rủi ro tích hợp.
+23. Mỗi package có failure budget ba vòng tự sửa trong cùng Draft PR: implementation review, local/full test repair và CI repair.
+24. Không tạo prompt hoặc PR điều phối chỉ để ghi nhận từng thao tác nhỏ. Trạng thái được gom theo batch.
+25. Prompt chuyên môn tham chiếu tài liệu canonical, không lặp toàn bộ lịch sử dự án.
+26. `tai_lieu_dieu_phoi/ban_dieu_phoi_hien_hanh.md` là snapshot current-state; Git history và `DECISIONS.md` giữ lịch sử.
+27. Trước khi push phải tự kiểm scope, contract, negative tests, boundary dates, look-ahead, survivorship, stable ordering, finite values, hash/manifest, cross-platform và backward compatibility.
+28. Mọi claim phải phân biệt rõ `implemented`, `locally_verified`, `ci_verified`, `observed_external`, `reported_not_verified` và `blocked`.
+
+Chi tiết thực thi nằm tại:
+
+- `tai_lieu_dieu_phoi/giao_thuc_goi_cong_viec_lon.md`;
+- `tai_lieu_dieu_phoi/mau_prompt_goi_cong_viec_lon.md`;
+- `tai_lieu_dieu_phoi/ban_dieu_phoi_hien_hanh.md`.
+
 ## Quy ước ngôn ngữ
 
 - Giải thích bằng tiếng Việt, hạn chế chêm tiếng Anh.
