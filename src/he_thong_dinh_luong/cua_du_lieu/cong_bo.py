@@ -27,7 +27,9 @@ def _json_bytes(value: Any) -> bytes:
 
 
 def _fsync_file(path: Path) -> None:
-    with path.open("rb") as handle:
+    # Windows can reject fsync on a read-only descriptor. Open the existing file
+    # without truncation but with write capability on both supported platforms.
+    with path.open("r+b") as handle:
         os.fsync(handle.fileno())
 
 
@@ -104,7 +106,11 @@ def kiem_toan_cong_bo_doc_lap(directory: Path) -> KetQuaKiemToan:
     try:
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
-        return KetQuaKiemToan(False, ("INVALID_MANIFEST",), _hash_file(manifest_path))
+        return KetQuaKiemToan(
+            False,
+            ("INVALID_MANIFEST",),
+            _hash_file(manifest_path),
+        )
     if manifest.get("research_eligible") is not False:
         errors.append("FOUNDATION_RESEARCH_ELIGIBLE_INVALID")
     products = manifest.get("products")
@@ -139,4 +145,8 @@ def kiem_toan_cong_bo_doc_lap(directory: Path) -> KetQuaKiemToan:
     actual_files = {p.name for p in directory.iterdir() if p.is_file()}
     if actual_files != expected_files:
         errors.append("UNDECLARED_OR_MISSING_FILES")
-    return KetQuaKiemToan(not errors, tuple(sorted(errors)), _hash_file(manifest_path))
+    return KetQuaKiemToan(
+        not errors,
+        tuple(sorted(errors)),
+        _hash_file(manifest_path),
+    )
