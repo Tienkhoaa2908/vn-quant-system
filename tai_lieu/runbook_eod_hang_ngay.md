@@ -96,7 +96,7 @@ if [ -f "$OUTPUT/dnse_smoke_evidence.json" ]; then
 fi
 
 echo
-read -r -p "Nhan Enter sau khi da sao che ket qua..."
+read -r -p "Nhan Enter de dong cua so..."
 ```
 
 Smoke đạt khi:
@@ -183,7 +183,7 @@ if [ "$STATUS" -ne 0 ]; then
 fi
 
 echo
-read -r -p "Nhan Enter sau khi da sao che ket qua..."
+read -r -p "Nhan Enter de dong cua so..."
 ```
 
 Không có lệnh `exit`, nên Git Bash không tự đóng.
