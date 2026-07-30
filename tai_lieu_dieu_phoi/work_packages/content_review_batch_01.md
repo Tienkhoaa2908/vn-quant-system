@@ -1,6 +1,6 @@
 # CONTENT-REVIEW-BATCH-01
 
-Trạng thái: `IMPLEMENTED_PENDING_CI`
+Trạng thái: `READY_FOR_REVIEW`
 
 ## 1. Anchor
 
@@ -9,6 +9,7 @@ main: dbb138fdf28f9bc6aa113f43197dc930560e9407
 last_merged_pr: 28
 acquisition_run: run-02
 acquisition_status: COMPLETE
+pull_request: 29
 ```
 
 ## 2. Outcome
@@ -145,17 +146,44 @@ Không:
 - sửa PR #20;
 - mở Mốc 5.
 
-## 8. Acceptance criteria
+## 8. Verification
 
-- synthetic tests cho normalization, complete row sequence, page contract, hash fail-before-read và ZIP no-raw;
-- full regression Ubuntu thành công;
-- full regression Windows thành công;
+Local isolated tests trước publication:
+
+```text
+5 tests
+5 passed
+```
+
+CI PR #29, head `e69d0bb822ad10e4e1c207cc57b3ebd9bb950156`:
+
+```text
+workflow: kiem_tra_tu_dong
+run_number: 423
+run_id: 30515784696
+conclusion: success
+
+Ubuntu job: 90785149965
+411 tests
+OK, skipped=2
+
+Windows job: 90785149958
+411 tests
+OK, skipped=3
+```
+
+Commit trạng thái sau phần verification phải được CI lại trước khi PR chuyển Ready.
+
+## 9. Acceptance criteria
+
+- synthetic tests cho normalization, complete row sequence, page contract, hash fail-before-read và ZIP no-raw: đạt;
+- full regression Ubuntu: đạt trên implementation head;
+- full regression Windows: đạt trên implementation head;
 - không thay `pyproject.toml`, `uv.lock` hoặc workflow;
 - diff chỉ nằm trong content-review code, tests, manifest, runbook và tài liệu điều phối;
-- PR giữ Draft cho đến khi current-head CI xanh;
 - không merge nếu chưa có phê duyệt riêng của đoạn `00`.
 
-## 9. Next gate
+## 10. Next gate
 
 Sau khi PR merge, người dùng chạy đúng một lệnh từ:
 
