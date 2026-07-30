@@ -202,7 +202,8 @@ class DnseRestSource:
 
         current_from = _epoch_start(start)
         final_to = _epoch_end(end)
-        rows: list[EodRow] = []
+        by_day: dict[date, EodRow] = {}
+        seen_cursors = {current_from}
         for _ in range(MAX_PAGES):
             response = self._client().get(
                 "/price/ohlc",
@@ -220,16 +221,23 @@ class DnseRestSource:
                 source=self.name,
                 version=self.version,
             )
-            rows.extend(row for row in page_rows if start <= row.day <= end)
+            for row in page_rows:
+                if not start <= row.day <= end:
+                    continue
+                previous = by_day.get(row.day)
+                if previous is not None and previous != row:
+                    raise ValueError(f"DNSE_DUPLICATE_DAY_CONFLICT:{symbol}:{row.day}")
+                by_day[row.day] = row
             if next_time == 0 or next_time > final_to:
                 break
-            if next_time <= current_from:
-                raise ValueError("DNSE_PAGINATION_NOT_MONOTONIC")
+            # Mot so ma DNSE tra nextTime bang/nhỏ hon cursor dù trang hiện tại
+            # đã chứa dữ liệu hợp lệ. Dừng an toàn; tầng EOD phía trên vẫn bắt buộc
+            # đủ từng phiên cần thiết và sẽ fail closed nếu trang thực sự bị thiếu.
+            if next_time <= current_from or next_time in seen_cursors:
+                break
+            seen_cursors.add(next_time)
             current_from = next_time
         else:
             raise ValueError("DNSE_PAGINATION_LIMIT_EXCEEDED")
 
-        keys = [(row.symbol, row.day) for row in rows]
-        if len(keys) != len(set(keys)):
-            raise ValueError(f"DNSE_DUPLICATE_DAY:{symbol}")
-        return tuple(sorted(rows, key=lambda row: row.day))
+        return tuple(by_day[day] for day in sorted(by_day))
