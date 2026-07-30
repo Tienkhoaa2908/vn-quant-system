@@ -28,6 +28,7 @@ SCHEMA_VERSION = _impl.SCHEMA_VERSION
 VN_TZ = FIXED_VN_TZ
 EodRow = _impl.EodRow
 VnstockSource = _impl.VnstockSource
+DnseRestSource = _impl.DnseRestSource
 Source = _impl.Source
 PUB_FILES = _impl.PUB_FILES
 PUB_FIELDS = _impl.PUB_FIELDS
@@ -38,14 +39,15 @@ _crosscheck = _impl._crosscheck
 _csv_bytes = _impl._csv_bytes
 _json_bytes = _impl._json_bytes
 _sha_bytes = _impl._sha_bytes
+_source_from_name = _impl._source_from_name
 _accepted_incremental_rows = _impl._accepted_incremental_rows
 _benchmark_history = _impl._benchmark_history
 run = _impl.run
 main = _impl.main
 
 __all__ = [
-    "SCHEMA_VERSION", "VN_TZ", "EodRow", "VnstockSource", "Source",
-    "PUB_FILES", "PUB_FIELDS", "FEATURE_PREFIX", "run", "main",
+    "SCHEMA_VERSION", "VN_TZ", "EodRow", "VnstockSource", "DnseRestSource",
+    "Source", "PUB_FILES", "PUB_FIELDS", "FEATURE_PREFIX", "run", "main",
 ]
 
 

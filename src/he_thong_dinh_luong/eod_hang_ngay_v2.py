@@ -9,8 +9,9 @@ from typing import Callable, Mapping, Sequence
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from . import eod_hang_ngay as core
+from .nguon_dnse import DnseRestSource
 
-SCHEMA_VERSION = "eod_daily_quant_v2"
+SCHEMA_VERSION = "eod_daily_quant_v3"
 VN_TZ = core.VN_TZ
 EodRow = core.EodRow
 VnstockSource = core.VnstockSource
@@ -24,6 +25,15 @@ _crosscheck = core._crosscheck
 _csv_bytes = core._csv_bytes
 _json_bytes = core._json_bytes
 _sha_bytes = core._sha_bytes
+
+
+def _source_from_name(name: str) -> Source:
+    normalized = name.strip().lower()
+    if normalized == "dnse":
+        return DnseRestSource.from_env()
+    if normalized in {"kbs", "vci"}:
+        return VnstockSource(normalized)
+    raise ValueError(f"EOD_SOURCE_UNSUPPORTED:{name}")
 
 
 def _accepted_incremental_rows(
@@ -120,8 +130,11 @@ def run(
     symbols = sorted({row["ma"].strip().upper() for row in base_rows})
     latest_local = max(date.fromisoformat(row["ngay"]) for row in base_rows)
 
-    primary = primary or VnstockSource("kbs")
-    secondary = secondary or VnstockSource("vci")
+    primary = primary or DnseRestSource.from_env()
+    secondary = secondary or VnstockSource("kbs")
+    if primary.name == secondary.name:
+        raise ValueError("EOD_SOURCES_MUST_DIFFER")
+
     benchmark_start = min(latest_local - timedelta(days=10), target - timedelta(days=650))
     primary_benchmark = tuple(
         primary.fetch("VNINDEX", benchmark_start, target, is_index=True)
@@ -195,14 +208,18 @@ def run(
                 "reasons": [f"{type(exc).__name__}:{exc}"],
             })
 
-    (raw_dir / "kbs.json").write_bytes(core._json_bytes({
+    primary_raw_path = raw_dir / "primary.json"
+    secondary_raw_path = raw_dir / "secondary.json"
+    primary_raw_path.write_bytes(core._json_bytes({
+        "role": "primary",
         "source": primary.name,
         "version": primary.version,
         "session": session.isoformat(),
         "required_sessions": [day.isoformat() for day in required_sessions],
         "rows": raw_primary,
     }))
-    (raw_dir / "vci.json").write_bytes(core._json_bytes({
+    secondary_raw_path.write_bytes(core._json_bytes({
+        "role": "secondary",
         "source": secondary.name,
         "version": secondary.version,
         "session": session.isoformat(),
@@ -219,6 +236,10 @@ def run(
         "base_latest_date": latest_local.isoformat(),
         "required_incremental_sessions": [day.isoformat() for day in required_sessions],
         "base_publication": str(base),
+        "sources": {
+            "primary": {"name": primary.name, "version": primary.version},
+            "secondary": {"name": secondary.name, "version": secondary.version},
+        },
         "symbol_count": len(symbols),
         "accepted_current_count": len(accepted_current_symbols),
         "accepted_incremental_row_count": len(accepted_incremental),
@@ -228,8 +249,8 @@ def run(
         "volume_tolerance_ratio": volume_tolerance_ratio,
         "results": results,
         "raw_sha256": {
-            "kbs.json": core._sha_file(raw_dir / "kbs.json"),
-            "vci.json": core._sha_file(raw_dir / "vci.json"),
+            "primary.json": core._sha_file(primary_raw_path),
+            "secondary.json": core._sha_file(secondary_raw_path),
         },
     }
     quality_path = destination / "data_quality_report.json"
@@ -280,6 +301,8 @@ def run(
         "Data status: FINAL",
         f"Session date: {session}",
         f"Prediction for: next trading session after {session}",
+        f"Primary source: {primary.name} {primary.version}",
+        f"Secondary source: {secondary.name} {secondary.version}",
         f"Missing sessions caught up: {len(required_sessions)}",
         f"Data coverage: {len(accepted_current_symbols)}/{len(symbols)} ({coverage:.2%})",
         f"Feature coverage: {len(features)}/{len(symbols)} ({feature_coverage:.2%})",
@@ -307,6 +330,10 @@ def run(
         "session_date": session.isoformat(),
         "base_latest_date": latest_local.isoformat(),
         "required_incremental_sessions": [day.isoformat() for day in required_sessions],
+        "sources": {
+            "primary": {"name": primary.name, "version": primary.version},
+            "secondary": {"name": secondary.name, "version": secondary.version},
+        },
         "daily_prediction_input_sha256": core._sha_file(daily_input),
         "technical_validation_only": True,
         "research_eligible": False,
@@ -329,6 +356,8 @@ def run(
         "caught_up_session_count": len(required_sessions),
         "coverage": coverage,
         "feature_count": len(features),
+        "primary_source": primary.name,
+        "secondary_source": secondary.name,
         "champion_model": forward.get("champion_model"),
         "top_symbols": forward.get("top_symbols", []),
         "output_zip": str(output_zip),
@@ -343,6 +372,8 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--prediction-input", type=Path)
     parser.add_argument("--target-date", type=date.fromisoformat)
+    parser.add_argument("--primary-source", choices=("dnse", "kbs", "vci"), default="dnse")
+    parser.add_argument("--secondary-source", choices=("dnse", "kbs", "vci"), default="kbs")
     parser.add_argument("--min-coverage", type=float, default=0.95)
     parser.add_argument("--price-tolerance-bps", type=float, default=10.0)
     parser.add_argument("--volume-tolerance-ratio", type=float, default=0.05)
@@ -352,11 +383,17 @@ def _parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
+        if args.primary_source == args.secondary_source:
+            raise ValueError("EOD_SOURCES_MUST_DIFFER")
+        primary = _source_from_name(args.primary_source)
+        secondary = _source_from_name(args.secondary_source)
         result = run(
             data_root=args.data_root,
             output_dir=args.output_dir,
             prediction_input=args.prediction_input,
             target_date=args.target_date,
+            primary=primary,
+            secondary=secondary,
             min_coverage=args.min_coverage,
             price_tolerance_bps=args.price_tolerance_bps,
             volume_tolerance_ratio=args.volume_tolerance_ratio,
