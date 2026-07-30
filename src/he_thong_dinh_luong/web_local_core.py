@@ -1,12 +1,12 @@
 """Core khong phu thuoc UI cho bang dieu khien web local.
 
-Module nay chi dung thu vien chuan de CI co the kiem thu ma khong can cai NiceGUI.
-Credential DNSE chi duoc doc tu environment cua process; khong bao gio ghi vao SQLite,
-command line, log hay artifact.
+Chi dung thu vien chuan de CI kiem thu ma khong can NiceGUI. Credential DNSE
+chi den tu environment cua process; khong ghi vao SQLite, command line hay log.
 """
 from __future__ import annotations
 
 from collections import deque
+from contextlib import contextmanager
 from dataclasses import asdict, dataclass
 from datetime import date, datetime, timedelta, timezone
 import csv
@@ -18,7 +18,7 @@ import subprocess
 import sys
 import threading
 import uuid
-from typing import Iterable, Mapping, Sequence
+from typing import Iterable, Iterator, Mapping, Sequence
 
 VN_TZ = timezone(timedelta(hours=7))
 ACTIVE_JOB_STATUSES = ("QUEUED", "RUNNING")
@@ -125,18 +125,19 @@ def new_run_id() -> str:
     return datetime.now(VN_TZ).strftime("%Y%m%d_%H%M%S")
 
 
+def _json_default(value: object) -> object:
+    if isinstance(value, (date, datetime)):
+        return value.isoformat()
+    if isinstance(value, Path):
+        return str(value)
+    raise TypeError(f"NOT_JSON_SERIALIZABLE:{type(value).__name__}")
+
+
 def _json_load(path: Path, default: object) -> object:
     try:
         return json.loads(path.read_text(encoding="utf-8-sig"))
     except (OSError, UnicodeError, json.JSONDecodeError):
         return default
-
-
-def _safe_float(value: object) -> float | None:
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return None
 
 
 def _under(path: Path, root: Path) -> bool:
@@ -148,7 +149,7 @@ def _under(path: Path, root: Path) -> bool:
 
 
 class JobStore:
-    """SQLite job ledger; moi method mo connection rieng de an toan giua UI/thread."""
+    """SQLite job ledger voi connection ngan han, dong ro rang tren Windows."""
 
     def __init__(self, path: Path) -> None:
         self.path = Path(path)
@@ -163,8 +164,17 @@ class JobStore:
         connection.execute("PRAGMA foreign_keys=ON")
         return connection
 
+    @contextmanager
+    def _connection(self) -> Iterator[sqlite3.Connection]:
+        connection = self._connect()
+        try:
+            with connection:
+                yield connection
+        finally:
+            connection.close()
+
     def _initialize(self) -> None:
-        with self._connect() as connection:
+        with self._connection() as connection:
             connection.execute(
                 """
                 CREATE TABLE IF NOT EXISTS jobs (
@@ -188,7 +198,7 @@ class JobStore:
             )
 
     def interrupt_stale_jobs(self) -> int:
-        with self._connect() as connection:
+        with self._connection() as connection:
             cursor = connection.execute(
                 """
                 UPDATE jobs
@@ -210,7 +220,7 @@ class JobStore:
     ) -> str:
         if not kind:
             raise ValueError("JOB_KIND_EMPTY")
-        with self._lock, self._connect() as connection:
+        with self._lock, self._connection() as connection:
             active = connection.execute(
                 "SELECT id FROM jobs WHERE status IN ('QUEUED','RUNNING') LIMIT 1"
             ).fetchone()
@@ -230,7 +240,10 @@ class JobStore:
                     _now_text(),
                     str(Path(output_dir).resolve()),
                     str(Path(log_path).resolve()),
-                    json.dumps(dict(parameters), ensure_ascii=False, sort_keys=True),
+                    json.dumps(
+                        dict(parameters), ensure_ascii=False, sort_keys=True,
+                        default=_json_default,
+                    ),
                 ),
             )
             return job_id
@@ -271,7 +284,7 @@ class JobStore:
         if not fields:
             return
         values.append(job_id)
-        with self._connect() as connection:
+        with self._connection() as connection:
             cursor = connection.execute(
                 f"UPDATE jobs SET {', '.join(fields)} WHERE id=?", values
             )
@@ -279,29 +292,28 @@ class JobStore:
                 raise ValueError(f"JOB_NOT_FOUND:{job_id}")
 
     def get(self, job_id: str) -> dict[str, object] | None:
-        with self._connect() as connection:
+        with self._connection() as connection:
             row = connection.execute("SELECT * FROM jobs WHERE id=?", (job_id,)).fetchone()
-        return dict(row) if row is not None else None
+            return dict(row) if row is not None else None
 
     def active(self) -> dict[str, object] | None:
-        with self._connect() as connection:
+        with self._connection() as connection:
             row = connection.execute(
                 """
-                SELECT * FROM jobs
-                WHERE status IN ('QUEUED','RUNNING')
+                SELECT * FROM jobs WHERE status IN ('QUEUED','RUNNING')
                 ORDER BY created_at DESC LIMIT 1
                 """
             ).fetchone()
-        return dict(row) if row is not None else None
+            return dict(row) if row is not None else None
 
     def recent(self, limit: int = 30) -> list[dict[str, object]]:
         if limit <= 0:
             raise ValueError("JOB_LIMIT_INVALID")
-        with self._connect() as connection:
+        with self._connection() as connection:
             rows = connection.execute(
                 "SELECT * FROM jobs ORDER BY created_at DESC LIMIT ?", (limit,)
             ).fetchall()
-        return [dict(row) for row in rows]
+            return [dict(row) for row in rows]
 
 
 def build_daily_pipeline(
@@ -310,55 +322,32 @@ def build_daily_pipeline(
     *,
     run_id: str | None = None,
 ) -> tuple[Path, tuple[PipelineStep, ...]]:
-    run_id = run_id or new_run_id()
-    output_dir = config.data_root / f"eod-web-{run_id}"
+    output_dir = config.data_root / f"eod-web-{run_id or new_run_id()}"
     eod_command = [
-        sys.executable,
-        "-m",
-        "he_thong_dinh_luong.eod_hang_ngay_cli",
-        "--data-root",
-        str(config.data_root),
-        "--output-dir",
-        str(output_dir),
-        "--primary-source",
-        "dnse",
-        "--secondary-source",
-        request.secondary_source,
-        "--crosscheck-policy",
-        "advisory",
-        "--crosscheck-sample-size",
-        str(request.crosscheck_sample_size),
-        "--min-coverage",
-        str(request.min_coverage),
-        "--price-tolerance-bps",
-        str(request.price_tolerance_bps),
-        "--volume-tolerance-ratio",
-        str(request.volume_tolerance_ratio),
+        sys.executable, "-m", "he_thong_dinh_luong.eod_hang_ngay_cli",
+        "--data-root", str(config.data_root),
+        "--output-dir", str(output_dir),
+        "--primary-source", "dnse",
+        "--secondary-source", request.secondary_source,
+        "--crosscheck-policy", "advisory",
+        "--crosscheck-sample-size", str(request.crosscheck_sample_size),
+        "--min-coverage", str(request.min_coverage),
+        "--price-tolerance-bps", str(request.price_tolerance_bps),
+        "--volume-tolerance-ratio", str(request.volume_tolerance_ratio),
     ]
     if request.target_date is not None:
         eod_command.extend(("--target-date", request.target_date.isoformat()))
     paper_command = (
-        sys.executable,
-        "-m",
-        "he_thong_dinh_luong.paper_trading_daily",
-        "--daily-output",
-        str(output_dir / "daily_quant_output.zip"),
-        "--publication-dir",
-        str(output_dir / "updated_publication"),
-        "--state-dir",
-        str(config.paper_state_dir),
-        "--initial-capital-vnd",
-        str(request.initial_capital_vnd),
-        "--buy-fee-bps",
-        str(request.buy_fee_bps),
-        "--sell-fee-bps",
-        str(request.sell_fee_bps),
-        "--sell-tax-bps",
-        str(request.sell_tax_bps),
-        "--slippage-bps",
-        str(request.slippage_bps),
-        "--lot-size",
-        str(request.lot_size),
+        sys.executable, "-m", "he_thong_dinh_luong.paper_trading_daily",
+        "--daily-output", str(output_dir / "daily_quant_output.zip"),
+        "--publication-dir", str(output_dir / "updated_publication"),
+        "--state-dir", str(config.paper_state_dir),
+        "--initial-capital-vnd", str(request.initial_capital_vnd),
+        "--buy-fee-bps", str(request.buy_fee_bps),
+        "--sell-fee-bps", str(request.sell_fee_bps),
+        "--sell-tax-bps", str(request.sell_tax_bps),
+        "--slippage-bps", str(request.slippage_bps),
+        "--lot-size", str(request.lot_size),
     )
     return output_dir, (
         PipelineStep("fetch_validate_predict_allocate", tuple(eod_command)),
@@ -373,30 +362,18 @@ def build_paper_scenario(
     publication_dir: Path,
     run_id: str | None = None,
 ) -> tuple[Path, tuple[PipelineStep, ...]]:
-    run_id = run_id or new_run_id()
-    output_dir = config.data_root / "paper-scenarios" / f"scenario-{run_id}"
+    output_dir = config.data_root / "paper-scenarios" / f"scenario-{run_id or new_run_id()}"
     command = (
-        sys.executable,
-        "-m",
-        "he_thong_dinh_luong.paper_scenario",
-        "--state-dir",
-        str(config.paper_state_dir),
-        "--publication-dir",
-        str(publication_dir),
-        "--output-dir",
-        str(output_dir),
-        "--initial-capital-vnd",
-        str(request.initial_capital_vnd),
-        "--buy-fee-bps",
-        str(request.buy_fee_bps),
-        "--sell-fee-bps",
-        str(request.sell_fee_bps),
-        "--sell-tax-bps",
-        str(request.sell_tax_bps),
-        "--slippage-bps",
-        str(request.slippage_bps),
-        "--lot-size",
-        str(request.lot_size),
+        sys.executable, "-m", "he_thong_dinh_luong.paper_scenario",
+        "--state-dir", str(config.paper_state_dir),
+        "--publication-dir", str(publication_dir),
+        "--output-dir", str(output_dir),
+        "--initial-capital-vnd", str(request.initial_capital_vnd),
+        "--buy-fee-bps", str(request.buy_fee_bps),
+        "--sell-fee-bps", str(request.sell_fee_bps),
+        "--sell-tax-bps", str(request.sell_tax_bps),
+        "--slippage-bps", str(request.slippage_bps),
+        "--lot-size", str(request.lot_size),
     )
     return output_dir, (PipelineStep("replay_recorded_oos_signals", command),)
 
@@ -409,7 +386,6 @@ def execute_job(
     steps: Sequence[PipelineStep],
     extra_env: Mapping[str, str] | None = None,
 ) -> int:
-    """Chay dong bo; UI goi ham nay trong worker thread."""
     job = store.get(job_id)
     if job is None:
         raise ValueError(f"JOB_NOT_FOUND:{job_id}")
@@ -452,22 +428,15 @@ def execute_job(
                 log.flush()
                 if return_code != 0:
                     store.update(
-                        job_id,
-                        status="FAILED",
-                        stage=stage,
-                        finished=True,
+                        job_id, status="FAILED", stage=stage, finished=True,
                         return_code=return_code,
                         error=f"STEP_FAILED:{step.name}:{return_code}",
                     )
                     return return_code
             log.write(f"===== JOB SUCCESS {_now_text()} =====\n")
         store.update(
-            job_id,
-            status="SUCCESS",
-            stage="completed",
-            finished=True,
-            return_code=0,
-            error="",
+            job_id, status="SUCCESS", stage="completed", finished=True,
+            return_code=0, error="",
         )
         return 0
     except Exception as exc:
@@ -477,12 +446,8 @@ def execute_job(
                 log.write(f"\n===== JOB EXCEPTION {message} =====\n")
         finally:
             store.update(
-                job_id,
-                status="FAILED",
-                stage="exception",
-                finished=True,
-                return_code=2,
-                error=message,
+                job_id, status="FAILED", stage="exception", finished=True,
+                return_code=2, error=message,
             )
         return 2
 
@@ -495,9 +460,7 @@ def create_daily_job(
     output_dir, steps = build_daily_pipeline(config, request)
     log_path = config.logs_dir / f"{output_dir.name}.log"
     job_id = store.create_job(
-        kind="daily_pipeline",
-        output_dir=output_dir,
-        log_path=log_path,
+        kind="daily_pipeline", output_dir=output_dir, log_path=log_path,
         parameters=asdict(request),
     )
     return job_id, output_dir, steps
@@ -517,9 +480,7 @@ def create_scenario_job(
     parameters = asdict(request)
     parameters["publication_dir"] = str(publication_dir)
     job_id = store.create_job(
-        kind="paper_scenario",
-        output_dir=output_dir,
-        log_path=log_path,
+        kind="paper_scenario", output_dir=output_dir, log_path=log_path,
         parameters=parameters,
     )
     return job_id, output_dir, steps
@@ -536,29 +497,28 @@ def discover_eod_runs(data_root: Path, limit: int = 100) -> list[dict[str, objec
     rows: list[dict[str, object]] = []
     seen: set[Path] = set()
     for path in _candidate_eod_dirs(Path(data_root)):
-        if not path.is_dir():
+        if not path.is_dir() or path.resolve() in seen:
             continue
-        resolved = path.resolve()
-        if resolved in seen:
-            continue
-        seen.add(resolved)
+        seen.add(path.resolve())
         manifest = _json_load(path / "manifest.json", {})
         quality = _json_load(path / "data_quality_report.json", {})
-        if not isinstance(manifest, dict):
-            manifest = {}
-        if not isinstance(quality, dict):
-            quality = {}
+        manifest = manifest if isinstance(manifest, dict) else {}
+        quality = quality if isinstance(quality, dict) else {}
         rows.append({
-            "path": str(resolved),
+            "path": str(path.resolve()),
             "name": path.name,
             "mtime": path.stat().st_mtime,
             "status": manifest.get("status", "INCOMPLETE"),
             "session_date": manifest.get("session_date") or quality.get("session_date") or "",
             "primary_coverage": manifest.get("primary_coverage", quality.get("primary_coverage")),
-            "secondary_match_ratio": manifest.get("secondary_sample_match_ratio", quality.get("secondary_match_ratio")),
+            "secondary_match_ratio": manifest.get(
+                "secondary_sample_match_ratio", quality.get("secondary_match_ratio")
+            ),
             "quality_tier": manifest.get("quality_tier", quality.get("quality_tier", "")),
             "has_zip": (path / "daily_quant_output.zip").is_file(),
-            "has_publication": (path / "updated_publication" / "du_lieu_gia_mo_dong_khoi_luong.csv").is_file(),
+            "has_publication": (
+                path / "updated_publication" / "du_lieu_gia_mo_dong_khoi_luong.csv"
+            ).is_file(),
         })
     rows.sort(key=lambda row: float(row["mtime"]), reverse=True)
     return rows[:limit]
@@ -577,9 +537,7 @@ def latest_paper_snapshot(data_root: Path) -> Path | None:
         path = Path(latest_file.read_text(encoding="utf-8-sig").strip())
     except OSError:
         return None
-    if not path.is_dir() or not _under(path, Path(data_root)):
-        return None
-    return path
+    return path if path.is_dir() and _under(path, Path(data_root)) else None
 
 
 def read_csv_rows(
@@ -591,16 +549,13 @@ def read_csv_rows(
 ) -> list[dict[str, str]]:
     if limit <= 0:
         raise ValueError("CSV_LIMIT_INVALID")
-    target = symbol.strip().upper() if symbol else None
     if not path.is_file():
         return []
-    if tail:
-        selected: deque[dict[str, str]] = deque(maxlen=limit)
-    else:
-        output: list[dict[str, str]] = []
+    target = symbol.strip().upper() if symbol else None
+    selected: deque[dict[str, str]] = deque(maxlen=limit)
+    output: list[dict[str, str]] = []
     with path.open("r", encoding="utf-8-sig", newline="") as stream:
-        reader = csv.DictReader(stream)
-        for row in reader:
+        for row in csv.DictReader(stream):
             normalized = {str(key): str(value or "") for key, value in row.items()}
             if target:
                 row_symbol = (normalized.get("ma") or normalized.get("symbol") or "").upper()
@@ -671,14 +626,19 @@ def load_overview(config: LocalWebConfig) -> dict[str, object]:
     return result
 
 
-def load_latest_predictions(config: LocalWebConfig, limit: int = 200) -> list[dict[str, str]]:
+def _latest_file(config: LocalWebConfig, key: str) -> Path | None:
     run = latest_successful_eod(config.data_root)
-    return read_csv_rows(artifact_paths(run)["prediction"], limit=limit) if run else []
+    return artifact_paths(run)[key] if run else None
+
+
+def load_latest_predictions(config: LocalWebConfig, limit: int = 200) -> list[dict[str, str]]:
+    path = _latest_file(config, "prediction")
+    return read_csv_rows(path, limit=limit) if path else []
 
 
 def load_latest_allocation(config: LocalWebConfig, limit: int = 200) -> list[dict[str, str]]:
-    run = latest_successful_eod(config.data_root)
-    return read_csv_rows(artifact_paths(run)["allocation"], limit=limit) if run else []
+    path = _latest_file(config, "allocation")
+    return read_csv_rows(path, limit=limit) if path else []
 
 
 def load_latest_prices(
@@ -687,27 +647,22 @@ def load_latest_prices(
     symbol: str | None = None,
     limit: int = 500,
 ) -> list[dict[str, str]]:
-    run = latest_successful_eod(config.data_root)
-    return (
-        read_csv_rows(artifact_paths(run)["publication"], limit=limit, symbol=symbol, tail=True)
-        if run else []
-    )
+    path = _latest_file(config, "publication")
+    return read_csv_rows(path, limit=limit, symbol=symbol, tail=True) if path else []
+
+
+def _load_latest_json(config: LocalWebConfig, key: str) -> dict[str, object]:
+    path = _latest_file(config, key)
+    value = _json_load(path, {}) if path else {}
+    return value if isinstance(value, dict) else {}
 
 
 def load_model_comparison(config: LocalWebConfig) -> dict[str, object]:
-    run = latest_successful_eod(config.data_root)
-    if not run:
-        return {}
-    value = _json_load(artifact_paths(run)["model"], {})
-    return value if isinstance(value, dict) else {}
+    return _load_latest_json(config, "model")
 
 
 def load_quality_report(config: LocalWebConfig) -> dict[str, object]:
-    run = latest_successful_eod(config.data_root)
-    if not run:
-        return {}
-    value = _json_load(artifact_paths(run)["quality"], {})
-    return value if isinstance(value, dict) else {}
+    return _load_latest_json(config, "quality")
 
 
 def load_paper_nav(config: LocalWebConfig, limit: int = 1000) -> list[dict[str, str]]:
