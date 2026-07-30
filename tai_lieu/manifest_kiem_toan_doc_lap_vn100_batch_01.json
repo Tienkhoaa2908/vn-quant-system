@@ -1,0 +1,69 @@
+{
+  "schema_version": "independent_audit_batch_v1",
+  "run_id": "vn100_independent_audit_batch_01",
+  "expected_review_zip_sha256": "cfe60261dd899433abc8bdd5c58b7000ab848b781dbed6d7a9355dbae42cb6f5",
+  "documents": [
+    {
+      "source_document_id": "rb-hose-index-4-0-2024-12-30",
+      "document_type": "RULEBOOK",
+      "required": true,
+      "expected_sha256": "52d3b347c394e074cd613f8255c80f3f07dc1bb1fc36deedaeb7f2ea96efb228",
+      "expected_byte_size": 9154693,
+      "expected_page_count": 28,
+      "required_marker_groups": [
+        ["HOSE-Index", "HOSE INDEX"],
+        ["Phiên bản 4.0", "PHIEN BAN 4 0"],
+        ["VN100"]
+      ]
+    },
+    {
+      "source_document_id": "rc-hose-index-2024-01",
+      "document_type": "PERIODIC_FULL_LIST",
+      "required": true,
+      "period_label": "THANG_01_2024",
+      "expected_sha256": "5f5c31dad02f73437a054a49e6eaaa04650ff71336c2d069c26b6883eae62ba5",
+      "expected_byte_size": 710475,
+      "expected_page_count": 29,
+      "required_marker_groups": [
+        ["VN100"],
+        ["Kỳ: tháng 1/2024", "KY THANG 1 2024"],
+        ["05/02/2024"],
+        ["02/08/2024"]
+      ],
+      "vn100_page_indexes": [3, 4, 5],
+      "expected_member_count": 100
+    },
+    {
+      "source_document_id": "rc-hose-index-2024-07",
+      "document_type": "PERIODIC_FULL_LIST",
+      "required": true,
+      "period_label": "THANG_07_2024",
+      "expected_sha256": "527385e4ef8781c07aae755fb3563eaee4aad77eb0d2e5799a29f839eb968e84",
+      "expected_byte_size": 725589,
+      "expected_page_count": 29,
+      "required_marker_groups": [
+        ["VN100"],
+        ["Kỳ: tháng 7/2024", "KY THANG 7 2024"],
+        ["05/08/2024"],
+        ["24/01/2025"]
+      ],
+      "vn100_page_indexes": [7, 8],
+      "expected_member_count": 100
+    },
+    {
+      "source_document_id": "rc-hose-index-2026-01",
+      "document_type": "PERIODIC_FULL_LIST",
+      "required": false,
+      "period_label": "KY_01_2026",
+      "expected_sha256": "a89a30791f450cc66a2bb81496eda3f250a75697b4102ea75401d29da0ff2814",
+      "expected_byte_size": 698067,
+      "expected_page_count": 28,
+      "required_marker_groups": [
+        ["VN100"],
+        ["Kỳ 1/2026", "KY 1 2026", "Kỳ: tháng 1/2026"]
+      ],
+      "vn100_page_indexes": [3, 4, 5],
+      "expected_member_count": 100
+    }
+  ]
+}
