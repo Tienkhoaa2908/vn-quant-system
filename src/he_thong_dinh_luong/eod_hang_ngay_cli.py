@@ -4,13 +4,15 @@ from __future__ import annotations
 from datetime import timedelta, timezone
 import zoneinfo
 
+FIXED_VN_TZ = timezone(timedelta(hours=7))
+
 
 def _load_impl():
     try:
         zoneinfo.ZoneInfo("Asia/Ho_Chi_Minh")
     except zoneinfo.ZoneInfoNotFoundError:
         original = zoneinfo.ZoneInfo
-        zoneinfo.ZoneInfo = lambda _key: timezone(timedelta(hours=7))  # type: ignore[assignment]
+        zoneinfo.ZoneInfo = lambda _key: FIXED_VN_TZ  # type: ignore[assignment]
         try:
             from . import eod_hang_ngay_v2 as implementation
         finally:
@@ -23,7 +25,7 @@ def _load_impl():
 _impl = _load_impl()
 
 SCHEMA_VERSION = _impl.SCHEMA_VERSION
-VN_TZ = _impl.VN_TZ
+VN_TZ = FIXED_VN_TZ
 EodRow = _impl.EodRow
 VnstockSource = _impl.VnstockSource
 Source = _impl.Source
