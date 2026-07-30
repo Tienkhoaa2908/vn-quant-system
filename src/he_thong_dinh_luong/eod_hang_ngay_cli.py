@@ -25,6 +25,8 @@ def _load_impl():
 _impl = _load_impl()
 
 SCHEMA_VERSION = _impl.SCHEMA_VERSION
+CROSSCHECK_POLICIES = _impl.CROSSCHECK_POLICIES
+DEFAULT_CROSSCHECK_SAMPLE_SIZE = _impl.DEFAULT_CROSSCHECK_SAMPLE_SIZE
 VN_TZ = FIXED_VN_TZ
 EodRow = _impl.EodRow
 VnstockSource = _impl.VnstockSource
@@ -41,13 +43,17 @@ _json_bytes = _impl._json_bytes
 _sha_bytes = _impl._sha_bytes
 _source_from_name = _impl._source_from_name
 _accepted_incremental_rows = _impl._accepted_incremental_rows
+_primary_incremental_rows = _impl._primary_incremental_rows
+_crosscheck_symbols = _impl._crosscheck_symbols
 _benchmark_history = _impl._benchmark_history
+_benchmark_diagnostics = _impl._benchmark_diagnostics
 run = _impl.run
 main = _impl.main
 
 __all__ = [
-    "SCHEMA_VERSION", "VN_TZ", "EodRow", "VnstockSource", "DnseRestSource",
-    "Source", "PUB_FILES", "PUB_FIELDS", "FEATURE_PREFIX", "run", "main",
+    "SCHEMA_VERSION", "CROSSCHECK_POLICIES", "DEFAULT_CROSSCHECK_SAMPLE_SIZE",
+    "VN_TZ", "EodRow", "VnstockSource", "DnseRestSource", "Source",
+    "PUB_FILES", "PUB_FIELDS", "FEATURE_PREFIX", "run", "main",
 ]
 
 
