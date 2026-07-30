@@ -10,7 +10,8 @@
 KBS + VCI EOD
 → rate limit/retry
 → xác định phiên chung mới nhất
-→ đối chiếu open/close/volume
+→ bắt kịp toàn bộ phiên còn thiếu
+→ đối chiếu open/close/volume từng phiên
 → coverage gate 95%
 → publication reduced bất biến
 → feature ngày mới nhất
@@ -26,6 +27,8 @@ KBS + VCI EOD
 - VCI là nguồn cross-check.
 - Chỉ dùng dữ liệu sau 18:00 giờ Việt Nam.
 - Không dùng high/low làm blocker vì pipeline hiện tại đã khóa hợp đồng `reduced_open_close_volume_v1`.
+- Không được nhảy từ ngày cuối local thẳng đến phiên mới nhất; mọi phiên giao dịch trung gian phải có và khớp hai nguồn.
+- Một mã thiếu hoặc mismatch ở bất kỳ phiên cần bắt kịp nào sẽ bị loại khỏi toàn bộ increment của lần chạy.
 - Không tự ghi đè lịch sử nếu cùng mã/ngày có giá trị khác.
 - Không đưa raw KBS/VCI vào ZIP gửi qua chat.
 - Không sửa `pyproject.toml`, `uv.lock` hoặc workflow.
@@ -65,23 +68,35 @@ Dừng trước prediction khi:
 - chạy trước 18:00;
 - VNINDEX chưa có phiên chung KBS/VCI;
 - ngày làm việc hiện tại chưa được nguồn công bố;
-- coverage EOD dưới 95%;
+- coverage EOD phiên mới nhất dưới 95%;
+- thiếu một phiên trung gian cần bắt kịp;
 - open/close lệch quá 10 bps;
 - volume lệch quá 5%;
 - historical revision conflict;
 - feature coverage dưới 95%;
 - input ZIP hoặc publication sai hash/schema.
 
-## Kiểm thử
+## Kiểm thử synthetic
 
-Synthetic tests không gọi mạng:
+Không gọi mạng:
 
 1. high/low không chặn hợp đồng reduced;
-2. pipeline đầu-cuối với fake KBS/VCI;
-3. chặn trước 18:00;
-4. khóa phiên bản Vnstock;
-5. ZIP cuối không chứa raw;
-6. publication mới được tạo bất biến.
+2. bắt kịp hai phiên liên tiếp;
+3. thiếu một phiên thì loại toàn bộ increment của mã;
+4. pipeline đầu-cuối với fake KBS/VCI;
+5. chặn trước 18:00;
+6. khóa phiên bản Vnstock;
+7. ZIP cuối không chứa raw;
+8. publication mới chứa đủ các dòng incremental.
+
+## Trạng thái implementation
+
+```text
+branch: eod-daily-quant-01
+base: 852df470cc64c569a4ef7f45ee26e045ea9ca508
+module vận hành: he_thong_dinh_luong.eod_hang_ngay_v2
+PR: #32
+```
 
 ## Giới hạn
 
