@@ -40,6 +40,17 @@ def _wait(url: str, *, timeout: float, marker: str | None = None) -> str:
     raise RuntimeError(f"WEB_SMOKE_TIMEOUT:{url}:{last_error}")
 
 
+def _stop(process: subprocess.Popen[str]) -> str:
+    if process.poll() is None:
+        process.terminate()
+    try:
+        output, _ = process.communicate(timeout=10)
+    except subprocess.TimeoutExpired:
+        process.kill()
+        output, _ = process.communicate(timeout=5)
+    return output or ""
+
+
 def run(*, repo_root: Path, timeout: float = 45.0) -> dict[str, object]:
     repo_root = Path(repo_root).resolve()
     port = _free_port()
@@ -76,6 +87,7 @@ def run(*, repo_root: Path, timeout: float = 45.0) -> dict[str, object]:
             encoding="utf-8",
             errors="replace",
         )
+        failed = False
         try:
             _wait(f"http://127.0.0.1:{port}/healthz", timeout=timeout, marker='"status":"ok"')
             root_body = _wait(
@@ -87,21 +99,12 @@ def run(*, repo_root: Path, timeout: float = 45.0) -> dict[str, object]:
                 raise RuntimeError("WEB_SMOKE_ROOT_500_BODY")
             return {"status": "SUCCESS", "port": port, "root_bytes": len(root_body.encode("utf-8"))}
         except Exception:
-            if process.stdout is not None:
-                try:
-                    output = process.stdout.read()
-                except OSError:
-                    output = ""
-                if output:
-                    print(output[-12000:])
+            failed = True
             raise
         finally:
-            process.terminate()
-            try:
-                process.wait(timeout=10)
-            except subprocess.TimeoutExpired:
-                process.kill()
-                process.wait(timeout=5)
+            output = _stop(process)
+            if failed and output:
+                print(output[-12000:])
 
 
 def _parser() -> argparse.ArgumentParser:
