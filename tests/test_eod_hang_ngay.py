@@ -7,7 +7,7 @@ import unittest
 from unittest.mock import patch
 from zipfile import ZipFile
 
-from he_thong_dinh_luong import eod_hang_ngay as eod
+from he_thong_dinh_luong import eod_hang_ngay_v2 as eod
 
 
 def _publication(root: Path) -> None:
@@ -74,7 +74,14 @@ def _prediction_input(root: Path) -> Path:
     return path
 
 
-def _row(symbol: str, day: date, open_price: float, close: float, volume: int, source: str) -> eod.EodRow:
+def _row(
+    symbol: str,
+    day: date,
+    open_price: float,
+    close: float,
+    volume: int,
+    source: str,
+) -> eod.EodRow:
     return eod.EodRow(
         symbol=symbol, day=day, open=open_price, close=close,
         volume=volume, source=source, version="4.0.4",
@@ -99,6 +106,49 @@ class TestEodHangNgay(unittest.TestCase):
         left = eod.EodRow("AAA", day, 10, 11, 100, "kbs", "1", high=99, low=1)
         right = eod.EodRow("AAA", day, 10, 11, 100, "vci", "1", high=12, low=9)
         self.assertEqual(eod._crosscheck(left, right, 1, 0.01), ())
+
+    def test_bat_kip_toan_bo_phien_thieu(self) -> None:
+        first = date(2026, 7, 29)
+        second = date(2026, 7, 30)
+        primary = (
+            _row("AAA", first, 10, 11, 100, "vnstock_kbs"),
+            _row("AAA", second, 11, 12, 110, "vnstock_kbs"),
+        )
+        secondary = (
+            _row("AAA", first, 10, 11, 100, "vnstock_vci"),
+            _row("AAA", second, 11, 12, 110, "vnstock_vci"),
+        )
+        accepted, reasons = eod._accepted_incremental_rows(
+            symbol="AAA",
+            primary_rows=primary,
+            secondary_rows=secondary,
+            required_sessions=(first, second),
+            price_tolerance_bps=10,
+            volume_tolerance_ratio=0.05,
+        )
+        self.assertEqual(reasons, ())
+        self.assertEqual(tuple(row.day for row in accepted), (first, second))
+
+    def test_thieu_mot_phien_thi_loai_ca_increment(self) -> None:
+        first = date(2026, 7, 29)
+        second = date(2026, 7, 30)
+        primary = (
+            _row("AAA", first, 10, 11, 100, "vnstock_kbs"),
+            _row("AAA", second, 11, 12, 110, "vnstock_kbs"),
+        )
+        secondary = (
+            _row("AAA", second, 11, 12, 110, "vnstock_vci"),
+        )
+        accepted, reasons = eod._accepted_incremental_rows(
+            symbol="AAA",
+            primary_rows=primary,
+            secondary_rows=secondary,
+            required_sessions=(first, second),
+            price_tolerance_bps=10,
+            volume_tolerance_ratio=0.05,
+        )
+        self.assertEqual(accepted, ())
+        self.assertIn("MISSING_SESSION:2026-07-29", reasons)
 
     def test_chay_dau_cuoi_khong_goi_mang(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -144,7 +194,7 @@ class TestEodHangNgay(unittest.TestCase):
                     "top_symbols": ["AAA", "BBB"],
                 }
 
-            with patch.object(eod, "_feature_rows", return_value=fake_features):
+            with patch.object(eod.core, "_feature_rows", return_value=fake_features):
                 result = eod.run(
                     data_root=root,
                     output_dir=root / "out",
@@ -156,12 +206,16 @@ class TestEodHangNgay(unittest.TestCase):
                     forward_runner=forward_runner,
                 )
             self.assertEqual(result["status"], "SUCCESS")
+            self.assertEqual(result["caught_up_session_count"], 1)
             with ZipFile(root / "out" / "daily_quant_output.zip") as archive:
                 names = set(archive.namelist())
             self.assertIn("latest_prediction.csv", names)
             self.assertNotIn("kbs.json", names)
             self.assertNotIn("vci.json", names)
-            self.assertTrue((root / "out" / "updated_publication" / "manifest.json").is_file())
+            publication_rows, _ = eod.core._read_csv(
+                root / "out" / "updated_publication" / eod.PUB_FILES[0]
+            )
+            self.assertEqual(len(publication_rows), 4)
 
     def test_chan_chay_truoc_18_gio(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
