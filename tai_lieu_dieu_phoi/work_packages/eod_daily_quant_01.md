@@ -33,6 +33,7 @@ KBS + VCI EOD
 - Không đưa raw KBS/VCI vào ZIP gửi qua chat.
 - Không sửa `pyproject.toml`, `uv.lock` hoặc workflow.
 - `vnstock==4.0.4` và `lightgbm==4.6.0` chỉ được cài tạm bằng `uv run --with`.
+- Entrypoint public dùng UTC+7 cố định khi Windows thiếu zone database; không thêm dependency `tzdata` thường trực.
 
 ## Input tự động tìm
 
@@ -80,21 +81,23 @@ Dừng trước prediction khi:
 
 Không gọi mạng:
 
-1. high/low không chặn hợp đồng reduced;
-2. bắt kịp hai phiên liên tiếp;
-3. thiếu một phiên thì loại toàn bộ increment của mã;
-4. pipeline đầu-cuối với fake KBS/VCI;
-5. chặn trước 18:00;
-6. khóa phiên bản Vnstock;
-7. ZIP cuối không chứa raw;
-8. publication mới chứa đủ các dòng incremental.
+1. entrypoint chạy với UTC+7 trên Windows không có tzdata;
+2. high/low không chặn hợp đồng reduced;
+3. bắt kịp hai phiên liên tiếp;
+4. thiếu một phiên thì loại toàn bộ increment của mã;
+5. pipeline đầu-cuối với fake KBS/VCI;
+6. chặn trước 18:00;
+7. khóa phiên bản Vnstock;
+8. ZIP cuối không chứa raw;
+9. publication mới chứa đủ các dòng incremental.
 
 ## Trạng thái implementation
 
 ```text
 branch: eod-daily-quant-01
 base: 852df470cc64c569a4ef7f45ee26e045ea9ca508
-module vận hành: he_thong_dinh_luong.eod_hang_ngay_v2
+entrypoint vận hành: he_thong_dinh_luong.eod_hang_ngay_cli
+orchestrator: he_thong_dinh_luong.eod_hang_ngay_v2
 PR: #32
 ```
 
