@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Sequence
 from zipfile import ZIP_DEFLATED, ZipFile
 
-from .nguon_dnse import DnseRestSource
+from .eod_hang_ngay_cli import DnseRestSource
 
 
 def _json_bytes(value: object) -> bytes:
