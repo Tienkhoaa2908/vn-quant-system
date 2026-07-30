@@ -4,77 +4,66 @@ Cập nhật: 2026-07-30
 
 ## Kiến trúc nguồn
 
-DNSE OpenAPI có ba nhóm sản phẩm:
-
 ```text
-Trading API
-Broker API
-Market Data API
+DNSE Market Data API: primary canonical
+VCI/KBS qua vnstock: secondary advisory cross-check
 ```
 
-Vòng EOD này chỉ dùng `Market Data API`. `Trading API` chưa được dùng để đặt lệnh; `Broker API` không thuộc phạm vi hệ thống cá nhân.
+DNSE quyết định phiên EOD, dữ liệu publication và feature. Nguồn secondary chỉ kiểm tra chất lượng trên mẫu đều; nguồn phụ thiếu, chậm hoặc không đủ coverage không được phép làm mất dữ liệu DNSE hợp lệ.
 
-Nguồn vận hành:
-
-```text
-DNSE Market Data API: primary
-KBS qua vnstock: secondary cross-check
-VCI qua vnstock: fallback có thể chọn bằng CLI
-```
-
-Sau 18:00 giờ Việt Nam, pipeline:
+Hai chế độ:
 
 ```text
-DNSE EOD + KBS EOD
-→ tìm toàn bộ phiên còn thiếu kể từ publication local
-→ đối chiếu open/close/volume từng phiên
-→ cập nhật publication bất biến
-→ tính feature ngày mới nhất
-→ chạy champion–challenger
-→ xuất Top 10 và paper portfolio
+advisory: mặc định, kiểm tra mẫu, không chặn primary hợp lệ
+strict: audit toàn bộ hai nguồn, mismatch hoặc thiếu secondary sẽ chặn
 ```
 
-Không dùng dữ liệu trong phiên. Nếu nhiều ngày chưa chạy, pipeline tự bắt kịp toàn bộ phiên giao dịch bị thiếu trước khi dự đoán.
+Mặc định advisory lấy mẫu 20 mã phân bố đều trong universe. Pipeline vẫn fail closed khi chính DNSE thiếu phiên, lỗi schema/auth/pagination, primary coverage dưới 95%, feature coverage dưới 95% hoặc có historical revision conflict.
 
 ## Bảo mật credential
 
-DNSE dùng hai giá trị:
+Credential nằm trong file local:
 
 ```text
-API Key
-API Secret
+C:\Users\welcome\Documents\vn-quant-system\.env.dnse
 ```
 
-Không gửi hai giá trị này vào chat, issue, pull request hoặc commit. File local `.env.dnse` đã thuộc mẫu `.env.*` được `.gitignore` loại trừ.
+File cần chứa hai biến:
 
-## Bước 1 — Lưu credential một lần trên máy
+```text
+DNSE_API_KEY
+DNSE_API_SECRET
+```
 
-Mở Git Bash tại:
+Không gửi `.env.dnse`, API Key hoặc API Secret vào chat, issue, pull request hoặc commit.
+
+## Thư mục chạy
+
+Luôn mở Git Bash tại:
 
 ```text
 C:\Users\welcome\Documents\vn-quant-system
 ```
 
-Dán khối sau. Ký tự nhập ở dòng API Secret sẽ không hiện trên màn hình.
+Kiểm tra:
 
 ```bash
-umask 077
-read -r -p "DNSE API Key: " DNSE_KEY_INPUT
-read -r -s -p "DNSE API Secret: " DNSE_SECRET_INPUT
-echo
-printf 'DNSE_API_KEY=%q\nDNSE_API_SECRET=%q\n' \
-  "$DNSE_KEY_INPUT" "$DNSE_SECRET_INPUT" > .env.dnse
-unset DNSE_KEY_INPUT DNSE_SECRET_INPUT
-
-echo "Da tao file local .env.dnse"
-read -r -p "Nhan Enter de tiep tuc..."
+pwd
+test -d src && echo "PROJECT_DIR=OK" || echo "PROJECT_DIR=SAI"
+test -s .env.dnse && echo "DNSE_ENV=OK" || echo "DNSE_ENV=THIEU"
 ```
 
-Khối này không đóng Git Bash.
+Kết quả đúng:
 
-## Bước 2 — Smoke DNSE trước lần chạy đầu
+```text
+/c/Users/welcome/Documents/vn-quant-system
+PROJECT_DIR=OK
+DNSE_ENV=OK
+```
 
-Smoke chỉ đọc HPG và VNINDEX trong khoảng gần nhất. Nó không chạy model, không sửa publication và không ghi credential vào evidence.
+## Smoke DNSE
+
+Smoke chỉ đọc HPG và VNINDEX. Nó không chạy model, không sửa publication và không ghi credential vào evidence.
 
 ```bash
 git switch main
@@ -106,34 +95,28 @@ if [ -f "$OUTPUT/dnse_smoke_evidence.json" ]; then
   cat "$OUTPUT/dnse_smoke_evidence.json"
 fi
 
-if [ -f "$OUTPUT/dnse_smoke_evidence.zip" ]; then
-  echo
-  echo "===== SHA-256 ====="
-  sha256sum "$OUTPUT/dnse_smoke_evidence.zip"
-fi
-
 echo
-read -r -p "Nhan Enter de dong cua so..."
+read -r -p "Nhan Enter sau khi da sao che ket qua..."
 ```
 
-Không có lệnh `exit`, nên Git Bash không tự đóng.
-
-Smoke đạt khi JSON có:
+Smoke đạt khi:
 
 ```text
-"status": "SUCCESS"
-"hpg_rows": lớn hơn 0
-"vnindex_rows": lớn hơn 0
+status = SUCCESS
+hpg_rows > 0
+vnindex_rows > 0
+MA THOAT = 0
 ```
 
-## Bước 3 — Chạy EOD và prediction sau 18:00
+## Chạy EOD và prediction
 
 Điều kiện local:
 
 ```text
 C:\Users\welcome\Documents\vn-quant-data\prediction_input.zip
-một publication reduced hợp lệ chứa 5 file canonical
+một publication reduced hợp lệ
 .env.dnse trong repository local
+chạy sau 18:00 giờ Việt Nam
 ```
 
 Dán nguyên khối:
@@ -142,20 +125,16 @@ Dán nguyên khối:
 git switch main
 git pull --ff-only origin main
 
+set -a
+source .env.dnse
+set +a
+
 DATA_ROOT="/c/Users/welcome/Documents/vn-quant-data"
 RUN_ID="$(date +%Y%m%d_%H%M%S)"
-OUTPUT="$DATA_ROOT/eod-daily-$RUN_ID"
-STATUS=1
+OUTPUT="$DATA_ROOT/eod-dnse-$RUN_ID"
+LOG="$DATA_ROOT/eod-dnse-$RUN_ID.log"
 
-if [ ! -f .env.dnse ]; then
-  echo "LOI: khong tim thay .env.dnse"
-elif [ ! -f "$DATA_ROOT/prediction_input.zip" ]; then
-  echo "LOI: khong tim thay prediction_input.zip"
-else
-  set -a
-  source .env.dnse
-  set +a
-
+(
   PYTHONPATH=src uv run --python 3.12 \
     --with dnse==0.5.0 \
     --with vnstock==4.0.4 \
@@ -164,19 +143,23 @@ else
     --data-root "$DATA_ROOT" \
     --output-dir "$OUTPUT" \
     --primary-source dnse \
-    --secondary-source kbs \
+    --secondary-source vci \
+    --crosscheck-policy advisory \
+    --crosscheck-sample-size 20 \
     --min-coverage 0.95 \
     --price-tolerance-bps 10 \
     --volume-tolerance-ratio 0.05
+) 2>&1 | tee "$LOG"
 
-  STATUS=$?
-fi
+STATUS=${PIPESTATUS[0]}
 
 echo
 echo "===== MA THOAT ====="
 echo "$STATUS"
 echo "===== THU MUC KET QUA ====="
 echo "$OUTPUT"
+echo "===== FILE LOG ====="
+echo "$LOG"
 
 if [ -f "$OUTPUT/daily_prediction_summary.txt" ]; then
   echo
@@ -184,61 +167,58 @@ if [ -f "$OUTPUT/daily_prediction_summary.txt" ]; then
   cat "$OUTPUT/daily_prediction_summary.txt"
 fi
 
-if [ -f "$OUTPUT/data_quality_report.json" ]; then
-  echo
-  echo "===== CHAT LUONG DU LIEU ====="
-  cat "$OUTPUT/data_quality_report.json"
-fi
-
 if [ -f "$OUTPUT/daily_quant_output.zip" ]; then
+  echo
+  echo "===== ZIP KET QUA ====="
+  echo "$OUTPUT/daily_quant_output.zip"
   echo
   echo "===== SHA-256 ====="
   sha256sum "$OUTPUT/daily_quant_output.zip"
 fi
 
+if [ "$STATUS" -ne 0 ]; then
+  echo
+  echo "===== 120 DONG LOI CUOI ====="
+  tail -n 120 "$LOG"
+fi
+
 echo
-read -r -p "Nhan Enter de dong cua so..."
+read -r -p "Nhan Enter sau khi da sao che ket qua..."
 ```
+
+Không có lệnh `exit`, nên Git Bash không tự đóng.
 
 ## Kết quả thành công
 
-Terminal phải có JSON chứa:
+JSON cuối phải có:
 
 ```text
 "status": "SUCCESS"
 "primary_source": "dnse_openapi"
-"secondary_source": "vnstock_kbs"
+"crosscheck_policy": "advisory"
 ```
 
-Thư mục kết quả có:
+Tóm tắt phải ghi:
 
 ```text
-data_quality_report.json
-daily_prediction_summary.txt
-daily_prediction_input.zip
-updated_publication/
-prediction/
-paper_portfolio.csv
-manifest.json
-daily_quant_output.zip
-raw/primary.json
-raw/secondary.json
+Data quality tier: PRIMARY_VALIDATED_SECONDARY_ADVISORY
+Primary data coverage: ...
+Secondary sample available: ...
+Secondary sample matched: ...
+Feature coverage: ...
+Champion model: ...
+Market regime: ...
+Top 10: ...
 ```
 
-`raw/` lưu bằng chứng nguồn trên máy. `daily_quant_output.zip` không chứa raw hoặc credential.
+Nguồn secondary có thể thấp hoặc chậm mà pipeline vẫn thành công, miễn chính DNSE đạt primary coverage tối thiểu 95% và các cửa feature/historical consistency đều đạt.
 
-## File cần gửi vào chat
+## File kết quả
 
 Gửi đúng file:
 
 ```text
-C:\Users\welcome\Documents\vn-quant-data\eod-daily-<RUN_ID>\daily_quant_output.zip
-```
-
-Kèm phần terminal từ:
-
-```text
-===== TOM TAT DU DOAN =====
+C:\Users\welcome\Documents\vn-quant-data\eod-dnse-<RUN_ID>\daily_quant_output.zip
 ```
 
 Không gửi:
@@ -247,40 +227,41 @@ Không gửi:
 .env.dnse
 raw/primary.json
 raw/secondary.json
+API Key
+API Secret
 ```
 
-## Các trạng thái lỗi chính
+## Trạng thái lỗi chính
 
 ### `DNSE_CREDENTIALS_MISSING`
 
-Thiếu `DNSE_API_KEY` hoặc `DNSE_API_SECRET` trong môi trường local.
+Thiếu API Key hoặc API Secret trong môi trường local.
 
-### `DNSE_SDK_VERSION_MISMATCH`
+### `EOD_NOT_PUBLISHED_PRIMARY`
 
-Không chạy đúng `dnse==0.5.0`.
+DNSE chưa có phiên mục tiêu. Chờ DNSE công bố rồi chạy output mới.
 
-### `EOD_NOT_PUBLISHED`
+### `EOD_PRIMARY_DATA_NOT_FINAL`
 
-Nguồn chưa có dữ liệu phiên hiện tại. Chờ 30–60 phút rồi chạy lại với output mới.
-
-### `EOD_DATA_NOT_FINAL`
-
-Dưới 95% universe có dữ liệu khớp giữa DNSE và nguồn secondary, hoặc một mã thiếu một phiên cần bắt kịp. Không tạo prediction.
+Dưới 95% universe có đầy đủ dữ liệu primary DNSE cho mọi phiên cần bắt kịp. Không tạo prediction.
 
 ### `FEATURE_COVERAGE_NOT_FINAL`
 
-Dữ liệu EOD đã đủ nhưng dưới 95% mã tạo được feature đầy đủ. Không tạo prediction.
+Primary EOD đủ nhưng dưới 95% mã tạo được feature đầy đủ. Không tạo prediction.
 
 ### `HISTORICAL_REVISION_CONFLICT`
 
-Nguồn mới trả dữ liệu khác publication đã khóa cho cùng mã/ngày. Pipeline không tự sửa lịch sử.
+Dữ liệu primary mới xung đột publication đã khóa cho cùng mã/ngày. Pipeline không tự sửa lịch sử.
+
+### `EOD_DATA_NOT_FINAL`
+
+Chỉ xuất hiện trong `strict` mode khi hai nguồn không đủ coverage hoặc mismatch.
 
 ## Nguyên tắc vận hành
 
-- Signal ngày `t` chỉ dùng sau khi EOD ngày `t` đã chốt.
+- Signal ngày `t` chỉ được tạo sau khi EOD ngày `t` đã chốt.
 - Giao dịch paper sớm nhất là phiên kế tiếp.
-- DNSE là primary; KBS mặc định là secondary cross-check.
-- Chỉ đối chiếu open/close/volume vì publication hiện dùng hợp đồng reduced.
-- Mọi phiên thiếu giữa ngày cuối local và phiên mới nhất phải được bắt kịp, không được nhảy cóc.
-- Entrypoint dùng UTC+7 cố định trên Windows.
-- Output giữ `research_eligible=false` cho đến khi đóng price basis, corporate actions và PIT universe.
+- DNSE là canonical source cho vòng daily hiện tại.
+- Secondary advisory là giám sát chất lượng, không phải nguồn thay thế âm thầm.
+- Mọi phiên thiếu giữa ngày cuối local và phiên mới nhất phải được bắt kịp.
+- Output vẫn giữ `technical_validation_only=true` và `research_eligible=false` cho đến khi đóng price basis, corporate actions và point-in-time universe.
