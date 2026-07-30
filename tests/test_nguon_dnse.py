@@ -122,6 +122,42 @@ class TestNguonDnse(unittest.TestCase):
         self.assertEqual(client.calls[0][1]["type"], "INDEX")
         self.assertEqual(client.calls[1][1]["from"], second_timestamp)
 
+    def test_cursor_dung_yen_dung_an_toan_va_giu_trang_hop_le(self) -> None:
+        first = date(2026, 7, 29)
+        second = date(2026, 7, 30)
+        stalled = _timestamp(first)
+        client = _Client([_payload([first, second], next_time=stalled)])
+        source = eod.DnseRestSource(
+            "key", "secret",
+            client_factory=lambda *_: client,
+            version_reader=lambda _: "0.5.0",
+        )
+        rows = source.fetch("BCG", first, second)
+        self.assertEqual([row.day for row in rows], [first, second])
+        self.assertEqual(len(client.calls), 1)
+
+    def test_trang_chong_lan_giong_nhau_duoc_khu_trung(self) -> None:
+        first = date(2026, 7, 29)
+        second = date(2026, 7, 30)
+        second_timestamp = _timestamp(second)
+        duplicate = _payload([second])
+        duplicate["o"] = [11.0]
+        duplicate["h"] = [12.0]
+        duplicate["l"] = [10.0]
+        duplicate["c"] = [11.5]
+        duplicate["v"] = [1001]
+        client = _Client([
+            _payload([first, second], next_time=second_timestamp),
+            duplicate,
+        ])
+        source = eod.DnseRestSource(
+            "key", "secret",
+            client_factory=lambda *_: client,
+            version_reader=lambda _: "0.5.0",
+        )
+        rows = source.fetch("ITA", first, second)
+        self.assertEqual([row.day for row in rows], [first, second])
+
     def test_mang_ohlc_lech_do_dai_bi_chan(self) -> None:
         day = date(2026, 7, 30)
         payload = _payload([day])
