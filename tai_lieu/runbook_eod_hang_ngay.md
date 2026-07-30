@@ -79,7 +79,7 @@ test -f "$DATA_ROOT/prediction_input.zip" || {
 PYTHONPATH=src uv run --python 3.12 \
   --with vnstock==4.0.4 \
   --with lightgbm==4.6.0 \
-  python -m he_thong_dinh_luong.eod_hang_ngay_v2 \
+  python -m he_thong_dinh_luong.eod_hang_ngay_cli \
   --data-root "$DATA_ROOT" \
   --output-dir "$OUTPUT" \
   --min-coverage 0.95 \
@@ -178,4 +178,5 @@ Nguồn mới trả dữ liệu khác với publication đã khóa cho cùng mã
 - KBS là nguồn primary; VCI là nguồn đối chiếu.
 - Chỉ đối chiếu open/close/volume vì publication hiện dùng hợp đồng reduced.
 - Mọi phiên thiếu giữa ngày cuối local và phiên mới nhất phải được bắt kịp, không được nhảy cóc.
+- Entrypoint dùng UTC+7 cố định khi Windows thiếu database múi giờ; Việt Nam không dùng daylight saving time.
 - Output tiếp tục giữ `research_eligible=false` cho đến khi đóng price basis, corporate actions và PIT universe.
