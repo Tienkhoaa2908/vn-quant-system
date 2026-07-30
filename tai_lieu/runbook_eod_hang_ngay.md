@@ -8,14 +8,15 @@ Sau 18:00 giờ Việt Nam, chạy một lệnh để:
 
 ```text
 KBS EOD + VCI EOD
-→ đối chiếu open/close/volume
+→ tìm toàn bộ phiên còn thiếu kể từ publication local
+→ đối chiếu open/close/volume từng phiên
 → cập nhật publication bất biến
 → tính feature ngày mới nhất
 → chạy champion–challenger
 → xuất Top 10 và paper portfolio
 ```
 
-Không dùng dữ liệu trong phiên. Không cần tài khoản SSI.
+Không dùng dữ liệu trong phiên. Không cần tài khoản SSI. Nếu nhiều ngày chưa chạy, pipeline tự bắt kịp toàn bộ phiên giao dịch bị thiếu trước khi dự đoán.
 
 ## Điều kiện trước khi chạy
 
@@ -70,7 +71,7 @@ DATA_ROOT="/c/Users/welcome/Documents/vn-quant-data"
 RUN_ID="$(date +%Y%m%d_%H%M%S)"
 OUTPUT="$DATA_ROOT/eod-daily-$RUN_ID"
 
- test -f "$DATA_ROOT/prediction_input.zip" || {
+test -f "$DATA_ROOT/prediction_input.zip" || {
   echo "LOI: khong tim thay prediction_input.zip"
   exit 1
 }
@@ -78,7 +79,7 @@ OUTPUT="$DATA_ROOT/eod-daily-$RUN_ID"
 PYTHONPATH=src uv run --python 3.12 \
   --with vnstock==4.0.4 \
   --with lightgbm==4.6.0 \
-  python -m he_thong_dinh_luong.eod_hang_ngay \
+  python -m he_thong_dinh_luong.eod_hang_ngay_v2 \
   --data-root "$DATA_ROOT" \
   --output-dir "$OUTPUT" \
   --min-coverage 0.95 \
@@ -111,8 +112,6 @@ fi
 
 exit $STATUS
 ```
-
-Dòng `test -f` không có khoảng trắng ở đầu cũng chạy được; khoảng trắng đầu dòng trong Git Bash không làm thay đổi lệnh.
 
 ## Kết quả thành công
 
@@ -162,7 +161,7 @@ Nguồn mở chưa có dữ liệu của phiên hôm nay. Chờ 30–60 phút r�
 
 ### `EOD_DATA_NOT_FINAL`
 
-Dưới 95% universe có dữ liệu khớp giữa KBS và VCI. Không tạo dự đoán.
+Dưới 95% universe có dữ liệu khớp giữa KBS và VCI, hoặc một mã thiếu một trong các phiên cần bắt kịp. Không tạo dự đoán.
 
 ### `FEATURE_COVERAGE_NOT_FINAL`
 
@@ -178,4 +177,5 @@ Nguồn mới trả dữ liệu khác với publication đã khóa cho cùng mã
 - Giao dịch paper sớm nhất là phiên kế tiếp.
 - KBS là nguồn primary; VCI là nguồn đối chiếu.
 - Chỉ đối chiếu open/close/volume vì publication hiện dùng hợp đồng reduced.
+- Mọi phiên thiếu giữa ngày cuối local và phiên mới nhất phải được bắt kịp, không được nhảy cóc.
 - Output tiếp tục giữ `research_eligible=false` cho đến khi đóng price basis, corporate actions và PIT universe.
