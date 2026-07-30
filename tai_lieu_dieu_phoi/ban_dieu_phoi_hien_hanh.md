@@ -53,32 +53,13 @@ DATA_EVIDENCE_BATCH_READY
 PR: 28
 ```
 
-Đã có:
-
-- contract nguồn, identity, review cycle và membership interval v2;
-- tri-state as-of và coverage candidate;
-- EOD/price-basis comparison foundation;
-- corporate-action inventory foundation;
-- research preflight fail closed;
-- deterministic publication và independent auditor;
-- acquisition CLI single-file và batch mode;
-- exact-byte archive ngoài Git;
-- double SHA-256 và metadata evidence ZIP không chứa raw.
-
-Foundation không tự research eligible.
+Đã có nền contract, audit, preflight và acquisition theo lô. Foundation không tự research eligible.
 
 ## 5. Acquisition thực tế đã hoàn tất
 
-Workstation root:
-
 ```text
-C:\Users\welcome\Documents\vn-quant-data
-```
-
-Run:
-
-```text
-run-02
+workstation_root: C:\Users\welcome\Documents\vn-quant-data
+run: run-02
 batch_status: COMPLETE
 document_count: 4
 acquired_count: 4
@@ -118,8 +99,8 @@ branch: content-review-batch-01
 pull_request: 29
 state: OPEN_DRAFT_UNMERGED
 base: dbb138fdf28f9bc6aa113f43197dc930560e9407
-head_at_pr_open: 2eb4b574a6b6d369cefafeb755ffbbf6f9c8fa8a
-ci: PENDING_CURRENT_HEAD
+implementation_head_verified: e69d0bb822ad10e4e1c207cc57b3ebd9bb950156
+current_head_after_status_docs: PENDING_FINAL_CI
 ```
 
 Outcome:
@@ -134,7 +115,7 @@ exact raw byte
 → metadata evidence ZIP không chứa raw/full text
 ```
 
-Đã triển khai trên PR #29:
+Đã triển khai:
 
 - contract `content_review_batch_v1`;
 - acquisition-registry crosscheck;
@@ -173,7 +154,30 @@ required: false
 
 Page indexes là zero-based. Không quét toàn tài liệu để tránh trộn các bảng chỉ số khác.
 
-## 8. Safety invariants
+## 8. CI PR #29
+
+Implementation head `e69d0bb822ad10e4e1c207cc57b3ebd9bb950156`:
+
+```text
+workflow: kiem_tra_tu_dong
+run_number: 423
+run_id: 30515784696
+conclusion: success
+
+ubuntu_job: 90785149965
+ubuntu_tests: 411
+ubuntu_result: success
+ubuntu_skipped: 2
+
+windows_job: 90785149958
+windows_tests: 411
+windows_result: success
+windows_skipped: 3
+```
+
+Status-document commit sau CI phải được chạy full regression lại trước khi PR chuyển Ready.
+
+## 9. Safety invariants
 
 Mọi output content review hiện giữ:
 
@@ -194,11 +198,11 @@ Không:
 - sửa PR #20;
 - mở Mốc 5.
 
-## 9. Cửa PR #29
+## 10. Cửa PR #29
 
 PR chỉ được nghiệm thu khi:
 
-- full regression Ubuntu/Windows đạt trên current head;
+- full regression Ubuntu/Windows đạt trên current head cuối;
 - hash/size mismatch chặn trước PDF read;
 - row sequence 1–100 và member count được kiểm;
 - ZIP không chứa raw/full text;
@@ -206,7 +210,7 @@ PR chỉ được nghiệm thu khi:
 - PR #20 không thay đổi;
 - Mốc 5 không mở.
 
-## 10. Next gate duy nhất
+## 11. Next gate duy nhất
 
 Sau khi PR #29 xanh và merge, chạy đúng một lệnh từ:
 
