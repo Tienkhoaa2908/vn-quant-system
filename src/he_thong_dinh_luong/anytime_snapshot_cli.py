@@ -19,11 +19,11 @@ def _load_impl():
         original = zoneinfo.ZoneInfo
         zoneinfo.ZoneInfo = lambda _key: FIXED_VN_TZ  # type: ignore[assignment]
         try:
-            from . import anytime_snapshot as implementation
+            from . import anytime_snapshot_v2 as implementation
         finally:
             zoneinfo.ZoneInfo = original  # type: ignore[assignment]
         return implementation
-    from . import anytime_snapshot as implementation
+    from . import anytime_snapshot_v2 as implementation
     return implementation
 
 
