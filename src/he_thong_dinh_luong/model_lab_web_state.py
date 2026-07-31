@@ -27,16 +27,18 @@ def _csv(path: Path) -> list[dict[str, str]]:
 
 def latest_model_lab_run(data_root: Path) -> Path | None:
     root = Path(data_root) / "model-lab-live"
+    candidates: list[Path] = []
+    runs = root / "runs"
+    if runs.is_dir():
+        candidates.extend(path for path in runs.glob("*") if path.is_dir())
     pointer = root / "LATEST.txt"
     if pointer.is_file():
         try:
             pointed = Path(pointer.read_text(encoding="utf-8-sig").strip())
         except OSError:
             pointed = Path()
-        if pointed.is_dir():
-            return pointed
-    runs = root / "runs"
-    candidates = [path for path in runs.glob("*") if path.is_dir()] if runs.is_dir() else []
+        if pointed.is_dir() and pointed not in candidates:
+            candidates.append(pointed)
     return max(candidates, key=lambda path: path.stat().st_mtime) if candidates else None
 
 
