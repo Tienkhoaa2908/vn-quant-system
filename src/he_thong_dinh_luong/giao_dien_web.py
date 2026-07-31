@@ -7,7 +7,19 @@ import zoneinfo
 FIXED_VN_TZ = timezone(timedelta(hours=7))
 
 
+def _patch_dnse_contract() -> None:
+    from he_thong_dinh_luong import web_console_app_v5 as terminal_base
+    from he_thong_dinh_luong.dnse_portfolio_v3 import (
+        list_masked_accounts,
+        sync_portfolio,
+    )
+
+    terminal_base.list_masked_accounts = list_masked_accounts
+    terminal_base.sync_portfolio = sync_portfolio
+
+
 def _load_app():
+    _patch_dnse_contract()
     try:
         zoneinfo.ZoneInfo("Asia/Ho_Chi_Minh")
     except zoneinfo.ZoneInfoNotFoundError:
