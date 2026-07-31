@@ -93,7 +93,7 @@ def run(*, repo_root: Path, timeout: float = 45.0) -> dict[str, object]:
             root_body = _wait(
                 f"http://127.0.0.1:{port}/",
                 timeout=timeout,
-                marker="VN Quant Local Console",
+                marker="VN Quant Local",
             )
             if "Internal Server Error" in root_body:
                 raise RuntimeError("WEB_SMOKE_ROOT_500_BODY")
