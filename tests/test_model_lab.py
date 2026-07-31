@@ -129,11 +129,19 @@ class ModelLabCoreTests(unittest.TestCase):
 
     def test_online_ensemble_uses_prior_history_and_normalizes(self):
         weights = online_ensemble_weights(
-            {"a": [0.1, 0.1, 0.1], "b": [-0.1, -0.1, -0.1]}, ["a", "b"]
+            {
+                "a": [0.1, 0.1, 0.1],
+                "b": [-0.1, -0.1, -0.1],
+                "c": [-0.05, -0.05, -0.05],
+            },
+            ["a", "b", "c"],
         )
         self.assertAlmostEqual(sum(weights.values()), 1.0)
         self.assertGreater(weights["a"], weights["b"])
-        scores = ensemble_scores({"a": [1, 2, 3], "b": [3, 2, 1]}, weights)
+        self.assertLessEqual(max(weights.values()), 0.4 + 1e-12)
+        scores = ensemble_scores(
+            {"a": [1, 2, 3], "b": [3, 2, 1], "c": [1, 3, 2]}, weights
+        )
         self.assertEqual(len(scores), 3)
 
     def test_backtest_applies_entry_and_turnover_costs(self):
