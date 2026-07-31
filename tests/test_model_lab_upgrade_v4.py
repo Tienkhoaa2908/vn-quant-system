@@ -5,6 +5,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from he_thong_dinh_luong import model_lab_upgrade_v4 as v4
+from he_thong_dinh_luong.model_lab_core import BacktestConfig
 
 
 def _row(
@@ -26,6 +27,9 @@ def _row(
 
 
 class ModelLabUpgradeV4Tests(unittest.TestCase):
+    def test_core_default_sell_tax_is_ten_bps(self) -> None:
+        self.assertEqual(BacktestConfig().sell_tax_bps, 10.0)
+
     def test_cli_default_sell_tax_is_ten_bps(self) -> None:
         args = v4._parser().parse_args([
             "--input-zip", "input.zip",
