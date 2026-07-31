@@ -1,17 +1,16 @@
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta
-from pathlib import Path
-import tempfile
+from datetime import date, datetime, timedelta, timezone
 import unittest
 
 from he_thong_dinh_luong.anytime_pipeline import resolve_mode
-from he_thong_dinh_luong.eod_hang_ngay import VN_TZ
 from he_thong_dinh_luong.portfolio_weighting import (
     dynamic_capital_budget,
     optimized_weights,
     reference_scores,
 )
+
+VN_TZ = timezone(timedelta(hours=7))
 
 
 class AnytimeModeTests(unittest.TestCase):
