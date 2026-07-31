@@ -19,17 +19,18 @@ def _patch_dnse_contract() -> None:
 
 
 def _load_app():
-    _patch_dnse_contract()
     try:
         zoneinfo.ZoneInfo("Asia/Ho_Chi_Minh")
     except zoneinfo.ZoneInfoNotFoundError:
         original = zoneinfo.ZoneInfo
         zoneinfo.ZoneInfo = lambda _key: FIXED_VN_TZ  # type: ignore[assignment]
         try:
+            _patch_dnse_contract()
             from he_thong_dinh_luong import web_console_app_v8 as application
         finally:
             zoneinfo.ZoneInfo = original  # type: ignore[assignment]
         return application
+    _patch_dnse_contract()
     from he_thong_dinh_luong import web_console_app_v8 as application
     return application
 
