@@ -6,10 +6,27 @@ from datetime import datetime, timedelta, timezone
 import json
 from pathlib import Path
 from typing import Sequence
-
-from .dnse_portfolio import sync_portfolio
+import zoneinfo
 
 VN_TZ = timezone(timedelta(hours=7))
+
+
+def _load_sync():
+    try:
+        zoneinfo.ZoneInfo("Asia/Ho_Chi_Minh")
+    except zoneinfo.ZoneInfoNotFoundError:
+        original = zoneinfo.ZoneInfo
+        zoneinfo.ZoneInfo = lambda _key: VN_TZ  # type: ignore[assignment]
+        try:
+            from .dnse_portfolio import sync_portfolio as implementation
+        finally:
+            zoneinfo.ZoneInfo = original  # type: ignore[assignment]
+        return implementation
+    from .dnse_portfolio import sync_portfolio as implementation
+    return implementation
+
+
+sync_portfolio = _load_sync()
 
 
 def _parser() -> argparse.ArgumentParser:
