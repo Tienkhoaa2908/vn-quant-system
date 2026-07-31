@@ -1,15 +1,28 @@
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, timedelta, timezone
 import json
 from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
 from zipfile import ZipFile
+import zoneinfo
 
-from he_thong_dinh_luong.dnse_portfolio import DnseReadOnlyClient, sync_portfolio
-from he_thong_dinh_luong.eod_hang_ngay import EodRow
+FIXED_VN_TZ = timezone(timedelta(hours=7))
+try:
+    zoneinfo.ZoneInfo("Asia/Ho_Chi_Minh")
+except zoneinfo.ZoneInfoNotFoundError:
+    _original_zoneinfo = zoneinfo.ZoneInfo
+    zoneinfo.ZoneInfo = lambda _key: FIXED_VN_TZ  # type: ignore[assignment]
+    try:
+        from he_thong_dinh_luong.dnse_portfolio import DnseReadOnlyClient, sync_portfolio
+        from he_thong_dinh_luong.eod_hang_ngay import EodRow
+    finally:
+        zoneinfo.ZoneInfo = _original_zoneinfo  # type: ignore[assignment]
+else:
+    from he_thong_dinh_luong.dnse_portfolio import DnseReadOnlyClient, sync_portfolio
+    from he_thong_dinh_luong.eod_hang_ngay import EodRow
 from he_thong_dinh_luong.technical_indicators import compute_indicators
 
 
