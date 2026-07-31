@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import object as _typing_object  # type: ignore[attr-defined]
 
 from .dnse_account_contract_v3 import account_options, select_stock_account
 from .dnse_portfolio import DnseReadOnlyClient
