@@ -1,35 +1,32 @@
-"""Entrypoint ổn định cho VN Quant Local Console.
-
-UI thực tế nằm trong ``web_console_app`` để tách khỏi CLI wrapper và cho phép
-kiểm thử khởi động bằng HTTP thật. Wrapper cũng giữ lớp tương thích nhỏ cho
-NiceGUI 3.14.0, nơi ``ui.banner`` chưa tồn tại.
-"""
+"""Stable cross-platform entrypoint for VN Quant Local Console v3."""
 from __future__ import annotations
 
-from typing import Sequence
+from datetime import timedelta, timezone
+import zoneinfo
 
-from he_thong_dinh_luong.web_console_app import (
-    APP_TITLE,
-    NICEGUI_VERSION,
-    build_app,
-    main as _app_main,
-)
+FIXED_VN_TZ = timezone(timedelta(hours=7))
 
 
-def _install_nicegui_compat() -> None:
+def _load_app():
     try:
-        from nicegui import ui
-    except ImportError:
-        return
-    if not hasattr(ui, "banner"):
-        # Label hỗ trợ cả set_text và classes, đúng hợp đồng mà error banner dùng.
-        setattr(ui, "banner", lambda text="": ui.label(text))
+        zoneinfo.ZoneInfo("Asia/Ho_Chi_Minh")
+    except zoneinfo.ZoneInfoNotFoundError:
+        original = zoneinfo.ZoneInfo
+        zoneinfo.ZoneInfo = lambda _key: FIXED_VN_TZ  # type: ignore[assignment]
+        try:
+            from he_thong_dinh_luong import web_console_app_v3 as application
+        finally:
+            zoneinfo.ZoneInfo = original  # type: ignore[assignment]
+        return application
+    from he_thong_dinh_luong import web_console_app_v3 as application
+    return application
 
 
-def main(argv: Sequence[str] | None = None) -> int:
-    _install_nicegui_compat()
-    return _app_main(argv)
-
+_app = _load_app()
+APP_TITLE = _app.APP_TITLE
+NICEGUI_VERSION = _app.NICEGUI_VERSION
+build_app = _app.build_app
+main = _app.main
 
 __all__ = ["APP_TITLE", "NICEGUI_VERSION", "build_app", "main"]
 
