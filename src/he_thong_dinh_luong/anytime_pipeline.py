@@ -7,7 +7,7 @@ the original finality gate.
 from __future__ import annotations
 
 import argparse
-from datetime import date, datetime
+from datetime import date, datetime, timedelta, timezone
 import json
 import os
 from pathlib import Path
@@ -15,8 +15,7 @@ import subprocess
 import sys
 from typing import Sequence
 
-from .eod_hang_ngay import VN_TZ
-
+VN_TZ = timezone(timedelta(hours=7))
 MODES = ("auto", "snapshot", "final")
 
 
@@ -82,7 +81,7 @@ def run(
         raise FileExistsError("OUTPUT_DIR_EXISTS")
     if resolved == "snapshot":
         command = [
-            sys.executable, "-m", "he_thong_dinh_luong.anytime_snapshot",
+            sys.executable, "-m", "he_thong_dinh_luong.anytime_snapshot_cli",
             "--data-root", str(data),
             "--output-dir", str(output),
             "--min-coverage", str(min(0.80, min_coverage)),
