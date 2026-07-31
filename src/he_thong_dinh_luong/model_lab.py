@@ -1,5 +1,5 @@
 """Stable entrypoint for the predictive-value multi-model research lab."""
-from .model_lab_upgrade_v6 import main, run_model_lab
+from .model_lab_upgrade_v7 import main, run_model_lab
 
 __all__ = ["main", "run_model_lab"]
 
