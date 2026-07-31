@@ -1,8 +1,8 @@
 """Resolve an anytime web request to a provisional snapshot or canonical final EOD.
 
-AUTO mode runs a DNSE snapshot before 18:00 Vietnam time and the existing final EOD +
-paper workflow at/after 18:00. Explicit SNAPSHOT is always allowed. Explicit FINAL keeps
-the original finality gate.
+The workflow now publishes an explicit ``workflow_handoff.json``.  Model Lab
+must consume the exact finalized research package referenced by that handoff and
+must never silently read a static ``prediction_input.zip``.
 """
 from __future__ import annotations
 
@@ -14,6 +14,12 @@ from pathlib import Path
 import subprocess
 import sys
 from typing import Sequence
+
+from .workflow_handoff import (
+    latest_final_research_input,
+    read_market_session,
+    write_handoff,
+)
 
 VN_TZ = timezone(timedelta(hours=7))
 MODES = ("auto", "snapshot", "final")
@@ -55,6 +61,36 @@ def _run(command: Sequence[str], *, cwd: Path) -> int:
     return process.wait()
 
 
+def _publish_research_handoff(
+    *,
+    data_root: Path,
+    output_dir: Path,
+    resolved_mode: str,
+) -> dict[str, object]:
+    market_session = read_market_session(output_dir)
+    if resolved_mode == "final":
+        research_input = output_dir / "daily_prediction_input.zip"
+        scope = "CURRENT_FINAL_EOD"
+    else:
+        research_input = latest_final_research_input(data_root)
+        scope = "LATEST_FINAL_EOD_FOR_INTRADAY_SNAPSHOT"
+    handoff = write_handoff(
+        output_dir=output_dir,
+        resolved_mode=resolved_mode,
+        research_input=research_input,
+        market_session=market_session,
+        research_scope=scope,
+    )
+    payload = json.loads(handoff.read_text(encoding="utf-8"))
+    return {
+        "workflow_handoff": str(handoff),
+        "research_input": payload["research_input_path"],
+        "research_input_sha256": payload["research_input_sha256"],
+        "research_input_signal_date": payload["research_input_signal_date"],
+        "research_scope": scope,
+    }
+
+
 def run(
     *,
     repo_root: Path,
@@ -89,11 +125,17 @@ def run(
         code = _run(command, cwd=root)
         if code != 0:
             raise RuntimeError(f"SNAPSHOT_STEP_FAILED:{code}")
+        handoff = _publish_research_handoff(
+            data_root=data,
+            output_dir=output,
+            resolved_mode="snapshot",
+        )
         return {
             "status": "SUCCESS",
             "resolved_mode": "snapshot",
             "output_dir": str(output),
             "paper_updated": False,
+            **handoff,
         }
 
     eod_command = [
@@ -128,11 +170,17 @@ def run(
     code = _run(paper_command, cwd=root)
     if code != 0:
         raise RuntimeError(f"PAPER_STEP_FAILED:{code}")
+    handoff = _publish_research_handoff(
+        data_root=data,
+        output_dir=output,
+        resolved_mode="final",
+    )
     return {
         "status": "SUCCESS",
         "resolved_mode": "final",
         "output_dir": str(output),
         "paper_updated": True,
+        **handoff,
     }
 
 

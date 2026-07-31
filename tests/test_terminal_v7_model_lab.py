@@ -55,17 +55,19 @@ class ModelLabVisibleJobTests(unittest.TestCase):
 
 
 class UnifiedTerminalSourceTests(unittest.TestCase):
-    def test_entrypoint_loads_v7(self):
+    def test_entrypoint_loads_current_terminal(self):
         source = Path("src/he_thong_dinh_luong/giao_dien_web.py").read_text(encoding="utf-8")
-        self.assertIn("web_console_app_v7", source)
+        self.assertIn("web_console_app_v8", source)
         module = importlib.import_module("he_thong_dinh_luong.giao_dien_web")
         self.assertTrue(callable(module.main))
 
     def test_main_interface_owns_model_lab_workflow(self):
-        source = Path("src/he_thong_dinh_luong/web_console_app_v7.py").read_text(encoding="utf-8")
+        source = Path("src/he_thong_dinh_luong/web_console_app_v8.py").read_text(encoding="utf-8")
         self.assertIn("CẬP NHẬT TOÀN BỘ", source)
-        self.assertIn("he_thong_dinh_luong.model_lab_job", source)
+        self.assertIn("load_handoff", source)
+        self.assertIn("research_input_path", source)
         self.assertIn("model-lab-live", source)
+        self.assertNotIn('str(config.data_root / "prediction_input.zip")', source)
         self.assertNotIn('"uv", "run"', source)
 
 
