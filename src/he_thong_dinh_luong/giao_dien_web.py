@@ -1,4 +1,4 @@
-"""Stable cross-platform entrypoint for VN Quant Local Terminal v5."""
+"""Stable cross-platform entrypoint for VN Quant Local Terminal v6."""
 from __future__ import annotations
 
 from datetime import timedelta, timezone
@@ -14,11 +14,11 @@ def _load_app():
         original = zoneinfo.ZoneInfo
         zoneinfo.ZoneInfo = lambda _key: FIXED_VN_TZ  # type: ignore[assignment]
         try:
-            from he_thong_dinh_luong import web_console_app_v5 as application
+            from he_thong_dinh_luong import web_console_app_v6 as application
         finally:
             zoneinfo.ZoneInfo = original  # type: ignore[assignment]
         return application
-    from he_thong_dinh_luong import web_console_app_v5 as application
+    from he_thong_dinh_luong import web_console_app_v6 as application
     return application
 
 
