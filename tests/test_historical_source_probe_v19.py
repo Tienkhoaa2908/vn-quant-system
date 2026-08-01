@@ -23,24 +23,27 @@ class _FakeSource:
         *,
         is_index: bool = False,
     ) -> tuple[EodRow, ...]:
-        rows = []
+        days = []
         day = self._start
         while day <= self._end:
-            rows.append(
-                EodRow(
-                    symbol=symbol,
-                    day=day,
-                    open=10.0,
-                    high=10.5,
-                    low=9.5,
-                    close=10.0,
-                    volume=1000,
-                    source=self.name,
-                    version=self.version,
-                )
-            )
+            days.append(day)
             day += timedelta(days=31)
-        return tuple(rows)
+        if not days or days[-1] != self._end:
+            days.append(self._end)
+        return tuple(
+            EodRow(
+                symbol=symbol,
+                day=value,
+                open=10.0,
+                high=10.5,
+                low=9.5,
+                close=10.0,
+                volume=1000,
+                source=self.name,
+                version=self.version,
+            )
+            for value in sorted(set(days))
+        )
 
     def close(self) -> None:
         self.closed = True
