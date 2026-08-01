@@ -1,4 +1,4 @@
-"""Stable cross-platform entrypoint for VN Quant Local Terminal v9."""
+"""Stable cross-platform entrypoint for VN Quant Local Terminal v10."""
 from __future__ import annotations
 
 from datetime import timedelta, timezone
@@ -26,12 +26,12 @@ def _load_app():
         zoneinfo.ZoneInfo = lambda _key: FIXED_VN_TZ  # type: ignore[assignment]
         try:
             _patch_dnse_contract()
-            from he_thong_dinh_luong import web_console_app_v9 as application
+            from he_thong_dinh_luong import web_console_app_v10 as application
         finally:
             zoneinfo.ZoneInfo = original  # type: ignore[assignment]
         return application
     _patch_dnse_contract()
-    from he_thong_dinh_luong import web_console_app_v9 as application
+    from he_thong_dinh_luong import web_console_app_v10 as application
     return application
 
 
