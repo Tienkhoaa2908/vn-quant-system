@@ -4,9 +4,7 @@ import unittest
 
 from he_thong_dinh_luong import model_lab
 from he_thong_dinh_luong.model_lab_core import ENSEMBLE_MODEL
-from he_thong_dinh_luong.model_lab_upgrade_v11 import (
-    capped_policy_metrics,
-)
+from he_thong_dinh_luong.model_lab_upgrade_v11 import capped_policy_metrics
 from he_thong_dinh_luong.model_lab_upgrade_v12 import (
     corrected_turnover_capped_periods,
 )
@@ -35,26 +33,12 @@ def prediction_rows(day: str, symbols: list[str]) -> list[dict[str, object]]:
 class ModelLabUpgradeV11Tests(unittest.TestCase):
     def test_three_replacement_cap_retains_seven_available_holdings(self):
         rows = [
-            *prediction_rows(
-                "2026-01-30",
-                list("ABCDEFGHIJKL"),
-            ),
+            *prediction_rows("2026-01-30", list("ABCDEFGHIJKL")),
             *prediction_rows(
                 "2026-02-27",
                 [
-                    "K",
-                    "L",
-                    "M",
-                    "A",
-                    "B",
-                    "C",
-                    "D",
-                    "E",
-                    "F",
-                    "G",
-                    "H",
-                    "I",
-                    "J",
+                    "K", "L", "M", "A", "B", "C", "D",
+                    "E", "F", "G", "H", "I", "J",
                 ],
             ),
         ]
@@ -84,25 +68,12 @@ class ModelLabUpgradeV11Tests(unittest.TestCase):
 
     def test_forced_exits_do_not_consume_voluntary_budget(self):
         rows = [
-            *prediction_rows(
-                "2026-01-30",
-                list("ABCDEFGHIJKL"),
-            ),
+            *prediction_rows("2026-01-30", list("ABCDEFGHIJKL")),
             *prediction_rows(
                 "2026-02-27",
                 [
-                    "K",
-                    "L",
-                    "M",
-                    "N",
-                    "O",
-                    "A",
-                    "B",
-                    "C",
-                    "D",
-                    "E",
-                    "P",
-                    "Q",
+                    "K", "L", "M", "N", "O", "A",
+                    "B", "C", "D", "E", "P", "Q",
                 ],
             ),
         ]
@@ -190,10 +161,10 @@ class ModelLabUpgradeV11Tests(unittest.TestCase):
             0.50,
         )
 
-    def test_stable_entrypoint_routes_through_v12(self):
+    def test_stable_entrypoint_routes_through_v13(self):
         self.assertEqual(
             model_lab.run_model_lab.__module__,
-            "he_thong_dinh_luong.model_lab_upgrade_v12",
+            "he_thong_dinh_luong.model_lab_upgrade_v13",
         )
 
 
