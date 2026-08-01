@@ -5,8 +5,8 @@ import unittest
 
 from he_thong_dinh_luong import model_lab
 from he_thong_dinh_luong.model_lab_core import ENSEMBLE_MODEL
-from he_thong_dinh_luong.model_lab_upgrade_v13 import (
-    DnseCashCostConfig,
+from he_thong_dinh_luong.model_lab_upgrade_v13 import DnseCashCostConfig
+from he_thong_dinh_luong.model_lab_upgrade_v14 import (
     nested_outer_test_evaluation,
 )
 
@@ -88,9 +88,12 @@ class ModelLabUpgradeV13Tests(unittest.TestCase):
         )
         summary = result["summary"]
         selections = result["selection_rows"]
+        periods = result["outer_rows"]
         self.assertEqual(summary["outer_test_period_count"], 9)
         self.assertEqual(len(selections), 3)
         self.assertTrue(summary["outer_test_blocks_non_overlapping"])
+        self.assertTrue(summary["continuous_holdings_across_outer_blocks"])
+        self.assertTrue(summary["model_switch_turnover_charged"])
         self.assertTrue(
             summary["model_and_policy_selected_only_from_prior_validation"]
         )
@@ -100,6 +103,7 @@ class ModelLabUpgradeV13Tests(unittest.TestCase):
             selections[0]["validation_end"],
             selections[0]["test_start"],
         )
+        self.assertEqual(periods[0]["turnover"], 1.0)
         self.assertTrue(summary["gate_passed"])
         self.assertEqual(summary["status"], "HISTORICALLY_VALIDATED")
 
@@ -141,10 +145,10 @@ class ModelLabUpgradeV13Tests(unittest.TestCase):
                 stress_slippage_bps=5.0,
             )
 
-    def test_stable_entrypoint_routes_through_v13(self):
+    def test_stable_entrypoint_routes_through_v14(self):
         self.assertEqual(
             model_lab.run_model_lab.__module__,
-            "he_thong_dinh_luong.model_lab_upgrade_v13",
+            "he_thong_dinh_luong.model_lab_upgrade_v14",
         )
 
 
