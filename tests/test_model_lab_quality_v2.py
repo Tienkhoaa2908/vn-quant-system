@@ -88,16 +88,20 @@ class ResearchHandoffTests(unittest.TestCase):
                 )
 
 
-class TerminalV8ContractTests(unittest.TestCase):
-    def test_entrypoint_uses_v8_and_v8_uses_handoff(self):
+class TerminalV9ContractTests(unittest.TestCase):
+    def test_entrypoint_uses_v9_and_inherits_v8_handoff(self):
         import he_thong_dinh_luong.giao_dien_web as entrypoint
-        import he_thong_dinh_luong.web_console_app_v8 as terminal
+        import he_thong_dinh_luong.web_console_app_v8 as handoff_terminal
+        import he_thong_dinh_luong.web_console_app_v9 as terminal
 
         self.assertIs(entrypoint.build_app, terminal.build_app)
-        source = Path(terminal.__file__).read_text(encoding="utf-8")
+        source = Path(handoff_terminal.__file__).read_text(encoding="utf-8")
         self.assertIn("load_handoff", source)
         self.assertIn("research_input_path", source)
         self.assertNotIn('str(config.data_root / "prediction_input.zip")', source)
+        v9_source = Path(terminal.__file__).read_text(encoding="utf-8")
+        self.assertIn("load_latest_reference_target", v9_source)
+        self.assertIn("ContributionPlanRequest", v9_source)
 
 
 if __name__ == "__main__":
