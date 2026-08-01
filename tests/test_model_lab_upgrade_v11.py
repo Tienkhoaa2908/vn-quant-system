@@ -41,7 +41,21 @@ class ModelLabUpgradeV11Tests(unittest.TestCase):
             ),
             *prediction_rows(
                 "2026-02-27",
-                ["K", "L", "M", "A", "B", "C", "D", "E", "F", "G", "H", "I"],
+                [
+                    "K",
+                    "L",
+                    "M",
+                    "A",
+                    "B",
+                    "C",
+                    "D",
+                    "E",
+                    "F",
+                    "G",
+                    "H",
+                    "I",
+                    "J",
+                ],
             ),
         ]
         periods = corrected_turnover_capped_periods(
@@ -57,9 +71,15 @@ class ModelLabUpgradeV11Tests(unittest.TestCase):
         self.assertEqual(periods[0]["voluntary_replacement_count"], 0)
         self.assertEqual(periods[1]["voluntary_replacement_count"], 3)
         self.assertEqual(periods[1]["forced_exit_count"], 0)
-        self.assertEqual(periods[1]["voluntary_replacement_cap_respected"], "true")
+        self.assertEqual(
+            periods[1]["voluntary_replacement_cap_respected"],
+            "true",
+        )
         selected = set(str(periods[1]["selected_symbols"]).split("|"))
-        self.assertEqual(selected, {"A", "B", "C", "D", "E", "F", "G", "K", "L", "M"})
+        self.assertEqual(
+            selected,
+            {"A", "B", "C", "D", "E", "F", "G", "K", "L", "M"},
+        )
         self.assertAlmostEqual(float(periods[1]["turnover"]), 0.3)
 
     def test_forced_exits_do_not_consume_voluntary_budget(self):
@@ -70,7 +90,20 @@ class ModelLabUpgradeV11Tests(unittest.TestCase):
             ),
             *prediction_rows(
                 "2026-02-27",
-                ["K", "L", "M", "N", "O", "A", "B", "C", "D", "E", "P", "Q"],
+                [
+                    "K",
+                    "L",
+                    "M",
+                    "N",
+                    "O",
+                    "A",
+                    "B",
+                    "C",
+                    "D",
+                    "E",
+                    "P",
+                    "Q",
+                ],
             ),
         ]
         periods = corrected_turnover_capped_periods(
@@ -85,7 +118,10 @@ class ModelLabUpgradeV11Tests(unittest.TestCase):
         second = periods[1]
         self.assertEqual(second["forced_exit_count"], 5)
         self.assertEqual(second["voluntary_replacement_count"], 0)
-        self.assertEqual(second["voluntary_replacement_cap_respected"], "true")
+        self.assertEqual(
+            second["voluntary_replacement_cap_respected"],
+            "true",
+        )
         selected = set(str(second["selected_symbols"]).split("|"))
         self.assertTrue({"A", "B", "C", "D", "E"}.issubset(selected))
         self.assertAlmostEqual(float(second["turnover"]), 0.5)
