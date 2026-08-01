@@ -230,13 +230,25 @@ class DnseRestSource:
                 by_day[row.day] = row
             if next_time == 0 or next_time > final_to:
                 break
-            # Mot so ma DNSE tra nextTime bang/nhỏ hon cursor dù trang hiện tại
-            # đã chứa dữ liệu hợp lệ. Dừng an toàn; tầng EOD phía trên vẫn bắt buộc
-            # đủ từng phiên cần thiết và sẽ fail closed nếu trang thực sự bị thiếu.
-            if next_time <= current_from or next_time in seen_cursors:
+
+            # ``nextTime`` cua DNSE co the nam trong ngay cuoi da tra. Voi nen
+            # 1D, goi trang sau tu giua ngay co the tao mot nen ngay bi cat va
+            # xung dot voi nen day du cua trang truoc. Chuan hoa cursor sang
+            # dau ngay ke tiep sau nen cuoi, nhung van ton trong nextTime neu no
+            # da nam xa hon.
+            next_from = next_time
+            if page_rows:
+                day_after_last_bar = max(row.day for row in page_rows) + timedelta(days=1)
+                next_from = max(next_from, _epoch_start(day_after_last_bar))
+            if next_from > final_to:
                 break
-            seen_cursors.add(next_time)
-            current_from = next_time
+
+            # Mot so ma DNSE tra cursor bang/nho hon cursor hien tai. Dung an
+            # toan; tang EOD phia tren van fail closed neu coverage bi thieu.
+            if next_from <= current_from or next_from in seen_cursors:
+                break
+            seen_cursors.add(next_from)
+            current_from = next_from
         else:
             raise ValueError("DNSE_PAGINATION_LIMIT_EXCEEDED")
 
