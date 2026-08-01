@@ -126,7 +126,8 @@ class ExtendedHistoryReferenceV23Tests(unittest.TestCase):
             root = Path(temporary)
             self._negative_output(root)
             path = root / "nested_model_historical_validation_v15.csv"
-            rows = list(csv.DictReader(path.open(encoding="utf-8-sig", newline="")))
+            with path.open(encoding="utf-8-sig", newline="") as stream:
+                rows = list(csv.DictReader(stream))
             for row in rows:
                 row["outer_test_period_count"] = "47"
             self._write_csv(path, rows, list(rows[0]))
