@@ -27,6 +27,8 @@ balance, position hoac order endpoint; khong phu thuoc local web.
 - `--force-refresh` chi dung cho audit/reconciliation, khong dung hang ngay.
 - Price basis hien la `CHUA_XAC_NHAN`; export chua duoc coi la research-grade
   cho den khi xac nhan adjusted price hoac co corporate actions PIT.
+- Khong dat `exit` o cuoi block lenh duoc dan truc tiep vao Git Bash tuong tac;
+  `exit` se dong luon terminal cua nguoi dung.
 
 ## 1. Tao danh sach ma tu prediction input hien co
 
@@ -79,7 +81,11 @@ export DNSE_API_KEY DNSE_API_SECRET
 
 ## 3. Backfill lan dau
 
+Block nay an toan de dan truc tiep vao Git Bash. No khong goi `exit`, nen terminal
+van mo ke ca khi DNSE tra loi.
+
 ```bash
+set +e
 cd ~/Documents/vn-quant-system
 export PYTHONPATH="$PWD/src"
 
@@ -88,6 +94,7 @@ STORE="$DATA_ROOT/market-data/dnse_ohlcv_v20.sqlite3"
 SYMBOLS_FILE="$DATA_ROOT/market-data/vn100-symbols-v20.csv"
 RUN_ID="$(date +%Y%m%d-%H%M%S)"
 REPORT="$DATA_ROOT/market-data/dnse-sync-v20-$RUN_ID.json"
+LOG_FILE="$DATA_ROOT/market-data/dnse-sync-v20-$RUN_ID.log"
 
 PYTHONPATH=src uv run --python 3.12 \
   --with dnse==0.5.0 \
@@ -95,15 +102,25 @@ PYTHONPATH=src uv run --python 3.12 \
   --store "$(cygpath -w "$STORE")" \
   --symbols-file "$(cygpath -w "$SYMBOLS_FILE")" \
   --start 2015-06-29 \
-  --end 2026-08-01 \
+  --end "$(date +%F)" \
   --chunk-days 366 \
-  --output-json "$(cygpath -w "$REPORT")"
+  --output-json "$(cygpath -w "$REPORT")" \
+  2>&1 | tee "$LOG_FILE"
 
-STATUS=$?
+STATUS=${PIPESTATUS[0]}
+unset DNSE_API_KEY DNSE_API_SECRET
+
 echo "EXIT_CODE=$STATUS"
 echo "STORE=$STORE"
 echo "REPORT=$REPORT"
-cat "$REPORT"
+echo "LOG_FILE=$LOG_FILE"
+
+if [ -f "$REPORT" ]; then
+  cat "$REPORT"
+else
+  echo "REPORT_NOT_CREATED"
+  tail -n 80 "$LOG_FILE"
+fi
 ```
 
 Lenh co the mat thoi gian vi moi ma duoc chia thanh nhieu khoang nam. Neu dung
@@ -115,6 +132,7 @@ Khong can truyen `--start`; mac dinh van la 2015-06-29 nhung planner chi goi
 phan chua duoc coverage.
 
 ```bash
+set +e
 cd ~/Documents/vn-quant-system
 export PYTHONPATH="$PWD/src"
 
@@ -122,7 +140,9 @@ DATA_ROOT="/c/Users/welcome/Documents/vn-quant-data"
 STORE="$DATA_ROOT/market-data/dnse_ohlcv_v20.sqlite3"
 SYMBOLS_FILE="$DATA_ROOT/market-data/vn100-symbols-v20.csv"
 TODAY="$(date +%F)"
-REPORT="$DATA_ROOT/market-data/dnse-sync-v20-$TODAY.json"
+RUN_ID="$(date +%Y%m%d-%H%M%S)"
+REPORT="$DATA_ROOT/market-data/dnse-sync-v20-$RUN_ID.json"
+LOG_FILE="$DATA_ROOT/market-data/dnse-sync-v20-$RUN_ID.log"
 
 PYTHONPATH=src uv run --python 3.12 \
   --with dnse==0.5.0 \
@@ -130,7 +150,15 @@ PYTHONPATH=src uv run --python 3.12 \
   --store "$(cygpath -w "$STORE")" \
   --symbols-file "$(cygpath -w "$SYMBOLS_FILE")" \
   --end "$TODAY" \
-  --output-json "$(cygpath -w "$REPORT")"
+  --output-json "$(cygpath -w "$REPORT")" \
+  2>&1 | tee "$LOG_FILE"
+
+STATUS=${PIPESTATUS[0]}
+unset DNSE_API_KEY DNSE_API_SECRET
+
+echo "EXIT_CODE=$STATUS"
+echo "REPORT=$REPORT"
+echo "LOG_FILE=$LOG_FILE"
 ```
 
 Neu kho da phu den hom qua, moi ma chi co toi da mot tail range moi. Neu hom nay
