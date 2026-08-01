@@ -66,7 +66,13 @@ class ContributionPortfolioV18Tests(unittest.TestCase):
             plan["contribution_status"],
             "ACCUMULATE_CASH_UNTIL_ONE_SHARE_AFFORDABLE_OR_RISK_ROOM",
         )
-        self.assertGreater(plan["cash_shortfall_to_next_share_vnd"], 0)
+        self.assertGreater(
+            plan["cash_shortfall_to_cheapest_priced_share_vnd"], 0
+        )
+        self.assertEqual(
+            plan["one_share_blocker"],
+            "CASH_BELOW_CHEAPEST_PRICED_SHARE",
+        )
 
     def test_quantity_is_split_into_round_and_odd_lot_orders(self) -> None:
         plan = build_contribution_plan(
