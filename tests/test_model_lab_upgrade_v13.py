@@ -145,10 +145,10 @@ class ModelLabUpgradeV13Tests(unittest.TestCase):
                 stress_slippage_bps=5.0,
             )
 
-    def test_stable_entrypoint_routes_through_v14(self):
+    def test_stable_entrypoint_routes_through_v15(self):
         self.assertEqual(
             model_lab.run_model_lab.__module__,
-            "he_thong_dinh_luong.model_lab_upgrade_v14",
+            "he_thong_dinh_luong.model_lab_upgrade_v15",
         )
 
 
