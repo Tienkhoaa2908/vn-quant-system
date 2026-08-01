@@ -7,6 +7,7 @@ are never persisted.
 from __future__ import annotations
 
 import argparse
+from contextlib import contextmanager
 import csv
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
@@ -16,7 +17,7 @@ import json
 from pathlib import Path
 import shutil
 import sqlite3
-from typing import TYPE_CHECKING, Iterable, Mapping, Protocol, Sequence
+from typing import TYPE_CHECKING, Iterable, Iterator, Mapping, Protocol, Sequence
 
 if TYPE_CHECKING:
     from .eod_hang_ngay import EodRow
@@ -161,11 +162,19 @@ class DnseHistoricalStore:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._init()
 
-    def _db(self) -> sqlite3.Connection:
+    @contextmanager
+    def _db(self) -> Iterator[sqlite3.Connection]:
         db = sqlite3.connect(self.path)
         db.row_factory = sqlite3.Row
         db.execute("PRAGMA busy_timeout = 30000")
-        return db
+        try:
+            yield db
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise
+        finally:
+            db.close()
 
     def _init(self) -> None:
         with self._db() as db:
