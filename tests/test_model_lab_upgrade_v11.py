@@ -161,10 +161,10 @@ class ModelLabUpgradeV11Tests(unittest.TestCase):
             0.50,
         )
 
-    def test_stable_entrypoint_routes_through_v14(self):
+    def test_stable_entrypoint_routes_through_v15(self):
         self.assertEqual(
             model_lab.run_model_lab.__module__,
-            "he_thong_dinh_luong.model_lab_upgrade_v14",
+            "he_thong_dinh_luong.model_lab_upgrade_v15",
         )
 
 
