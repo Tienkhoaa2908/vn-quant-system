@@ -1,6 +1,7 @@
 """Nguon OHLC EOD tu DNSE OpenAPI, doc credential chi tu moi truong local."""
 from __future__ import annotations
 
+from collections import Counter
 from collections.abc import Callable, Mapping, Sequence
 from datetime import date, datetime, time, timedelta, timezone
 from importlib import metadata
@@ -83,13 +84,90 @@ def _array(payload: Mapping[str, object], name: str) -> Sequence[object]:
     return value
 
 
+def _anchor(timestamp: int) -> time:
+    local = datetime.fromtimestamp(timestamp, tz=VN_TZ)
+    return time(local.hour, local.minute, local.second)
+
+
+def _canonical_anchor(
+    records_by_day: Mapping[date, Sequence[tuple[int, EodRow]]],
+) -> time | None:
+    # Uu tien cac ngay chi co mot record de khong cho duplicate bat thuong tu
+    # bo phieu cho chinh no. Neu khong co ngay duy nhat thi moi dung toan bo.
+    anchors = [
+        _anchor(records[0][0])
+        for records in records_by_day.values()
+        if len(records) == 1
+    ]
+    if not anchors:
+        anchors = [
+            _anchor(timestamp)
+            for records in records_by_day.values()
+            for timestamp, _ in records
+        ]
+    if not anchors:
+        return None
+    counts = Counter(anchors)
+    highest = max(counts.values())
+    winners = [value for value, count in counts.items() if count == highest]
+    return winners[0] if len(winners) == 1 else None
+
+
+def _deduplicate_daily_records(
+    *,
+    symbol: str,
+    records: Sequence[tuple[int, EodRow]],
+) -> tuple[tuple[EodRow, ...], dict[str, object]]:
+    by_day: dict[date, list[tuple[int, EodRow]]] = {}
+    for timestamp, row in records:
+        by_day.setdefault(row.day, []).append((timestamp, row))
+
+    canonical = _canonical_anchor(by_day)
+    selected: list[EodRow] = []
+    duplicate_days = 0
+    discarded = 0
+    for day in sorted(by_day):
+        candidates = by_day[day]
+        if len(candidates) == 1:
+            selected.append(candidates[0][1])
+            continue
+
+        duplicate_days += 1
+        first_row = candidates[0][1]
+        if all(row == first_row for _, row in candidates[1:]):
+            selected.append(first_row)
+            discarded += len(candidates) - 1
+            continue
+
+        if canonical is None:
+            raise ValueError(
+                f"DNSE_DUPLICATE_DAY_ANCHOR_AMBIGUOUS:{symbol}:{day}"
+            )
+        anchored = [
+            row for timestamp, row in candidates if _anchor(timestamp) == canonical
+        ]
+        if not anchored:
+            raise ValueError(f"DNSE_DUPLICATE_DAY_CONFLICT:{symbol}:{day}")
+        chosen = anchored[0]
+        if any(row != chosen for row in anchored[1:]):
+            raise ValueError(f"DNSE_DUPLICATE_DAY_CONFLICT:{symbol}:{day}")
+        selected.append(chosen)
+        discarded += len(candidates) - 1
+
+    return tuple(selected), {
+        "canonical_anchor_local_time": canonical.isoformat() if canonical else None,
+        "duplicate_day_count": duplicate_days,
+        "discarded_duplicate_record_count": discarded,
+    }
+
+
 def _parse_page(
     *,
     payload: object,
     symbol: str,
     source: str,
     version: str,
-) -> tuple[tuple[EodRow, ...], int]:
+) -> tuple[tuple[EodRow, ...], int, dict[str, object]]:
     if not isinstance(payload, Mapping):
         raise ValueError("DNSE_OHLC_RESPONSE_INVALID")
     arrays = {name: _array(payload, name) for name in ("t", "o", "h", "l", "c", "v")}
@@ -97,7 +175,7 @@ def _parse_page(
     if len(lengths) != 1:
         raise ValueError("DNSE_OHLC_ARRAY_LENGTH_MISMATCH")
 
-    rows: list[EodRow] = []
+    raw_records: list[tuple[int, EodRow]] = []
     for index in range(next(iter(lengths), 0)):
         timestamp = arrays["t"][index]
         if isinstance(timestamp, bool) or not isinstance(timestamp, (int, float)):
@@ -105,18 +183,27 @@ def _parse_page(
         timestamp_float = float(timestamp)
         if not timestamp_float.is_integer() or timestamp_float <= 0:
             raise ValueError("DNSE_TIMESTAMP_INVALID")
-        day = datetime.fromtimestamp(int(timestamp_float), tz=VN_TZ).date()
-        rows.append(EodRow(
-            symbol=symbol,
-            day=day,
-            open=_numeric(arrays["o"][index], "DNSE_OPEN_INVALID"),
-            high=_numeric(arrays["h"][index], "DNSE_HIGH_INVALID"),
-            low=_numeric(arrays["l"][index], "DNSE_LOW_INVALID"),
-            close=_numeric(arrays["c"][index], "DNSE_CLOSE_INVALID"),
-            volume=_volume(arrays["v"][index]),
-            source=source,
-            version=version,
+        timestamp_int = int(timestamp_float)
+        day = datetime.fromtimestamp(timestamp_int, tz=VN_TZ).date()
+        raw_records.append((
+            timestamp_int,
+            EodRow(
+                symbol=symbol,
+                day=day,
+                open=_numeric(arrays["o"][index], "DNSE_OPEN_INVALID"),
+                high=_numeric(arrays["h"][index], "DNSE_HIGH_INVALID"),
+                low=_numeric(arrays["l"][index], "DNSE_LOW_INVALID"),
+                close=_numeric(arrays["c"][index], "DNSE_CLOSE_INVALID"),
+                volume=_volume(arrays["v"][index]),
+                source=source,
+                version=version,
+            ),
         ))
+
+    rows, diagnostics = _deduplicate_daily_records(
+        symbol=symbol,
+        records=raw_records,
+    )
 
     raw_next = payload.get("nextTime", 0)
     if raw_next is None:
@@ -126,7 +213,7 @@ def _parse_page(
     next_float = float(raw_next)
     if not next_float.is_integer() or next_float < 0:
         raise ValueError("DNSE_NEXT_TIME_INVALID")
-    return tuple(rows), int(next_float)
+    return rows, int(next_float), diagnostics
 
 
 class DnseRestSource:
@@ -154,6 +241,7 @@ class DnseRestSource:
         self._timeout = float(timeout)
         self._client_factory = client_factory
         self._client_instance: _DnseClient | None = None
+        self.last_fetch_diagnostics: dict[str, object] = {}
         self.version = version_reader("dnse")
         if self.version != DNSE_SDK_VERSION:
             raise RuntimeError(
@@ -204,7 +292,8 @@ class DnseRestSource:
         final_to = _epoch_end(end)
         by_day: dict[date, EodRow] = {}
         seen_cursors = {current_from}
-        for _ in range(MAX_PAGES):
+        page_diagnostics: list[dict[str, object]] = []
+        for page_index in range(MAX_PAGES):
             response = self._client().get(
                 "/price/ohlc",
                 params={
@@ -215,12 +304,13 @@ class DnseRestSource:
                     "to": final_to,
                 },
             )
-            page_rows, next_time = _parse_page(
+            page_rows, next_time, diagnostics = _parse_page(
                 payload=response.json(),
                 symbol=symbol,
                 source=self.name,
                 version=self.version,
             )
+            page_diagnostics.append({"page_index": page_index, **diagnostics})
             for row in page_rows:
                 if not start <= row.day <= end:
                     continue
@@ -252,4 +342,16 @@ class DnseRestSource:
         else:
             raise ValueError("DNSE_PAGINATION_LIMIT_EXCEEDED")
 
+        self.last_fetch_diagnostics = {
+            "symbol": symbol,
+            "page_count": len(page_diagnostics),
+            "duplicate_day_count": sum(
+                int(item["duplicate_day_count"]) for item in page_diagnostics
+            ),
+            "discarded_duplicate_record_count": sum(
+                int(item["discarded_duplicate_record_count"])
+                for item in page_diagnostics
+            ),
+            "pages": page_diagnostics,
+        }
         return tuple(by_day[day] for day in sorted(by_day))
