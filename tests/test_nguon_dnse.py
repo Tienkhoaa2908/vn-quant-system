@@ -150,6 +150,70 @@ class TestNguonDnse(unittest.TestCase):
         self.assertEqual(len(client.calls), 2)
         self.assertEqual(client.calls[1][1]["from"], _timestamp(third))
 
+    def test_duplicate_bat_thuong_chon_timestamp_anchor_cua_cac_ngay_lan_can(self) -> None:
+        first = date(2022, 12, 26)
+        duplicate = date(2022, 12, 27)
+        third = date(2022, 12, 28)
+        payload = {
+            "t": [
+                _intraday_timestamp(first, 9),
+                _intraday_timestamp(duplicate, 7),
+                _intraday_timestamp(duplicate, 9),
+                _intraday_timestamp(third, 9),
+            ],
+            "o": [6.62, 6.16, 6.19, 6.37],
+            "h": [6.62, 6.26, 6.34, 6.41],
+            "l": [6.14, 6.15, 6.16, 6.29],
+            "c": [6.14, 6.19, 6.33, 6.37],
+            "v": [1757100, 1196500, 1606700, 1152100],
+            "nextTime": 0,
+        }
+        client = _Client([payload])
+        source = eod.DnseRestSource(
+            "key",
+            "secret",
+            client_factory=lambda *_: client,
+            version_reader=lambda _: "0.5.0",
+        )
+        rows = source.fetch("AAA", first, third)
+        self.assertEqual([row.day for row in rows], [first, duplicate, third])
+        self.assertEqual(rows[1].close, 6.33)
+        self.assertEqual(rows[1].volume, 1606700)
+        self.assertEqual(source.last_fetch_diagnostics["duplicate_day_count"], 1)
+        self.assertEqual(
+            source.last_fetch_diagnostics["discarded_duplicate_record_count"],
+            1,
+        )
+        page = source.last_fetch_diagnostics["pages"][0]
+        self.assertEqual(page["canonical_anchor_local_time"], "09:00:00")
+
+    def test_duplicate_xung_dot_khong_co_anchor_ro_rang_van_fail_closed(self) -> None:
+        day = date(2022, 12, 27)
+        payload = {
+            "t": [
+                _intraday_timestamp(day, 7),
+                _intraday_timestamp(day, 9),
+            ],
+            "o": [6.16, 6.19],
+            "h": [6.26, 6.34],
+            "l": [6.15, 6.16],
+            "c": [6.19, 6.33],
+            "v": [1196500, 1606700],
+            "nextTime": 0,
+        }
+        client = _Client([payload])
+        source = eod.DnseRestSource(
+            "key",
+            "secret",
+            client_factory=lambda *_: client,
+            version_reader=lambda _: "0.5.0",
+        )
+        with self.assertRaisesRegex(
+            ValueError,
+            "DNSE_DUPLICATE_DAY_ANCHOR_AMBIGUOUS:AAA:2022-12-27",
+        ):
+            source.fetch("AAA", day, day)
+
     def test_cursor_dung_yen_dung_an_toan_va_giu_trang_hop_le(self) -> None:
         first = date(2026, 7, 29)
         second = date(2026, 7, 30)
