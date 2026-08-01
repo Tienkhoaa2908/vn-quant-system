@@ -27,7 +27,9 @@ def _research_zip(path: Path, signal: str) -> None:
 class ScoreQualityGateTests(unittest.TestCase):
     def test_constant_and_near_constant_scores_are_degenerate(self):
         self.assertTrue(score_diagnostics([0.1, 0.1, 0.1])["degenerate"])
-        self.assertTrue(score_diagnostics([1.0, 1.0 + 1e-14, 1.0])["degenerate"])
+        self.assertTrue(
+            score_diagnostics([1.0, 1.0 + 1e-14, 1.0])["degenerate"]
+        )
         self.assertFalse(score_diagnostics([0.1, 0.2, 0.3])["degenerate"])
 
 
@@ -88,20 +90,22 @@ class ResearchHandoffTests(unittest.TestCase):
                 )
 
 
-class TerminalV9ContractTests(unittest.TestCase):
-    def test_entrypoint_uses_v9_and_inherits_v8_handoff(self):
+class TerminalV10ContractTests(unittest.TestCase):
+    def test_entrypoint_uses_v10_and_inherits_v8_handoff(self):
         import he_thong_dinh_luong.giao_dien_web as entrypoint
         import he_thong_dinh_luong.web_console_app_v8 as handoff_terminal
-        import he_thong_dinh_luong.web_console_app_v9 as terminal
+        import he_thong_dinh_luong.web_console_app_v10 as terminal
 
         self.assertIs(entrypoint.build_app, terminal.build_app)
         source = Path(handoff_terminal.__file__).read_text(encoding="utf-8")
         self.assertIn("load_handoff", source)
         self.assertIn("research_input_path", source)
         self.assertNotIn('str(config.data_root / "prediction_input.zip")', source)
-        v9_source = Path(terminal.__file__).read_text(encoding="utf-8")
-        self.assertIn("load_latest_reference_target", v9_source)
-        self.assertIn("ContributionPlanRequest", v9_source)
+        v10_source = Path(terminal.__file__).read_text(encoding="utf-8")
+        self.assertIn("load_latest_reference_target", v10_source)
+        self.assertIn("ContributionPlanRequest", v10_source)
+        self.assertIn("lot_size=1", v10_source)
+        self.assertIn("recommended_odd_lot_quantity", v10_source)
 
 
 if __name__ == "__main__":
