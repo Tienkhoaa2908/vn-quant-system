@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 from hashlib import sha256
 from io import StringIO
@@ -14,7 +15,6 @@ from he_thong_dinh_luong.dnse_historical_store_v20 import (
     DnseHistoricalStore,
     FetchRange,
 )
-from he_thong_dinh_luong.eod_hang_ngay import EodRow
 from he_thong_dinh_luong.historical_research_input_v22 import (
     OUTPUT_ZIP,
     build_historical_research_input,
@@ -29,6 +29,19 @@ from he_thong_dinh_luong.nghien_cuu_moc_4.du_doan_tien_phuong_contract import (
 )
 
 UTC = timezone.utc
+
+
+@dataclass(frozen=True)
+class _Row:
+    symbol: str
+    day: date
+    open: float
+    high: float
+    low: float
+    close: float
+    volume: int
+    source: str = "dnse_openapi"
+    version: str = "0.5.0"
 
 
 def _json_bytes(value: object) -> bytes:
@@ -53,12 +66,12 @@ def _business_days(start: date, count: int) -> list[date]:
     return result
 
 
-def _bars(symbol: str, days: list[date], base: float) -> tuple[EodRow, ...]:
+def _bars(symbol: str, days: list[date], base: float) -> tuple[_Row, ...]:
     rows = []
     for index, day in enumerate(days):
         close = base + index * 0.02
         rows.append(
-            EodRow(
+            _Row(
                 symbol=symbol,
                 day=day,
                 open=close - 0.01,
@@ -66,8 +79,6 @@ def _bars(symbol: str, days: list[date], base: float) -> tuple[EodRow, ...]:
                 low=close - 0.03,
                 close=close,
                 volume=1_000_000 + index,
-                source="dnse_openapi",
-                version="0.5.0",
             )
         )
     return tuple(rows)
