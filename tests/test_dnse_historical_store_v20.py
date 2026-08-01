@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 import json
 from pathlib import Path
@@ -11,9 +12,21 @@ from he_thong_dinh_luong.dnse_historical_store_v20 import (
     export_historical_store,
     sync_historical_store,
 )
-from he_thong_dinh_luong.eod_hang_ngay import EodRow
 
 VN_TZ = timezone(timedelta(hours=7))
+
+
+@dataclass(frozen=True)
+class _Bar:
+    symbol: str
+    day: date
+    open: float
+    high: float
+    low: float
+    close: float
+    volume: int
+    source: str
+    version: str
 
 
 class _FakeSource:
@@ -32,13 +45,13 @@ class _FakeSource:
         end: date,
         *,
         is_index: bool = False,
-    ) -> tuple[EodRow, ...]:
+    ) -> tuple[_Bar, ...]:
         self.calls.append((symbol, start, end, is_index))
         rows = []
         for (row_symbol, day), close in sorted(self.values.items()):
             if row_symbol == symbol and start <= day <= end:
                 rows.append(
-                    EodRow(
+                    _Bar(
                         symbol=symbol,
                         day=day,
                         open=close - 0.5,
@@ -60,10 +73,12 @@ class DnseHistoricalStoreV20Tests(unittest.TestCase):
     def test_second_sync_only_requests_uncovered_tail(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             store = Path(temp) / "dnse.sqlite3"
-            first_source = _FakeSource({
-                ("VNINDEX", date(2026, 1, 2)): 1200.0,
-                ("AAA", date(2026, 1, 2)): 10.0,
-            })
+            first_source = _FakeSource(
+                {
+                    ("VNINDEX", date(2026, 1, 2)): 1200.0,
+                    ("AAA", date(2026, 1, 2)): 10.0,
+                }
+            )
             first = sync_historical_store(
                 store_path=store,
                 symbols=("AAA",),
@@ -74,10 +89,12 @@ class DnseHistoricalStoreV20Tests(unittest.TestCase):
             )
             self.assertEqual(first["api_range_count"], 2)
 
-            second_source = _FakeSource({
-                ("VNINDEX", date(2026, 1, 5)): 1210.0,
-                ("AAA", date(2026, 1, 5)): 11.0,
-            })
+            second_source = _FakeSource(
+                {
+                    ("VNINDEX", date(2026, 1, 5)): 1210.0,
+                    ("AAA", date(2026, 1, 5)): 11.0,
+                }
+            )
             second = sync_historical_store(
                 store_path=store,
                 symbols=("AAA",),
@@ -136,7 +153,9 @@ class DnseHistoricalStoreV20Tests(unittest.TestCase):
                 source=_FakeSource({("AAA", day): 10.0}),
                 now=datetime(2026, 1, 3, tzinfo=VN_TZ),
             )
-            with self.assertRaisesRegex(ValueError, "DNSE_STORE_HISTORICAL_CONFLICT"):
+            with self.assertRaisesRegex(
+                ValueError, "DNSE_STORE_HISTORICAL_CONFLICT"
+            ):
                 sync_historical_store(
                     store_path=store_path,
                     symbols=("AAA",),
@@ -161,10 +180,12 @@ class DnseHistoricalStoreV20Tests(unittest.TestCase):
                 symbols=("AAA",),
                 start=day,
                 end=day,
-                source=_FakeSource({
-                    ("VNINDEX", day): 1200.0,
-                    ("AAA", day): 10.0,
-                }),
+                source=_FakeSource(
+                    {
+                        ("VNINDEX", day): 1200.0,
+                        ("AAA", day): 10.0,
+                    }
+                ),
                 now=datetime(2026, 1, 3, tzinfo=VN_TZ),
             )
             output = root / "export"
