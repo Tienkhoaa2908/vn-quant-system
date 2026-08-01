@@ -2,14 +2,15 @@
 
 ## Mục tiêu
 
-Khóa Model Lab v15 làm reference model, mở rộng bằng chứng lịch sử theo đúng point-in-time contract và chạy paper trading có kill switch. Quy trình này không tự động gửi lệnh thật và không phê duyệt vốn thật.
+Khóa Model Lab v15 làm reference model, xuất tín hiệu paper đúng chiến lược đã validation, mở rộng bằng chứng lịch sử theo point-in-time contract và chạy paper trading có kill switch. Quy trình này không tự động gửi lệnh thật và không phê duyệt vốn thật.
 
 ## Thành phần
 
 - `reference_operations_v16 freeze`: kiểm tra ZIP v15 và tạo policy bất biến.
-- `reference_operations_v16 history-audit`: kiểm tra dữ liệu dài hạn trước khi chạy lại nguyên protocol v15.
+- `model_lab_reference_signal_v16`: chuyển forward scores v15 thành equal-weight Top-10 paper signal.
 - `reference_operations_v16 monitor`: tính rolling paper metrics và kill switch.
 - `paper_trading_reference_v16`: wrapper paper trading, khóa champion và dùng chi phí DNSE cash mặc định.
+- `reference_operations_v16 history-audit`: kiểm tra dữ liệu dài hạn trước khi chạy lại nguyên protocol v15.
 
 ## 1. Khóa policy v15
 
@@ -35,7 +36,29 @@ Policy chỉ được tạo khi:
 - turnover cap chỉ chọn từ prior validation;
 - live capital vẫn là `false`.
 
-## 2. Chuẩn bị observations cho paper monitor
+## 2. Xuất reference paper signal
+
+```bash
+python -m he_thong_dinh_luong.model_lab_reference_signal_v16 \
+  --model-lab-output /path/to/model_lab_output.zip \
+  --policy /path/to/reference-policy-v16/reference_policy.json \
+  --state-dir /path/to/reference-signal-state-v16 \
+  --output-zip /path/to/reference-signal-YYYYMMDD.zip
+```
+
+Publisher:
+
+- chỉ lấy `forward_model_scores.csv` của frozen champion;
+- chỉ dùng OOS labels đã hoàn tất trước signal date;
+- chọn cap từ sáu tháng validation gần nhất trong tập cap đã khóa;
+- giữ holdings kỳ trước và tách forced exits khỏi voluntary replacements;
+- xuất equal-weight Top-10 để khớp v15 historical evaluation;
+- tạo ZIP có `paper_portfolio.csv`, `manifest.json` và diagnostic;
+- từ chối xuất lại cùng signal date hoặc đi lùi thời gian.
+
+`reference-signal-YYYYMMDD.zip` là input `--daily-output` của guarded paper trading.
+
+## 3. Chuẩn bị observations cho paper monitor
 
 CSV canonical:
 
@@ -46,7 +69,7 @@ observation_date,policy_id,rank_ic,net_excess_return,turnover,relative_nav,contr
 
 Mỗi dòng là một kỳ rebalance đã hoàn tất. Không ghi kỳ chưa có nhãn tương lai hoàn chỉnh.
 
-## 3. Xuất monitor snapshot
+## 4. Xuất monitor snapshot
 
 ```bash
 python -m he_thong_dinh_luong.reference_operations_v16 monitor \
@@ -70,11 +93,11 @@ Kill switch mặc định:
 - turnover > 60% trong ba kỳ liên tiếp;
 - bất kỳ vi phạm data/contract nào.
 
-## 4. Chạy guarded paper trading
+## 5. Chạy guarded paper trading
 
 ```bash
 python -m he_thong_dinh_luong.paper_trading_reference_v16 \
-  --daily-output /path/to/daily_quant_output.zip \
+  --daily-output /path/to/reference-signal-YYYYMMDD.zip \
   --publication-dir /path/to/latest-publication \
   --state-dir /path/to/paper-state-v16 \
   --policy /path/to/reference-policy-v16/reference_policy.json \
@@ -97,7 +120,7 @@ Wrapper từ chối chạy khi:
 - policy/monitor khác `policy_id`;
 - bất kỳ file đầu vào nào không hợp lệ.
 
-## 5. Audit dữ liệu lịch sử dài hơn
+## 6. Audit dữ liệu lịch sử dài hơn
 
 Input canonical:
 
@@ -137,9 +160,9 @@ Các blocker chính:
 - warm-up MA250 không đủ;
 - chuỗi tháng hợp lệ bị đứt đoạn.
 
-## 6. Quy tắc change control
+## 7. Quy tắc change control
 
-Không thay đổi v15 khi chỉ mở rộng lịch sử hoặc paper tracking.
+Không thay đổi v15 khi chỉ mở rộng lịch sử, refit expanding-window đúng protocol hoặc paper tracking.
 
 Bắt buộc tạo model version mới nếu thay:
 
@@ -152,7 +175,7 @@ Bắt buộc tạo model version mới nếu thay:
 
 Bug fix không làm đổi selection/return được phép giữ policy, nhưng phải có regression test và provenance.
 
-## 7. Trạng thái an toàn
+## 8. Trạng thái an toàn
 
 - Paper trading: cho phép khi monitor không block.
 - Watchlist nghiên cứu: cho phép.
