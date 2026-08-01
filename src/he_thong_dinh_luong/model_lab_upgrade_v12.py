@@ -2,8 +2,12 @@
 
 V11's selection rule already treated unavailable prior holdings as forced exits,
 but its diagnostic replacement counter included the securities bought to replace
-those forced exits.  V12 corrects the accounting without changing selections,
+those forced exits. V12 corrects the accounting without changing selections,
 returns, costs, ranks, the three-replacement policy, or any research gate.
+
+The v12 publisher corrects the already-published v11 period rows. It deliberately
+does not monkeypatch ``v11.turnover_capped_periods`` while v11 is running: doing
+so would make ``corrected_turnover_capped_periods`` call itself recursively.
 """
 from __future__ import annotations
 
@@ -200,12 +204,8 @@ def publish_v12_contract(output_dir: Path) -> dict[str, object]:
 
 
 def run_model_lab(**kwargs: object) -> dict[str, object]:
-    original = v11.turnover_capped_periods
-    v11.turnover_capped_periods = corrected_turnover_capped_periods
-    try:
-        result = v11.run_model_lab(**kwargs)
-    finally:
-        v11.turnover_capped_periods = original
+    """Run v11 unchanged, then correct only the published accounting rows."""
+    result = v11.run_model_lab(**kwargs)
     audit = publish_v12_contract(Path(str(kwargs["output_dir"])))
     return {**result, **audit}
 
