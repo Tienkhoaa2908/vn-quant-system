@@ -14,6 +14,12 @@ def _timestamp(day: date) -> int:
     return int(datetime(day.year, day.month, day.day, tzinfo=VN_TZ).timestamp())
 
 
+def _intraday_timestamp(day: date, hour: int) -> int:
+    return int(
+        datetime(day.year, day.month, day.day, hour, tzinfo=VN_TZ).timestamp()
+    )
+
+
 def _payload(
     days: list[date],
     *,
@@ -122,6 +128,28 @@ class TestNguonDnse(unittest.TestCase):
         self.assertEqual(client.calls[0][1]["type"], "INDEX")
         self.assertEqual(client.calls[1][1]["from"], second_timestamp)
 
+    def test_cursor_1d_duoc_day_sang_ngay_sau_nen_cuoi(self) -> None:
+        first = date(2022, 12, 26)
+        second = date(2022, 12, 27)
+        third = date(2022, 12, 28)
+        client = _Client([
+            _payload(
+                [first, second],
+                next_time=_intraday_timestamp(second, 14),
+            ),
+            _payload([third]),
+        ])
+        source = eod.DnseRestSource(
+            "key",
+            "secret",
+            client_factory=lambda *_: client,
+            version_reader=lambda _: "0.5.0",
+        )
+        rows = source.fetch("AAA", first, third)
+        self.assertEqual([row.day for row in rows], [first, second, third])
+        self.assertEqual(len(client.calls), 2)
+        self.assertEqual(client.calls[1][1]["from"], _timestamp(third))
+
     def test_cursor_dung_yen_dung_an_toan_va_giu_trang_hop_le(self) -> None:
         first = date(2026, 7, 29)
         second = date(2026, 7, 30)
@@ -151,12 +179,14 @@ class TestNguonDnse(unittest.TestCase):
             duplicate,
         ])
         source = eod.DnseRestSource(
-            "key", "secret",
+            "key",
+            "secret",
             client_factory=lambda *_: client,
             version_reader=lambda _: "0.5.0",
         )
         rows = source.fetch("ITA", first, second)
         self.assertEqual([row.day for row in rows], [first, second])
+        self.assertEqual(len(client.calls), 1)
 
     def test_mang_ohlc_lech_do_dai_bi_chan(self) -> None:
         day = date(2026, 7, 30)
