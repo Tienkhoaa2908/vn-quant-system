@@ -34,7 +34,7 @@ class ContributionPortfolioV17Tests(unittest.TestCase):
             "OLD": Decimal("50000"),
         }
 
-    def test_small_contribution_accumulates_when_no_lot_is_affordable(self) -> None:
+    def test_small_contribution_accumulates_when_no_lot_is_currently_valid(self) -> None:
         plan = build_contribution_plan(
             holdings=[],
             price_vnd=self.prices,
@@ -48,7 +48,8 @@ class ContributionPortfolioV17Tests(unittest.TestCase):
             plan["contribution_status"],
             "ACCUMULATE_CASH_UNTIL_EXECUTABLE_LOT",
         )
-        self.assertGreater(plan["cash_shortfall_to_next_lot_vnd"], 0)
+        self.assertEqual(plan["next_executable_lot_cost_vnd"], 0)
+        self.assertEqual(plan["cash_shortfall_to_next_lot_vnd"], 0)
         self.assertTrue(all(row["recommended_buy_quantity"] == 0 for row in plan["rows"]))
 
     def test_buy_only_allocator_uses_existing_portfolio_and_buys_underweight(self) -> None:
