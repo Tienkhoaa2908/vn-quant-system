@@ -57,7 +57,7 @@ class ModelLabVisibleJobTests(unittest.TestCase):
 class UnifiedTerminalSourceTests(unittest.TestCase):
     def test_entrypoint_loads_current_terminal(self):
         source = Path("src/he_thong_dinh_luong/giao_dien_web.py").read_text(encoding="utf-8")
-        self.assertIn("web_console_app_v8", source)
+        self.assertIn("web_console_app_v9", source)
         module = importlib.import_module("he_thong_dinh_luong.giao_dien_web")
         self.assertTrue(callable(module.main))
 
@@ -69,6 +69,15 @@ class UnifiedTerminalSourceTests(unittest.TestCase):
         self.assertIn("model-lab-live", source)
         self.assertNotIn('str(config.data_root / "prediction_input.zip")', source)
         self.assertNotIn('"uv", "run"', source)
+
+    def test_v9_adds_frozen_reference_contribution_planner(self):
+        source = Path("src/he_thong_dinh_luong/web_console_app_v9.py").read_text(encoding="utf-8")
+        self.assertIn("GÓP VỐN ĐỊNH KỲ", source)
+        self.assertIn("load_latest_reference_target", source)
+        self.assertIn("ContributionPlanRequest", source)
+        self.assertIn("buy_fee_bps=Decimal(\"2.7\")", source)
+        self.assertIn("slippage_bps=Decimal(\"5\")", source)
+        self.assertIn("trading_enabled", source)
 
 
 if __name__ == "__main__":
