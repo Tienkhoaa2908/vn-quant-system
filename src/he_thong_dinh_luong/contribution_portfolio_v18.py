@@ -10,6 +10,7 @@ This module only prepares a plan.  It never submits a live order.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from decimal import Decimal, InvalidOperation
 from typing import Mapping, Sequence
 
 from . import contribution_portfolio_v17 as v17
@@ -37,6 +38,32 @@ def _execution_route(quantity: int) -> str:
     if round_quantity:
         return "ROUND_LOT_ORDER"
     return "ODD_LOT_LIMIT_ORDER"
+
+
+def _decimal(value: object) -> Decimal | None:
+    try:
+        result = Decimal(str(value).replace(",", "").strip())
+    except (InvalidOperation, AttributeError):
+        return None
+    return result if result.is_finite() and result > 0 else None
+
+
+def _cheapest_priced_share_cost(
+    *,
+    price_vnd: Mapping[str, object],
+    allocation_rows: Sequence[Mapping[str, object]],
+    request: ContributionPlanRequest,
+) -> Decimal:
+    multiplier = Decimal("1") + (
+        Decimal(str(request.buy_fee_bps)) + Decimal(str(request.slippage_bps))
+    ) / Decimal("10000")
+    costs: list[Decimal] = []
+    for row in allocation_rows:
+        symbol = str(row.get("symbol") or row.get("ma") or "").strip().upper()
+        price = _decimal(price_vnd.get(symbol)) if symbol else None
+        if price is not None:
+            costs.append(price * multiplier)
+    return min(costs) if costs else Decimal("0")
 
 
 def build_contribution_plan(
@@ -86,6 +113,29 @@ def build_contribution_plan(
             "ACCUMULATE_CASH_UNTIL_ONE_SHARE_AFFORDABLE_OR_RISK_ROOM"
         )
 
+    cheapest_share = _cheapest_priced_share_cost(
+        price_vnd=price_vnd,
+        allocation_rows=allocation_rows,
+        request=request,
+    )
+    remaining = Decimal(str(result.get("remaining_available_cash_vnd") or 0))
+    cheapest_shortfall = max(Decimal("0"), cheapest_share - remaining)
+    next_valid_share = Decimal(
+        str(result.get("next_executable_lot_cost_vnd") or 0)
+    )
+    valid_shortfall = Decimal(
+        str(result.get("cash_shortfall_to_next_lot_vnd") or 0)
+    )
+    spent = Decimal(str(result.get("estimated_spend_vnd") or 0))
+    if spent > 0:
+        one_share_blocker = ""
+    elif next_valid_share > 0 and valid_shortfall > 0:
+        one_share_blocker = "CASH_SHORTFALL_TO_NEXT_TARGET_IMPROVING_SHARE"
+    elif cheapest_share > remaining:
+        one_share_blocker = "CASH_BELOW_CHEAPEST_PRICED_SHARE"
+    else:
+        one_share_blocker = "TARGET_OR_RISK_CAP_BLOCKS_ADDITIONAL_SHARE"
+
     warnings = [str(item) for item in result.get("warnings", [])]
     warnings = [
         item
@@ -103,12 +153,13 @@ def build_contribution_plan(
     result["quantity_step"] = request.lot_size
     result["round_lot_size"] = ROUND_LOT_SIZE
     result["odd_lot_supported"] = request.lot_size == 1
-    result["next_executable_share_cost_vnd"] = result.get(
-        "next_executable_lot_cost_vnd", 0
+    result["next_executable_share_cost_vnd"] = int(next_valid_share)
+    result["cash_shortfall_to_next_share_vnd"] = int(valid_shortfall)
+    result["cheapest_priced_share_all_in_vnd"] = int(cheapest_share)
+    result["cash_shortfall_to_cheapest_priced_share_vnd"] = int(
+        cheapest_shortfall
     )
-    result["cash_shortfall_to_next_share_vnd"] = result.get(
-        "cash_shortfall_to_next_lot_vnd", 0
-    )
+    result["one_share_blocker"] = one_share_blocker
     result["warnings"] = list(dict.fromkeys(warnings))
     result["automatic_live_orders_allowed"] = False
     result["live_capital_approved"] = False
