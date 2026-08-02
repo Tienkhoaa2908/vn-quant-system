@@ -62,7 +62,11 @@ def _write_v22_zip(path: Path) -> None:
             "loi_nhuan_benchmark": "0.01",
             "loi_nhuan_tuong_doi": "0.01",
         })
-    with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+    with zipfile.ZipFile(
+        path,
+        "w",
+        compression=zipfile.ZIP_DEFLATED,
+    ) as archive:
         archive.writestr("feature_raw.csv", _csv_bytes(feature_rows))
         archive.writestr("nhan.csv", _csv_bytes(label_rows))
         archive.writestr(
@@ -80,7 +84,10 @@ class PredictiveTargetLabV29RunnerTests(unittest.TestCase):
                 v27._load_input_zip(path)
             rows, manifest = runner.load_input_zip_v22_compatible(path)
         self.assertEqual(len(rows), 2)
-        self.assertEqual(manifest["schema_version"], "historical_research_input_v22")
+        self.assertEqual(
+            manifest["schema_version"],
+            "historical_research_input_v22",
+        )
         self.assertEqual(rows[0].features["vnindex_tren_ma250"], 1.0)
         self.assertEqual(rows[1].features["vnindex_tren_ma250"], 0.0)
 
@@ -108,23 +115,59 @@ class PredictiveTargetLabV29RunnerTests(unittest.TestCase):
                 name="vnindex_tren_ma250",
             )
 
-    def test_run_restores_original_v27_parser(self) -> None:
-        original = v27._finite
+    def test_union_writer_keeps_logit_and_hybrid_audit_fields(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "selection.csv"
+            runner._write_csv_with_union_fields(path, [
+                {"model": "ridge", "selected_alpha": 10.0},
+                {
+                    "model": "logit",
+                    "selected_c": 1.0,
+                    "validation_bottom20_recall": 0.4,
+                },
+                {
+                    "model": "hybrid",
+                    "rank_weight": 0.5,
+                    "bottom_safe_weight": 0.5,
+                },
+            ])
+            with path.open(
+                "r",
+                encoding="utf-8-sig",
+                newline="",
+            ) as stream:
+                rows = list(csv.DictReader(stream))
+        self.assertIn("selected_c", rows[0])
+        self.assertIn("validation_bottom20_recall", rows[0])
+        self.assertIn("rank_weight", rows[0])
+        self.assertIn("bottom_safe_weight", rows[0])
+        self.assertEqual(rows[1]["selected_c"], "1.0")
+        self.assertEqual(rows[2]["bottom_safe_weight"], "0.5")
+
+    def test_run_restores_original_parser_and_writer(self) -> None:
+        original_finite = v27._finite
+        original_writer = core._write_csv
 
         def fake_run(**kwargs: object) -> dict[str, object]:
             self.assertEqual(
                 v27._finite("true", name="vnindex_tren_ma250"),
                 1.0,
             )
+            self.assertIs(core._write_csv, runner._write_csv_with_union_fields)
             return {"status": "SUCCESS", **kwargs}
 
-        with patch.object(core, "run_predictive_target_lab", side_effect=fake_run):
+        with patch.object(
+            core,
+            "run_predictive_target_lab",
+            side_effect=fake_run,
+        ):
             result = runner.run_predictive_target_lab_v22_compatible(
                 input_zip=Path("input.zip"),
                 output_dir=Path("output"),
             )
         self.assertEqual(result["status"], "SUCCESS")
-        self.assertIs(v27._finite, original)
+        self.assertIs(v27._finite, original_finite)
+        self.assertIs(core._write_csv, original_writer)
 
 
 if __name__ == "__main__":
