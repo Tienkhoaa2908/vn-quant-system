@@ -19,7 +19,6 @@ import math
 import os
 from pathlib import Path
 import shutil
-from statistics import fmean
 from typing import Mapping, Sequence
 import zipfile
 
@@ -417,11 +416,19 @@ def _load_forward_features(
                 "eligibility_without_t1": True,
                 "open_t1_required_for_execution": True,
                 "open_t1_available": _truthy(row.get("open_t1_hop_le")),
+                "market_regime": (
+                    "RISK_ON"
+                    if _truthy(row.get("vnindex_tren_ma250"))
+                    else "RISK_OFF"
+                ),
             }
         )
     output.sort(key=lambda row: str(row["symbol"]))
     if len(output) < FROZEN_BREADTH:
         raise ValueError("V28_FORWARD_INSUFFICIENT_ELIGIBLE_SYMBOLS")
+    regimes = {str(row["market_regime"]) for row in output}
+    if len(regimes) != 1:
+        raise ValueError("V28_FORWARD_MARKET_REGIME_INCONSISTENT")
     return forward_day, output
 
 
@@ -660,6 +667,27 @@ def run_v28(
             _read_csv(rebuild_dir / "signal_gates_v27.csv"),
             model=FROZEN_MODEL,
         )
+        regime_rows = _read_csv(rebuild_dir / "regime_summary_v27.csv")
+        risk_on_row = next(
+            (
+                dict(row)
+                for row in regime_rows
+                if str(row.get("model") or "") == FROZEN_MODEL
+                and str(row.get("regime") or "") == "RISK_ON"
+            ),
+            {},
+        )
+        risk_off_row = next(
+            (
+                dict(row)
+                for row in regime_rows
+                if str(row.get("model") or "") == FROZEN_MODEL
+                and str(row.get("regime") or "") == "RISK_OFF"
+            ),
+            {},
+        )
+        if not risk_on_row or not risk_off_row:
+            raise ValueError("V28_REGIME_DIAGNOSTIC_MISSING")
 
         labeled_rows, input_manifest = _load_labeled_rows_compatible(
             source
@@ -685,6 +713,7 @@ def run_v28(
             forward_features,
             forward_weights,
         )
+        forward_regime = str(forward_watchlist[0]["market_regime"])
 
         verification_rows = [
             {
@@ -737,7 +766,8 @@ def run_v28(
                     f"signal_date={forward_day.isoformat()}|"
                     f"candidate_count={len(forward_watchlist)}|"
                     f"selected_count="
-                    f"{sum(bool(row['selected_top_10_watchlist']) for row in forward_watchlist)}"
+                    f"{sum(bool(row['selected_top_10_watchlist']) for row in forward_watchlist)}|"
+                    f"market_regime={forward_regime}"
                 ),
             },
         ]
@@ -855,6 +885,17 @@ def run_v28(
             },
             "quantile_shape": dict(quantile_row),
             "signal_gate": dict(signal_gate_row),
+            "regime_diagnostic": {
+                "risk_on": {
+                    key: _number_or_value(value)
+                    for key, value in risk_on_row.items()
+                },
+                "risk_off": {
+                    key: _number_or_value(value)
+                    for key, value in risk_off_row.items()
+                },
+                "regime_overlay_not_yet_approved": True,
+            },
             "verification": {
                 "prediction_rebuild": prediction_check,
                 "adaptive_weight_rebuild": weight_check,
@@ -870,6 +911,12 @@ def run_v28(
                     for row in forward_watchlist
                 ),
                 "weights": forward_weights,
+                "market_regime": forward_regime,
+                "regime_overlay_status": (
+                    "CASH_REGIME_ACTIVE_DIAGNOSTIC"
+                    if forward_regime == "RISK_OFF"
+                    else "RISK_ON_RANKING_DIAGNOSTIC"
+                ),
                 "t1_open_available_at_publication": False,
                 "execution_allowed": False,
                 "genuinely_future_holdout_period": False,
@@ -986,6 +1033,9 @@ def main(argv: Sequence[str] | None = None) -> int:
                 "forward_signal_date": result[
                     "forward_watchlist"
                 ]["signal_date"],
+                "forward_market_regime": result[
+                    "forward_watchlist"
+                ]["market_regime"],
                 "future_holdout_status": result[
                     "future_holdout"
                 ]["status"],
