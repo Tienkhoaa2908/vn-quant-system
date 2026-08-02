@@ -13,7 +13,7 @@ from io import StringIO
 import json
 import math
 from pathlib import Path
-from statistics import fmean, pstdev
+from statistics import pstdev
 from typing import Mapping, Sequence
 
 SCHEMA_VERSION = "portfolio_optimizer_adapter_v26"
@@ -29,6 +29,8 @@ def capped_inverse_volatility_weights(
         raise ValueError("V26_INVALID_SYMBOL_CAP")
     if len(returns_by_symbol) < 2:
         raise ValueError("V26_TOO_FEW_SYMBOLS")
+    if len(returns_by_symbol) * max_symbol_weight < 1.0 - 1e-12:
+        raise ValueError("V26_SYMBOL_CAP_INFEASIBLE")
     raw: dict[str, float] = {}
     for symbol, values in returns_by_symbol.items():
         numbers = [float(value) for value in values]
@@ -156,6 +158,14 @@ def run_pypfopt_min_volatility(
     )
     if len(symbols) < 8:
         raise ValueError(f"V26_TOO_FEW_OPTIMIZABLE_SYMBOLS:{len(symbols)}")
+    if len(symbols) * max_symbol_weight < 1.0 - 1e-12:
+        raise ValueError("V26_SYMBOL_CAP_INFEASIBLE")
+    sector_counts: dict[str, int] = {}
+    for symbol in symbols:
+        sector = sector_map[symbol]
+        sector_counts[sector] = sector_counts.get(sector, 0) + 1
+    if len(sector_counts) * max_sector_weight < 1.0 - 1e-12:
+        raise ValueError("V26_SECTOR_CAP_INFEASIBLE")
     prices = pivot.loc[:, symbols].dropna(axis=0, how="any")
     if len(prices) < minimum_observations:
         raise ValueError(
