@@ -94,7 +94,7 @@ def test_loader_keeps_feature_complete_row_below_ma250_and_ineligible(
 
 
 def test_pooled_split_uses_all_months_once_in_final_train_or_test() -> None:
-    rows = tuple(_row(index) for index in range(15))
+    rows = tuple(_row(index) for index in range(22))
 
     train, validation, test, blocks, summary = v31.build_pooled_seven_month_split(
         rows,
@@ -106,13 +106,13 @@ def test_pooled_split_uses_all_months_once_in_final_train_or_test() -> None:
     train_dates = {row.signal_day for row in train}
     validation_dates = {row.signal_day for row in validation}
     test_dates = {row.signal_day for row in test}
-    assert len(test_dates) == 2
-    assert len(validation_dates) == 2
-    assert len(train_dates) == 11
-    assert len(train_dates | validation_dates) == 13
-    assert len((train_dates | validation_dates) | test_dates) == 15
+    assert len(test_dates) == 3
+    assert len(validation_dates) == 3
+    assert len(train_dates) == 16
+    assert len(train_dates | validation_dates) == 19
+    assert len((train_dates | validation_dates) | test_dates) == 22
     assert not (train_dates | validation_dates) & test_dates
-    assert summary["complete_block_count"] == 2
+    assert summary["complete_block_count"] == 3
     assert summary["remainder_month_count_assigned_to_final_train"] == 1
     assert summary["all_input_months_used_exactly_once_in_final_train_or_test"] is True
     assert any(row["block_number"] == "REMAINDER_TO_FINAL_TRAIN" for row in blocks)
