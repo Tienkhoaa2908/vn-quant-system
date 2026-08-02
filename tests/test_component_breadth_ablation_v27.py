@@ -166,8 +166,12 @@ class ComponentBreadthAblationV27Tests(unittest.TestCase):
         with patch.object(v27, "shrunk_component_weights", side_effect=fake_weights):
             candidate_rows, _, _ = v27.build_predictions([fold])
 
-        self.assertEqual(set(observed), set(train + validation))
-        self.assertTrue(all(row not in observed for row in test))
+        self.assertEqual(
+            [id(row) for row in observed],
+            [id(row) for row in train + validation],
+        )
+        observed_ids = {id(row) for row in observed}
+        self.assertTrue(all(id(row) not in observed_ids for row in test))
         self.assertEqual(
             {str(row["model"]) for row in candidate_rows},
             set(v27.CANDIDATE_MODELS),
