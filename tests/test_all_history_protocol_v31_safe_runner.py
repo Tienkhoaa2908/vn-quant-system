@@ -58,3 +58,22 @@ def test_bundle_contains_all_v31_outputs(tmp_path: Path) -> None:
     assert manifest["file_count_excluding_manifest"] == 2
     assert manifest["research_eligible"] is False
     assert manifest["live_capital_approved"] is False
+
+
+def test_write_csv_union_preserves_model_specific_columns(tmp_path: Path) -> None:
+    output = tmp_path / "selection.csv"
+
+    runner._write_csv_union(
+        output,
+        [
+            {"model": "ridge", "selected_alpha": 10.0},
+            {"model": "logit", "selected_c": 1.0},
+        ],
+    )
+
+    import csv
+    with output.open(encoding="utf-8-sig", newline="") as stream:
+        rows = list(csv.DictReader(stream))
+    assert list(rows[0]) == ["model", "selected_alpha", "selected_c"]
+    assert rows[0]["selected_alpha"] == "10.0"
+    assert rows[1]["selected_c"] == "1.0"
