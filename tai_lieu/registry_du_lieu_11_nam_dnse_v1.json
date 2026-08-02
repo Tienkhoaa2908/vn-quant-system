@@ -1,13 +1,14 @@
 {
   "schema_version": "dnse_11y_data_registry_v1",
   "recorded_at": "2026-08-02T23:54:00+07:00",
+  "last_updated_at": "2026-08-03T00:01:00+07:00",
   "repository": "Tienkhoaa2908/vn-quant-system",
   "branch": "agent/model-lab-predictive-value-dnse-sync-v3",
   "storage_policy": {
     "repository_visibility": "public",
     "raw_market_data_committed_to_git": false,
     "reason": "Raw SQLite/ZIP market data remains outside Git to avoid public redistribution, repository bloat, and accidental replacement of immutable research inputs.",
-    "future_agent_instruction": "Read this registry first. Use the exact canonical V22 ZIP and verify SHA-256 before any V31 or downstream model run. Do not auto-select the newest same-named ZIP."
+    "future_agent_instruction": "Read this registry first. Use the exact canonical V22 ZIP and verify SHA-256 before any V31 or downstream model run. Do not auto-select the newest same-named ZIP. Use official_runner_v2; official_runner_v1 is retained only as superseded failure evidence."
   },
   "canonical_historical_store": {
     "role": "PRIMARY_LOCAL_OHLCV_STORE",
@@ -34,7 +35,12 @@
       "manifest.json"
     ],
     "coverage_must_be_read_from": "training_coverage_audit_v31.json",
-    "selection_policy": "EXACT_PATH_AND_SHA256_ONLY"
+    "selection_policy": "EXACT_PATH_AND_SHA256_ONLY",
+    "boolean_encoding": "true_false_text",
+    "boolean_numeric_mapping_for_model": {
+      "true": 1.0,
+      "false": 0.0
+    }
   },
   "canonical_v22_build_report": {
     "windows_path": "C:\\Users\\welcome\\Documents\\vn-quant-data\\historical-research-input-v22-20260801-223238\\historical_research_input_v22.json",
@@ -53,9 +59,21 @@
     "role": "DO_NOT_AUTO_SELECT_FOR_V31",
     "reason": "Different bytes and separate EOD lineage."
   },
-  "official_runner": {
+  "superseded_runner_v1": {
     "script": "scripts/run_v31_canonical_11y_gitbash.sh",
     "module": "he_thong_dinh_luong.all_history_protocol_v31_safe_runner",
+    "status": "SUPERSEDED_DO_NOT_USE",
+    "observed_failure": "V31_NO_MODEL_TRAINABLE_ROWS",
+    "root_causes": [
+      "V22 boolean feature text true/false was passed to float(value)",
+      "V1 preflight created the final output directory before core V31, which would trigger V31_OUTPUT_EXISTS after the loader issue was fixed"
+    ]
+  },
+  "official_runner_v2": {
+    "script": "scripts/run_v31_canonical_11y_gitbash_v2.sh",
+    "module": "he_thong_dinh_luong.all_history_protocol_v31_compat_runner",
+    "compatibility_fix": "V22_BOOLEAN_FEATURE_TRUE_FALSE_PARSED_AS_1_0",
+    "output_directory_created_only_by_model": true,
     "primary_protocol": "EXPANDING_PURGED_WALK_FORWARD_ALL_TRAINABLE_HISTORY",
     "secondary_protocol": "POOLED_7_MONTH_6_TRAIN_1_TEST_SINGLE_FIT_DIAGNOSTIC",
     "portfolio_pnl_after_costs_computed": false,
