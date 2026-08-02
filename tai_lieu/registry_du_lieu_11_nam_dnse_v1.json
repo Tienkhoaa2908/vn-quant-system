@@ -1,0 +1,65 @@
+{
+  "schema_version": "dnse_11y_data_registry_v1",
+  "recorded_at": "2026-08-02T23:54:00+07:00",
+  "repository": "Tienkhoaa2908/vn-quant-system",
+  "branch": "agent/model-lab-predictive-value-dnse-sync-v3",
+  "storage_policy": {
+    "repository_visibility": "public",
+    "raw_market_data_committed_to_git": false,
+    "reason": "Raw SQLite/ZIP market data remains outside Git to avoid public redistribution, repository bloat, and accidental replacement of immutable research inputs.",
+    "future_agent_instruction": "Read this registry first. Use the exact canonical V22 ZIP and verify SHA-256 before any V31 or downstream model run. Do not auto-select the newest same-named ZIP."
+  },
+  "canonical_historical_store": {
+    "role": "PRIMARY_LOCAL_OHLCV_STORE",
+    "windows_path": "C:\\Users\\welcome\\Documents\\vn-quant-data\\market-data\\dnse_ohlcv_v20.sqlite3",
+    "git_bash_path": "/c/Users/welcome/Documents/vn-quant-data/market-data/dnse_ohlcv_v20.sqlite3",
+    "sha256_as_recorded": "7b6f2274d43c12a311f83aa71952ef2abcfca04e2f5204c2f0e9a36a6c144549",
+    "table": "bars",
+    "row_count": 299466,
+    "first_day": "2015-06-29",
+    "last_day": "2026-07-31",
+    "distinct_day_count": 2775,
+    "distinct_symbol_count": 122,
+    "conflict_row_count": 0,
+    "mutable_store_warning": "This operational store may receive later bars. A changed hash means it is no longer the exact 2026-07-31 snapshot recorded here."
+  },
+  "canonical_v22_model_input": {
+    "role": "PINNED_INPUT_FOR_V31",
+    "windows_path": "C:\\Users\\welcome\\Documents\\vn-quant-data\\historical-research-input-v22-20260801-223238\\daily_prediction_input.zip",
+    "git_bash_path": "/c/Users/welcome/Documents/vn-quant-data/historical-research-input-v22-20260801-223238/daily_prediction_input.zip",
+    "sha256": "66f4dd6699026289501b260949237772f832ac716e700fa686f8b0b8accd38e5",
+    "required_members": [
+      "feature_raw.csv",
+      "nhan.csv",
+      "manifest.json"
+    ],
+    "coverage_must_be_read_from": "training_coverage_audit_v31.json",
+    "selection_policy": "EXACT_PATH_AND_SHA256_ONLY"
+  },
+  "canonical_v22_build_report": {
+    "windows_path": "C:\\Users\\welcome\\Documents\\vn-quant-data\\historical-research-input-v22-20260801-223238\\historical_research_input_v22.json",
+    "git_bash_path": "/c/Users/welcome/Documents/vn-quant-data/historical-research-input-v22-20260801-223238/historical_research_input_v22.json",
+    "sha256": "bb6d882444211005b7b0c47323ec2c17266c1ad97efcfa4a6665d7c86682f9a1"
+  },
+  "verified_duplicate_copy": {
+    "zip_path": "/c/Users/welcome/Documents/vn-quant-data/ai-review-bundle-v1-20260802-204518/research_input/daily_prediction_input.zip",
+    "report_path": "/c/Users/welcome/Documents/vn-quant-data/ai-review-bundle-v1-20260802-204518/evidence/historical_research_input_v22.json",
+    "zip_byte_identical_to_canonical": true,
+    "report_byte_identical_to_canonical": true
+  },
+  "noncanonical_same_named_input": {
+    "path": "/c/Users/welcome/Documents/vn-quant-data/eod-dnse-20260730_214614/daily_prediction_input.zip",
+    "sha256": "5a0dfda3c33e942032cfaaf1413ac209b8fa3f1719ded6c35931a3ff243c0b1f",
+    "role": "DO_NOT_AUTO_SELECT_FOR_V31",
+    "reason": "Different bytes and separate EOD lineage."
+  },
+  "official_runner": {
+    "script": "scripts/run_v31_canonical_11y_gitbash.sh",
+    "module": "he_thong_dinh_luong.all_history_protocol_v31_safe_runner",
+    "primary_protocol": "EXPANDING_PURGED_WALK_FORWARD_ALL_TRAINABLE_HISTORY",
+    "secondary_protocol": "POOLED_7_MONTH_6_TRAIN_1_TEST_SINGLE_FIT_DIAGNOSTIC",
+    "portfolio_pnl_after_costs_computed": false,
+    "research_eligible": false,
+    "live_capital_approved": false
+  }
+}
