@@ -1,7 +1,9 @@
 """ASCII-safe workstation runner and complete ZIP bundler for V31."""
 from __future__ import annotations
 
+import csv
 from hashlib import sha256
+import io
 import json
 from pathlib import Path
 import sys
@@ -46,6 +48,29 @@ def _emit_json(value: object) -> None:
     )
     sys.stdout.write(text + "\n")
     sys.stdout.flush()
+
+
+def _write_csv_union(
+    path: Path,
+    rows: Sequence[Mapping[str, object]],
+    fields: Sequence[str] | None = None,
+) -> None:
+    if not rows and not fields:
+        return
+    if fields is not None:
+        fieldnames = list(fields)
+    else:
+        fieldnames: list[str] = []
+        for row in rows:
+            for field in row:
+                if field not in fieldnames:
+                    fieldnames.append(field)
+    buffer = io.StringIO(newline="")
+    writer = csv.DictWriter(buffer, fieldnames=fieldnames, lineterminator="\n")
+    writer.writeheader()
+    for row in rows:
+        writer.writerow({field: row.get(field, "") for field in fieldnames})
+    Path(path).write_text(buffer.getvalue(), encoding="utf-8-sig", newline="")
 
 
 def _analysis_files(output_dir: Path) -> list[Path]:
@@ -130,6 +155,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = core._parser().parse_args(argv)
     output_dir = Path(args.output_dir).resolve()
     try:
+        core._write_csv = _write_csv_union
         report = core.run_all_history_protocol_v31(**_run_arguments(args))
         bundle_path, bundle_sha = _create_analysis_bundle(
             output_dir,
@@ -207,6 +233,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 __all__ = [
     "BUNDLE_MANIFEST_FILE",
     "FAILURE_FILE",
+    "_write_csv_union",
     "_create_analysis_bundle",
     "_emit_json",
     "main",
