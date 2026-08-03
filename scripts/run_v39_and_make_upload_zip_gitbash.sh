@@ -8,10 +8,24 @@ WORKSPACE_POSIX="/c/Users/welcome/Documents/vn-quant-data/reference/v39-decision
 V22_POSIX="/c/Users/welcome/Documents/vn-quant-data/historical-research-input-v22-20260801-223238/daily_prediction_input.zip"
 SQLITE_POSIX="/c/Users/welcome/Documents/vn-quant-data/market-data/dnse_ohlcv_v20.sqlite3"
 REPO_FULL_NAME="Tienkhoaa2908/vn-quant-system"
+GUIDE_POSIX="$WORKSPACE_POSIX/BAT_DAU_O_DAY_V39.txt"
 
 fail() {
     echo "FAILED: $*" >&2
     exit 2
+}
+
+open_workspace() {
+    [[ -d "$WORKSPACE_POSIX" ]] || return 0
+    local workspace_win guide_win
+    workspace_win="$(cygpath -w "$WORKSPACE_POSIX")"
+    guide_win="$(cygpath -w "$GUIDE_POSIX")"
+    if command -v explorer.exe >/dev/null 2>&1; then
+        explorer.exe "$workspace_win" >/dev/null 2>&1 &
+    fi
+    if [[ -f "$GUIDE_POSIX" ]] && command -v notepad.exe >/dev/null 2>&1; then
+        notepad.exe "$guide_win" >/dev/null 2>&1 &
+    fi
 }
 
 if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -22,8 +36,9 @@ if ! command -v cygpath >/dev/null 2>&1; then
 fi
 
 echo "===== V39 + ONE UPLOAD ZIP ====="
-echo "Chay V39, ghi console, gom artifacts + workspace + manifest thanh mot ZIP."
-echo "Khong dong goi full SQLite/V22. Chi ghi SHA-256 cua hai input lon."
+echo "Neu workspace trong: khong chay lai V36-V39; tu mo dung thu muc va huong dan."
+echo "Neu da co input: chay V39, ghi console va tao mot ZIP duy nhat de upload."
+echo "Khong dong goi full SQLite/V22; chi ghi SHA-256 cua hai input lon."
 echo "Neu phat hien API secret, bearer token hoac private key, bundle se fail closed."
 
 echo
@@ -35,13 +50,44 @@ git fetch origin \
 export PYTHONPATH="$PWD/src${PYTHONPATH:+:$PYTHONPATH}"
 
 echo
-echo "===== KIEM TRA BUNDLER ====="
+echo "===== KIEM TRA RUNNER ====="
 python -m py_compile \
     src/he_thong_dinh_luong/upload_handoff_bundle_v39.py \
+    src/he_thong_dinh_luong/v39_guided_input.py \
     tests/test_upload_handoff_bundle_v39.py \
-    || fail "py_compile upload bundler that bai"
-python -m unittest tests.test_upload_handoff_bundle_v39 -v \
-    || fail "unit test upload bundler that bai"
+    tests/test_v39_guided_input.py \
+    || fail "py_compile runner that bai"
+python -m unittest \
+    tests.test_upload_handoff_bundle_v39 \
+    tests.test_v39_guided_input \
+    -v || fail "unit test runner that bai"
+
+PREFLIGHT_JSON="$(
+    python -m he_thong_dinh_luong.v39_guided_input \
+        --workspace-dir "$(cygpath -w "$WORKSPACE_POSIX")"
+)"
+PREFLIGHT_STATUS="$(python - "$PREFLIGHT_JSON" <<'PY'
+import json
+import sys
+print(json.loads(sys.argv[1]).get("status", "UNKNOWN"))
+PY
+)"
+
+echo
+echo "===== KIEM TRA INPUT TRUOC KHI CHAY NANG ====="
+echo "INPUT_STATUS=$PREFLIGHT_STATUS"
+
+if [[ "$PREFLIGHT_STATUS" == "INPUT_EMPTY" ]]; then
+    echo
+    echo "WORKSPACE DANG TRONG. KHONG CHAY LAI V36-V39."
+    echo "Windows Explorer va file BAT_DAU_O_DAY_V39.txt se tu mo."
+    echo "Viec duy nhat can lam: dat tai lieu nguon chinh thuc vao source_documents."
+    echo "Neu khong biet dien CSV/JSON, upload tai lieu nguon len chat de AI tao file compact."
+    echo "Sau khi co input, chay lai CHINH lenh nay."
+    echo "HOM NAY KHONG CAN UPLOAD THEM ZIP VI KET QUA KHONG DOI."
+    open_workspace
+    exit 0
+fi
 
 RUN_ID="$(date +%Y%m%d-%H%M%S)"
 STAGING_POSIX="$PWD/artifacts/upload-handoff-v39-$RUN_ID"
@@ -90,6 +136,7 @@ git branch --show-current > "$STAGING_POSIX/metadata/git_branch.txt"
 git rev-parse HEAD > "$STAGING_POSIX/metadata/git_head.txt"
 git status --short > "$STAGING_POSIX/metadata/git_status_short.txt"
 git log -1 --format='%H%n%cI%n%s' > "$STAGING_POSIX/metadata/git_commit.txt"
+printf '%s\n' "$PREFLIGHT_JSON" > "$STAGING_POSIX/metadata/input_preflight.json"
 
 {
     echo "generated_at=$(date --iso-8601=seconds)"
@@ -152,3 +199,9 @@ echo "UPLOAD_SIZE_BYTES=$UPLOAD_SIZE"
 echo "V39_EXIT_CODE=$V39_EXIT_CODE"
 echo
 echo "Chi can upload file UPLOAD_THIS_v39-*.zip nay len chat."
+
+if grep -q "REFERENCE PACK CHUA DU" "$LOG_POSIX"; then
+    echo
+    echo "V39 VAN THIEU DU LIEU. Thu muc va huong dan se tu mo de bo sung input."
+    open_workspace
+fi
