@@ -35,7 +35,6 @@ REPO_WINDOWS="$(cygpath -w "$PWD")"
 powershell.exe \
     -NoLogo \
     -NoProfile \
-    -NonInteractive:$false \
     -ExecutionPolicy Bypass \
     -File "$SETUP_PS" \
     || fail "khong luu duoc DNSE credentials bang Windows DPAPI"
