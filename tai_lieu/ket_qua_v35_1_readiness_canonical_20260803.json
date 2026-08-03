@@ -35,7 +35,7 @@
     "conflict_row_count": 0,
     "t1_open_coverage_ratio": 1.0,
     "invalid_ohlcv_row_count": 679,
-    "invalid_ohlcv_ratio": 0.002267367779784019
+    "invalid_ohlcv_ratio": 0.0022673692505994
   },
   "capabilities_present": [
     "INVERSE_VOLATILITY_ALLOCATOR_AVAILABLE",
