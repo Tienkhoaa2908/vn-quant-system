@@ -1,0 +1,21 @@
+{
+  "schema_version": "v41_hnx_first_attempt_result",
+  "attempt_time_local": "2026-08-03T17:01:09+07:00",
+  "input_bundle": "UPLOAD_THIS_v41_HNX-20260803-170109.zip",
+  "status": "FAILED_BEFORE_DATA_SYNC",
+  "exit_code": 2,
+  "root_cause": "DNSE_CREDENTIALS_MISSING",
+  "data_download_started": false,
+  "backtest_started": false,
+  "performance_conclusion_available": false,
+  "remediation": {
+    "runner_auto_routes_to_vnstock_free_when_dnse_credentials_missing": true,
+    "fallback_history_limit": "8 years daily",
+    "fallback_is_secondary_research_source": true
+  },
+  "permissions": {
+    "live_capital_approved": false,
+    "automatic_live_orders_allowed": false,
+    "merge_approved": false
+  }
+}

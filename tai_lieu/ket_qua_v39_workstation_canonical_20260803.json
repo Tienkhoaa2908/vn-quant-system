@@ -1,0 +1,99 @@
+{
+  "schema_version": "vn_quant_v39_workstation_result_v1",
+  "recorded_at": "2026-08-03T12:46:00+07:00",
+  "verification": {
+    "zip_crc_checked": true,
+    "manifest_hashes_and_sizes_checked": true,
+    "artifacts": {
+      "v36": {
+        "filename": "integrated-data-ledger-v36-20260803-124302.zip",
+        "sha256": "d98b997adec3b9ff9f38a355cad3ce7dda3d31acd6d7213786de009e45609594",
+        "manifest_entries_verified": 18,
+        "manifest_entries_total": 18
+      },
+      "v37": {
+        "filename": "trade-readiness-v37-20260803-124302.zip",
+        "sha256": "bcc910a4ae7d47736b0030964696c5d329be028998e71aa9a65ecdc56d6e6785",
+        "manifest_entries_verified": 5,
+        "manifest_entries_total": 5
+      },
+      "v38": {
+        "filename": "trade-evidence-accelerator-v38-20260803-124341.zip",
+        "sha256": "10411b86bcc46b72f3fa5495b7090c0ef00168b1654b5ac6284f82cbc203e40e",
+        "manifest_entries_verified": 8,
+        "manifest_entries_total": 8
+      },
+      "v39": {
+        "filename": "trade-reference-pack-v39-20260803-124343.zip",
+        "sha256": "075d770bc2eced2c821c3185dcc8f9503777fb2537ea939d034f165b92305597",
+        "manifest_entries_verified": 2,
+        "manifest_entries_total": 2
+      }
+    }
+  },
+  "policy_id": "c3-top10-cap3-c32fe6ec8c2fd4ce",
+  "decision_surface": {
+    "historical_period_count": 51,
+    "position_time_sector_keys": 510,
+    "corporate_action_windows": 510,
+    "execution_price_basis_dates": 52,
+    "unique_selected_symbols": 78,
+    "first_execution_day": "2022-05-04",
+    "last_execution_day": "2026-07-29"
+  },
+  "v36": {
+    "decision": "BLOCKED",
+    "ledger_status": "NOT_RUN_BLOCKED",
+    "exact_cash_ledger_pnl_computed": false,
+    "exact_vnindex_comparison_computed": false,
+    "invalid_ohlcv_rows": 679,
+    "invalid_ohlcv_execution_critical_rows": 0,
+    "invalid_ohlcv_quarantine_machine_approved": true
+  },
+  "v37": {
+    "capital_stage": "DATA_BLOCKED",
+    "readiness_score_percent": 30.0,
+    "paper_observations_completed": 0,
+    "paper_observations_required": 12
+  },
+  "v38": {
+    "operational_controls_verified": 7,
+    "operational_controls_required": 9,
+    "remaining_controls": [
+      "account_sync_verified",
+      "position_reconciliation_verified"
+    ]
+  },
+  "v39": {
+    "decision": "REFERENCE_DATA_BLOCKED",
+    "reference_pack_ready": false,
+    "gap_count": 1077,
+    "gaps_by_workstream": {
+      "SECTOR": 510,
+      "CORPORATE_ACTION_WINDOW": 510,
+      "PRICE_BASIS": 52,
+      "EXECUTION_CONTRACT": 1,
+      "OPERATIONS": 4
+    }
+  },
+  "workspace_archive": {
+    "filename": "v39-decision-surface.rar",
+    "sha256": "f3c7c3948379c31741b28930ff0625dda7b713829a01d36f0076a610af5d2464",
+    "source_documents_present": 0,
+    "sector_rows": 510,
+    "sector_verified": 0,
+    "corporate_action_window_rows": 510,
+    "corporate_action_windows_verified": 0,
+    "corporate_action_event_rows": 0,
+    "price_basis_rows": 52,
+    "price_basis_verified": 0,
+    "execution_contract_verified": false,
+    "operational_controls_verified": 7
+  },
+  "governance": {
+    "research_eligible": false,
+    "live_capital_approved": false,
+    "automatic_live_orders_allowed": false,
+    "future_holdout_backfill_allowed": false
+  }
+}

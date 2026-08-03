@@ -1,0 +1,91 @@
+{
+  "artifact": {
+    "all_manifest_entries_verified": true,
+    "filename": "turnover-policy-stability-v33-20260803-091649.zip",
+    "manifest_entries_verified": 6,
+    "manifest_file_count_excluding_manifest": 6,
+    "sha256": "0019679a8108f576b5063e01d493d018148adbd040212cea50fd5fe288f75555",
+    "size_bytes": 73047,
+    "status": "SUCCESS"
+  },
+  "cap3_historical_proxy": {
+    "base_first_half_average_net_excess": 0.011652249798831194,
+    "base_leave_best_period_out_relative_total_return": 0.28013826979893386,
+    "base_max_drawdown": -0.22827897616711068,
+    "base_mean_turnover": 0.3019607843137255,
+    "base_net_cagr_annualized_over_51_months": 0.13104778249194937,
+    "base_net_total_return": 0.6876953297712527,
+    "base_positive_net_excess_ratio": 0.5882352941176471,
+    "base_relative_total_return": 0.40474907909716085,
+    "base_second_half_average_net_excess": 0.0014435091959751356,
+    "benchmark_cagr_annualized_over_51_months": 0.04412341113674234,
+    "benchmark_total_return": 0.20142120388926887,
+    "stress_leave_best_period_out_relative_total_return": 0.26171817997006164,
+    "stress_max_drawdown": -0.23081566056640346,
+    "stress_net_cagr_annualized_over_51_months": 0.12711988745866387,
+    "stress_net_total_return": 0.6629262129549727,
+    "stress_relative_total_return": 0.38413256530824413
+  },
+  "data_blockers_unchanged": [
+    "PRICE_BASIS_CHUA_XAC_NHAN",
+    "CORPORATE_ACTIONS_CHUA_DAY_DU",
+    "CANDIDATE_UNION_IS_NOT_POINT_IN_TIME",
+    "SURVIVORSHIP_BIAS_NOT_RESOLVED"
+  ],
+  "frozen_candidate": {
+    "breadth": 10,
+    "fixed_voluntary_replacement_cap": 3,
+    "model": "C3_STABLE_3_PAST_IC_SHRUNK",
+    "provenance": "V11_MAX_VOLUNTARY_REPLACEMENTS_FROZEN_BEFORE_V32_REVIEW",
+    "recommendation": "FREEZE_C3_FIXED_CAP_3_FOR_FUTURE_PAPER_HOLDOUT_ONLY"
+  },
+  "governance": {
+    "automatic_live_orders_allowed": false,
+    "exact_cash_ledger_pnl_computed": false,
+    "exclude_pre_freeze_signal_dates_through": "2026-07-31",
+    "future_paper_holdout_only": true,
+    "live_capital_approved": false,
+    "minimum_future_monthly_observations": 12,
+    "official_freeze_must_not_be_backdated": true,
+    "research_eligible": false
+  },
+  "paired_vs_nested": {
+    "baseline": "V32_1_NESTED_BLOCKWISE_CAP_SELECTOR",
+    "bootstrap_delta_lower_90": 0.00021470956347572164,
+    "bootstrap_delta_upper_90": 0.0076128618395655615,
+    "bootstrap_probability_delta_positive": 0.9645,
+    "delta_one_sided_p_value": 0.04963001318826321,
+    "fixed_replacement_cap": 3,
+    "leave_best_3_mean_net_excess_delta": 0.0012126234451392554,
+    "mean_net_excess_delta": 0.0038634623268034153,
+    "nested_base_net_cagr_annualized_over_51_months": 0.08026788423237852,
+    "nested_base_net_total_return": 0.38838120558979305,
+    "newey_west_delta_standard_error": 0.0023436916375717664,
+    "newey_west_delta_t_stat": 1.6484516413627865,
+    "paired_period_count": 51,
+    "pre_registered_cap": true
+  },
+  "recorded_at": "2026-08-03T09:22:00+07:00",
+  "schema_version": "vn_quant_v33_canonical_result_registry_v1",
+  "sensitivity": {
+    "best_historical_cap_base_net_total_return": 0.7284018712611717,
+    "best_historical_cap_by_base_net_return": 6,
+    "cap6_not_selectable_due_posthoc": true,
+    "caps_passing_sensitivity_gate": [
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "only_future_freeze_candidate": 3,
+    "post_selection_grid": true
+  },
+  "source": {
+    "v32_1_artifact_sha256": "c8f95875a5af8762b5a2de2ee923453135e238593ee708eacbe3e8b4bc6f781f",
+    "v32_1_outer_test_first_date": "2022-04-29",
+    "v32_1_outer_test_last_date": "2026-06-30",
+    "v32_1_outer_test_period_count": 51,
+    "v32_1_report_sha256": "dcd93f589afe61a4715cc9d5fa68be055f4c6756fad6613bdb5398559bd11710"
+  }
+}

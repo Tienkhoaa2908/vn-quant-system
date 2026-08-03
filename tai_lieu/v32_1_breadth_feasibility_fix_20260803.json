@@ -1,0 +1,40 @@
+{
+  "schema_version": "v32_1_breadth_feasibility_fix_v1",
+  "recorded_at": "2026-08-03T08:45:00+07:00",
+  "repository": "Tienkhoaa2908/vn-quant-system",
+  "branch": "agent/model-lab-predictive-value-dnse-sync-v3",
+  "failed_v32_run": {
+    "artifact_file": "portfolio-ablation-v32-canonical-11y-20260803-083708.zip",
+    "artifact_sha256": "731f58c7b6889e04a63e9951eac56ec5964e255c06751423a48e15162121b14a",
+    "status": "FAILED",
+    "reason": "Requested maximum breadth 30 exceeded the minimum eligible universe size 13 in the 57-month full horizon.",
+    "eligible_test_month_count": 57,
+    "eligible_first_test_date": "2021-10-29",
+    "eligible_last_test_date": "2026-06-30",
+    "minimum_eligible_symbol_count_per_month": 13,
+    "maximum_eligible_symbol_count_per_month": 98,
+    "eligible_prediction_key_count_per_model": 3530,
+    "excluded_noneligible_prediction_key_count_per_model": 2825
+  },
+  "fix": {
+    "upgrade_schema_version": "portfolio_ablation_v32_1",
+    "official_runner": "scripts/run_v32_1_canonical_11y_gitbash.sh",
+    "safe_runner_module": "he_thong_dinh_luong.portfolio_ablation_v32_1_safe_runner",
+    "requested_breadths": [10, 15, 20, 30],
+    "expected_full_horizon_feasible_breadths": [10],
+    "expected_infeasible_full_horizon_breadths": [15, 20, 30],
+    "policy": "SKIP_INFEASIBLE_FULL_HORIZON;DO_NOT_SHRINK_K;DO_NOT_DROP_MONTHS",
+    "full_horizon_preserved": true,
+    "dynamic_breadth_allowed": false,
+    "month_deletion_allowed": false,
+    "feasibility_output": "breadth_feasibility_v32.csv"
+  },
+  "governance": {
+    "portfolio_return_proxy_after_modeled_costs_only": true,
+    "exact_cash_ledger_pnl_computed": false,
+    "research_eligible": false,
+    "live_capital_approved": false,
+    "automatic_live_orders_allowed": false
+  },
+  "future_agent_instruction": "Use V32.1, not the original V32 runner. Evaluate only Top-K breadths feasible in every eligible OOS month. Never dynamically shrink K or drop sparse months to force a breadth result."
+}
