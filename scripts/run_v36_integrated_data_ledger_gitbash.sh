@@ -18,6 +18,7 @@ REFERENCE_ROOT="/c/Users/welcome/Documents/vn-quant-data/reference"
 SECTOR_POSIX="$REFERENCE_ROOT/sector_master_point_in_time.csv"
 ACTIONS_POSIX="$REFERENCE_ROOT/corporate_actions.csv"
 ASSURANCE_POSIX="$REFERENCE_ROOT/exact_ledger_data_assurance_v2.json"
+BENCHMARK_POSIX="$REFERENCE_ROOT/vnindex_ohlcv.csv"
 
 keep_open() {
     echo
@@ -91,11 +92,15 @@ echo
 echo "===== KIEM TRA CODE V36 ====="
 python -m py_compile \
     src/he_thong_dinh_luong/integrated_data_ledger_v36.py \
+    src/he_thong_dinh_luong/integrated_data_ledger_v36_strict.py \
     src/he_thong_dinh_luong/integrated_data_ledger_v36_safe_runner.py \
     tests/test_integrated_data_ledger_v36.py \
+    tests/test_integrated_data_ledger_v36_strict.py \
     || fail "py_compile V36 that bai"
-python -m unittest tests.test_integrated_data_ledger_v36 -v \
-    || fail "unit test V36 that bai"
+python -m unittest \
+    tests.test_integrated_data_ledger_v36 \
+    tests.test_integrated_data_ledger_v36_strict \
+    -v || fail "unit test V36 that bai"
 
 RUN_ID="$(date +%Y%m%d-%H%M%S)"
 OUTPUT_POSIX="$PWD/artifacts/integrated-data-ledger-v36-$RUN_ID"
@@ -122,6 +127,8 @@ ARGS=(
     && ARGS+=(--corporate-actions "$(cygpath -w "$ACTIONS_POSIX")")
 [[ -f "$ASSURANCE_POSIX" ]] \
     && ARGS+=(--data-assurance-report "$(cygpath -w "$ASSURANCE_POSIX")")
+[[ -f "$BENCHMARK_POSIX" ]] \
+    && ARGS+=(--benchmark-ohlcv "$(cygpath -w "$BENCHMARK_POSIX")")
 
 echo
 echo "===== CHAY V36 DATA INTEGRITY + EXACT LEDGER ====="
@@ -129,6 +136,7 @@ echo "OUTPUT_DIR=$OUTPUT_POSIX"
 [[ -f "$SECTOR_POSIX" ]] || echo "INFO: sector master chua co; audit se BLOCKED"
 [[ -f "$ACTIONS_POSIX" ]] || echo "INFO: corporate actions chua co; audit se BLOCKED"
 [[ -f "$ASSURANCE_POSIX" ]] || echo "INFO: assurance v2 chua co; audit se BLOCKED"
+[[ -f "$BENCHMARK_POSIX" ]] || echo "INFO: VNINDEX next-open chua co; audit se BLOCKED"
 
 python -m he_thong_dinh_luong.integrated_data_ledger_v36_safe_runner \
     "${ARGS[@]}"
@@ -154,6 +162,7 @@ if report_path.is_file():
     integrity = report.get("data_integrity", {})
     selection = report.get("selection_lineage", {})
     coverage = report.get("coverage", {})
+    benchmark = report.get("vnindex_benchmark", {})
     print("STATUS=", report.get("status"))
     print("DECISION=", report.get("decision"))
     print("RECOMMENDATION=", report.get("recommendation"))
@@ -173,10 +182,20 @@ if report_path.is_file():
         integrity.get("invalid_ohlcv_execution_critical_count"),
     )
     print("INVALID_EXPORT_SHA256=", integrity.get("invalid_ohlcv_export_sha256"))
+    print(
+        "VNINDEX_NEXT_OPEN_COVERAGE=",
+        benchmark.get("covered_date_count"),
+        "/",
+        benchmark.get("required_date_count"),
+    )
     print("LEDGER_STATUS=", report.get("ledger_status"))
     print(
         "EXACT_CASH_LEDGER_PNL_COMPUTED=",
         report.get("exact_cash_ledger_pnl_computed"),
+    )
+    print(
+        "EXACT_VNINDEX_COMPARISON_COMPUTED=",
+        report.get("exact_vnindex_comparison_computed"),
     )
     print("BLOCKERS=", "|".join(report.get("blockers", [])))
     print("LIVE_CAPITAL_APPROVED=", report.get("live_capital_approved"))
@@ -194,7 +213,7 @@ if report_path.is_file():
             row.get("net_profit_vnd"),
             "NET_RETURN=",
             row.get("net_total_return"),
-            "VNINDEX=",
+            "VNINDEX_NEXT_OPEN=",
             row.get("benchmark_total_return"),
             "RELATIVE=",
             row.get("relative_total_return"),
