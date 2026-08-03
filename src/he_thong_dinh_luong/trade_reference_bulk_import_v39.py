@@ -18,13 +18,28 @@ SECTOR_IMPORT_FILE = "sector_intervals_import_v39.csv"
 ACTION_COVERAGE_IMPORT_FILE = "corporate_action_coverage_import_v39.csv"
 PRICE_COVERAGE_IMPORT_FILE = "price_basis_coverage_import_v39.csv"
 AUDIT_FILE = "bulk_import_audit_v39.json"
+README_FILE = "README_BULK_IMPORT_V39.md"
+
+SECTOR_IMPORT_FIELDS = (
+    "symbol", "sector", "effective_from", "effective_to",
+    "source_document_id", "source_filename", "source_url",
+    "source_sha256", "verified",
+)
+ACTION_IMPORT_FIELDS = (
+    "symbol", "coverage_from", "coverage_to", "source_document_id",
+    "source_filename", "source_url", "source_sha256",
+    "source_checked", "verified_complete",
+)
+PRICE_IMPORT_FIELDS = (
+    "coverage_from", "coverage_to", "crosscheck_symbol_count",
+    "source_document_id", "source_filename", "official_source_url",
+    "source_sha256", "verified",
+)
 
 SECTOR_WORK_FILE = "sector_evidence_v39.csv"
 WINDOW_WORK_FILE = "corporate_action_window_evidence_v39.csv"
 EVENT_WORK_FILE = "corporate_action_events_v39.csv"
 PRICE_WORK_FILE = "price_basis_execution_evidence_v39.csv"
-
-_TRUE = {"1", "true", "yes", "y"}
 
 
 def _read_csv(path: Path) -> list[dict[str, str]]:
@@ -125,12 +140,43 @@ def _event_counts(event_rows: Sequence[Mapping[str, str]]) -> list[tuple[str, da
     return output
 
 
+def _seed_bulk_templates(workspace: Path) -> list[str]:
+    created: list[str] = []
+    templates = (
+        (SECTOR_IMPORT_FILE, SECTOR_IMPORT_FIELDS),
+        (ACTION_COVERAGE_IMPORT_FILE, ACTION_IMPORT_FIELDS),
+        (PRICE_COVERAGE_IMPORT_FILE, PRICE_IMPORT_FIELDS),
+    )
+    for filename, fields in templates:
+        path = workspace / filename
+        if not path.exists():
+            _write_csv(path, [], fields)
+            created.append(filename)
+    readme = workspace / README_FILE
+    if not readme.exists():
+        readme.write_text(
+            "# V39 bulk import\n\n"
+            "Điền ba file compact thay vì sửa trực tiếp 510/510/52 dòng. "
+            "Mỗi dòng phải trỏ tới file nguồn trong `source_documents/` và SHA-256 thật.\n\n"
+            "- `sector_intervals_import_v39.csv`: một dòng cho mỗi khoảng phân ngành có hiệu lực.\n"
+            "- `corporate_action_coverage_import_v39.csv`: một dòng theo mã hoặc `*` cho inventory phủ trọn khoảng ngày.\n"
+            "- `price_basis_coverage_import_v39.csv`: một hoặc vài khoảng xác nhận basis/unit/cross-check.\n"
+            "- Sự kiện thực tế tiếp tục nhập tại `corporate_action_events_v39.csv`.\n\n"
+            "Bulk importer chỉ mở rộng metadata; core V39 vẫn kiểm từng key, hash và event count.\n",
+            encoding="utf-8",
+        )
+        created.append(README_FILE)
+    return created
+
+
 def apply_bulk_import(workspace_dir: Path) -> dict[str, object]:
     workspace = Path(workspace_dir).resolve()
     required_work = (SECTOR_WORK_FILE, WINDOW_WORK_FILE, EVENT_WORK_FILE, PRICE_WORK_FILE)
     missing_work = [name for name in required_work if not (workspace / name).is_file()]
     if missing_work:
         raise ValueError("V39_BULK_WORKSPACE_NOT_SEEDED:" + "|".join(missing_work))
+
+    templates_created = _seed_bulk_templates(workspace)
 
     sector_work = _read_csv(workspace / SECTOR_WORK_FILE)
     window_work = _read_csv(workspace / WINDOW_WORK_FILE)
@@ -140,36 +186,24 @@ def apply_bulk_import(workspace_dir: Path) -> dict[str, object]:
     sector_import_path = workspace / SECTOR_IMPORT_FILE
     action_import_path = workspace / ACTION_COVERAGE_IMPORT_FILE
     price_import_path = workspace / PRICE_COVERAGE_IMPORT_FILE
-    sector_import = _read_csv(sector_import_path) if sector_import_path.is_file() else []
-    action_import = _read_csv(action_import_path) if action_import_path.is_file() else []
-    price_import = _read_csv(price_import_path) if price_import_path.is_file() else []
+    sector_import = _read_csv(sector_import_path)
+    action_import = _read_csv(action_import_path)
+    price_import = _read_csv(price_import_path)
 
     _require_fields(
         sector_import_path,
         sector_import,
-        {
-            "symbol", "sector", "effective_from", "effective_to",
-            "source_document_id", "source_filename", "source_url",
-            "source_sha256", "verified",
-        },
+        set(SECTOR_IMPORT_FIELDS),
     )
     _require_fields(
         action_import_path,
         action_import,
-        {
-            "symbol", "coverage_from", "coverage_to", "source_document_id",
-            "source_filename", "source_url", "source_sha256",
-            "source_checked", "verified_complete",
-        },
+        set(ACTION_IMPORT_FIELDS),
     )
     _require_fields(
         price_import_path,
         price_import,
-        {
-            "coverage_from", "coverage_to", "crosscheck_symbol_count",
-            "source_document_id", "source_filename", "official_source_url",
-            "source_sha256", "verified",
-        },
+        set(PRICE_IMPORT_FIELDS),
     )
 
     sector_expanded = 0
@@ -240,6 +274,7 @@ def apply_bulk_import(workspace_dir: Path) -> dict[str, object]:
     audit = {
         "schema_version": "vn_quant_trade_reference_bulk_import_v39",
         "workspace_dir": str(workspace),
+        "templates_created": templates_created,
         "input_files_present": {
             SECTOR_IMPORT_FILE: sector_import_path.is_file(),
             ACTION_COVERAGE_IMPORT_FILE: action_import_path.is_file(),
