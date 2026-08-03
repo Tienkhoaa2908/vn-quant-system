@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from pathlib import Path
+import shutil
+import subprocess
 import unittest
 
 
@@ -41,6 +43,35 @@ class DnseDpapiScriptsV41Test(unittest.TestCase):
         self.assertNotIn("DNSE_API_KEY=", text)
         self.assertNotIn("DNSE_API_SECRET=", text)
         self.assertNotIn("setx", text.lower())
+
+    @unittest.skipUnless(shutil.which("powershell.exe"), "Windows PowerShell required")
+    def test_powershell_scripts_parse_on_windows(self) -> None:
+        for path in (SETUP, RUNNER):
+            escaped = str(path).replace("'", "''")
+            command = (
+                "$tokens=$null;$errors=$null;"
+                f"[System.Management.Automation.Language.Parser]::ParseFile('{escaped}',"
+                "[ref]$tokens,[ref]$errors)|Out-Null;"
+                "if($errors.Count -gt 0){$errors|ForEach-Object{Write-Error $_};exit 1}"
+            )
+            completed = subprocess.run(
+                [
+                    "powershell.exe",
+                    "-NoLogo",
+                    "-NoProfile",
+                    "-NonInteractive",
+                    "-Command",
+                    command,
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(
+                completed.returncode,
+                0,
+                msg=f"{path.name}: {completed.stdout}\n{completed.stderr}",
+            )
 
 
 if __name__ == "__main__":
