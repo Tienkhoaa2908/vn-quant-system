@@ -93,13 +93,16 @@ echo "===== KIEM TRA CODE V36 ====="
 python -m py_compile \
     src/he_thong_dinh_luong/integrated_data_ledger_v36.py \
     src/he_thong_dinh_luong/integrated_data_ledger_v36_strict.py \
+    src/he_thong_dinh_luong/integrated_data_ledger_v36_auto.py \
     src/he_thong_dinh_luong/integrated_data_ledger_v36_safe_runner.py \
     tests/test_integrated_data_ledger_v36.py \
     tests/test_integrated_data_ledger_v36_strict.py \
+    tests/test_integrated_data_ledger_v36_auto.py \
     || fail "py_compile V36 that bai"
 python -m unittest \
     tests.test_integrated_data_ledger_v36 \
     tests.test_integrated_data_ledger_v36_strict \
+    tests.test_integrated_data_ledger_v36_auto \
     -v || fail "unit test V36 that bai"
 
 RUN_ID="$(date +%Y%m%d-%H%M%S)"
@@ -135,8 +138,8 @@ echo "===== CHAY V36 DATA INTEGRITY + EXACT LEDGER ====="
 echo "OUTPUT_DIR=$OUTPUT_POSIX"
 [[ -f "$SECTOR_POSIX" ]] || echo "INFO: sector master chua co; audit se BLOCKED"
 [[ -f "$ACTIONS_POSIX" ]] || echo "INFO: corporate actions chua co; audit se BLOCKED"
-[[ -f "$ASSURANCE_POSIX" ]] || echo "INFO: assurance v2 chua co; audit se BLOCKED"
-[[ -f "$BENCHMARK_POSIX" ]] || echo "INFO: VNINDEX next-open chua co; audit se BLOCKED"
+[[ -f "$ASSURANCE_POSIX" ]] || echo "INFO: assurance v2 authoritative chua co; V36 se tao auto-candidate"
+[[ -f "$BENCHMARK_POSIX" ]] || echo "INFO: VNINDEX se duoc tu dong trich tu SQLite canonical"
 
 python -m he_thong_dinh_luong.integrated_data_ledger_v36_safe_runner \
     "${ARGS[@]}"
@@ -163,6 +166,7 @@ if report_path.is_file():
     selection = report.get("selection_lineage", {})
     coverage = report.get("coverage", {})
     benchmark = report.get("vnindex_benchmark", {})
+    auto = report.get("automatic_reference_preparation", {})
     print("STATUS=", report.get("status"))
     print("DECISION=", report.get("decision"))
     print("RECOMMENDATION=", report.get("recommendation"))
@@ -182,6 +186,11 @@ if report_path.is_file():
         integrity.get("invalid_ohlcv_execution_critical_count"),
     )
     print("INVALID_EXPORT_SHA256=", integrity.get("invalid_ohlcv_export_sha256"))
+    print("AUTO_VNINDEX_SOURCE=", auto.get("vnindex_source"))
+    print(
+        "AUTO_QUARANTINE_APPROVED=",
+        auto.get("invalid_ohlcv_quarantine_machine_approved"),
+    )
     print(
         "VNINDEX_NEXT_OPEN_COVERAGE=",
         benchmark.get("covered_date_count"),
