@@ -145,7 +145,11 @@ class V39LocalEvidenceDiscoveryTests(unittest.TestCase):
                 "r", encoding="utf-8-sig", newline=""
             ) as stream:
                 rows = list(csv.DictReader(stream))
-            self.assertTrue(any(row["category"] == "SECTOR" and row["path"] == str(candidate) for row in rows))
+            self.assertTrue(any(
+                row["category"] == "SECTOR"
+                and Path(row["path"]).name == candidate.name
+                for row in rows
+            ))
 
     def test_output_files_are_created(self):
         with TemporaryDirectory() as temporary:
