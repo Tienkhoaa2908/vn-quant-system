@@ -1,8 +1,8 @@
 """Apply strictly verified local DNSE operations evidence to the V39 workspace.
 
-Only the read-only account-sync control can be upgraded by this module.  A
+Only the read-only account-sync control can be upgraded by this module. A
 portfolio snapshot is not, by itself, an independent position reconciliation,
-so that control remains fail-closed.  No credentials, account identifiers,
+so that control remains fail-closed. No credentials, account identifiers,
 orders, or live-capital permissions are written.
 """
 from __future__ import annotations
@@ -11,7 +11,7 @@ import argparse
 import csv
 from datetime import datetime, timezone
 from hashlib import sha256
-from io import StringIO
+from io import BytesIO, StringIO
 import json
 import math
 from pathlib import Path
@@ -80,13 +80,8 @@ def _verify_collection_manifest(collected_dir: Path, evidence: Path) -> Mapping[
 
 def _verify_nested_snapshot(data: bytes) -> dict[str, object]:
     try:
-        archive = ZipFile(StringIO())  # type: ignore[arg-type]
-    except Exception:
-        archive = None
-    try:
-        from io import BytesIO
-        with ZipFile(BytesIO(data)) as zf:
-            bad = zf.testzip()
+        with ZipFile(BytesIO(data)) as archive:
+            bad = archive.testzip()
             if bad is not None:
                 raise ValueError(f"V39_ACCOUNT_SYNC_ZIP_CRC_FAILED:{bad}")
             required = {
@@ -94,13 +89,14 @@ def _verify_nested_snapshot(data: bytes) -> dict[str, object]:
                 "portfolio_summary.json",
                 "portfolio_analysis.csv",
             }
-            names = set(zf.namelist())
+            names = set(archive.namelist())
             missing = sorted(required - names)
             if missing:
                 raise ValueError("V39_ACCOUNT_SYNC_ZIP_MEMBER_MISSING:" + ",".join(missing))
-            manifest = _read_json_bytes(zf.read("manifest.json"), "manifest.json")
-            summary = _read_json_bytes(zf.read("portfolio_summary.json"), "portfolio_summary.json")
-            analysis_bytes = zf.read("portfolio_analysis.csv")
+            manifest_bytes = archive.read("manifest.json")
+            manifest = _read_json_bytes(manifest_bytes, "manifest.json")
+            summary = _read_json_bytes(archive.read("portfolio_summary.json"), "portfolio_summary.json")
+            analysis_bytes = archive.read("portfolio_analysis.csv")
 
             files = manifest.get("files")
             if not isinstance(files, Mapping):
@@ -109,7 +105,7 @@ def _verify_nested_snapshot(data: bytes) -> dict[str, object]:
                 row = files.get(name)
                 if not isinstance(row, Mapping):
                     raise ValueError(f"V39_ACCOUNT_SYNC_NESTED_HASH_MISSING:{name}")
-                payload = zf.read(name)
+                payload = archive.read(name)
                 if _sha_bytes(payload) != str(row.get("sha256") or ""):
                     raise ValueError(f"V39_ACCOUNT_SYNC_NESTED_HASH_MISMATCH:{name}")
                 if len(payload) != int(row.get("size") or -1):
@@ -144,8 +140,13 @@ def _verify_nested_snapshot(data: bytes) -> dict[str, object]:
     rows = list(csv.DictReader(StringIO(text, newline="")))
     if int(summary.get("position_count") or -1) != len(rows):
         raise ValueError("V39_ACCOUNT_SYNC_POSITION_COUNT_MISMATCH")
-    market_value = sum(_finite_nonnegative(row.get("market_value_vnd"), "market_value_vnd") for row in rows)
-    summary_market_value = _finite_nonnegative(summary.get("stock_market_value_vnd"), "stock_market_value_vnd")
+    market_value = sum(
+        _finite_nonnegative(row.get("market_value_vnd"), "market_value_vnd")
+        for row in rows
+    )
+    summary_market_value = _finite_nonnegative(
+        summary.get("stock_market_value_vnd"), "stock_market_value_vnd"
+    )
     if abs(market_value - summary_market_value) > 1.0:
         raise ValueError("V39_ACCOUNT_SYNC_MARKET_VALUE_MISMATCH")
     for key in (
@@ -162,7 +163,7 @@ def _verify_nested_snapshot(data: bytes) -> dict[str, object]:
         "masked_account": masked,
         "position_count": len(rows),
         "stock_market_value_vnd": summary_market_value,
-        "nested_manifest_sha256": _sha_bytes(json.dumps(manifest, sort_keys=True).encode("utf-8")),
+        "nested_manifest_sha256": _sha_bytes(manifest_bytes),
     }
 
 
@@ -193,14 +194,16 @@ def apply_local_operations_evidence(*, workspace_dir: Path, collected_dir: Path)
     if not target.exists():
         shutil.copyfile(evidence, target)
 
-    document_id = "dnse-read-only-account-sync-" + re.sub(r"[^0-9]", "", str(snapshot["as_of"]))[:14]
+    document_id = "dnse-read-only-account-sync-" + re.sub(
+        r"[^0-9]", "", str(snapshot["as_of"])
+    )[:14]
     updated.update({
         "account_sync_verified": True,
         "account_sync_evidence_document_id": document_id,
         "account_sync_evidence_filename": EVIDENCE_FILENAME,
         "account_sync_evidence_sha256": evidence_sha,
         # A broker snapshot is not an independent reconciliation against the
-        # local ledger.  Preserve the prior value and evidence fields.
+        # local ledger. Preserve the prior value and evidence fields.
         "position_reconciliation_verified": current.get("position_reconciliation_verified") is True,
     })
     updated.setdefault("reviewer", "")
