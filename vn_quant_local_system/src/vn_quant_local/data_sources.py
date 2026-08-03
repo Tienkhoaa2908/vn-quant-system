@@ -1,4 +1,4 @@
-"""Nguồn dữ liệu local: DNSE credentials, incremental sync và CSV thủ công.
+"""Nguồn dữ liệu local: DNSE credentials, sync và CSV thủ công.
 
 Credentials chỉ được lưu trong ``data/state`` của workstation, không commit lên
 Git và không bao giờ trả API secret về trình duyệt sau khi lưu.
@@ -19,6 +19,7 @@ import sqlite3
 import subprocess
 import sys
 from typing import Mapping
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from .core import SYSTEM_ROOT, paths, state_db, utc_now
 
@@ -38,6 +39,14 @@ def _mask(value: str) -> str:
     return f"{text[:4]}{'•' * min(len(text) - 8, 12)}{text[-4:]}"
 
 
+def _timezone_status() -> dict[str, object]:
+    try:
+        ZoneInfo("Asia/Ho_Chi_Minh")
+    except ZoneInfoNotFoundError as exc:
+        return {"ready": False, "zone": "Asia/Ho_Chi_Minh", "error": str(exc)}
+    return {"ready": True, "zone": "Asia/Ho_Chi_Minh", "error": None}
+
+
 def sdk_status() -> dict[str, object]:
     installed = util.find_spec("dnse") is not None
     version = ""
@@ -46,14 +55,16 @@ def sdk_status() -> dict[str, object]:
             version = metadata.version("dnse")
         except metadata.PackageNotFoundError:
             installed = False
+    timezone = _timezone_status()
+    version_ok = installed and version == EXPECTED_DNSE_SDK_VERSION
     return {
         "installed": installed,
         "version": version or None,
         "expected_version": EXPECTED_DNSE_SDK_VERSION,
-        "version_ok": installed and version == EXPECTED_DNSE_SDK_VERSION,
-        "install_command": (
-            f'"{sys.executable}" -m pip install dnse=={EXPECTED_DNSE_SDK_VERSION}'
-        ),
+        "version_ok": version_ok,
+        "timezone": timezone,
+        "ready": bool(version_ok and timezone["ready"]),
+        "install_command": f'"{sys.executable}" -m pip install dnse=={EXPECTED_DNSE_SDK_VERSION} tzdata',
     }
 
 
@@ -98,12 +109,7 @@ def credential_status(secret_path: Path = SECRET_PATH) -> dict[str, object]:
     }
 
 
-def save_credentials(
-    api_key: str,
-    api_secret: str,
-    *,
-    secret_path: Path = SECRET_PATH,
-) -> dict[str, object]:
+def save_credentials(api_key: str, api_secret: str, *, secret_path: Path = SECRET_PATH) -> dict[str, object]:
     key = str(api_key or "").strip()
     secret = str(api_secret or "").strip()
     if not key or not secret:
@@ -112,17 +118,9 @@ def save_credentials(
         raise ValueError("DNSE_CREDENTIALS_TOO_LONG")
     path = Path(secret_path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    payload = {
-        "api_key": key,
-        "api_secret": secret,
-        "saved_at": utc_now(),
-        "storage": "LOCAL_WORKSTATION_ONLY",
-    }
+    payload = {"api_key": key, "api_secret": secret, "saved_at": utc_now(), "storage": "LOCAL_WORKSTATION_ONLY"}
     temporary = path.with_suffix(path.suffix + ".tmp")
-    temporary.write_text(
-        json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
+    temporary.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     try:
         os.chmod(temporary, 0o600)
     except OSError:
@@ -142,18 +140,10 @@ def clear_credentials(*, secret_path: Path = SECRET_PATH) -> dict[str, object]:
 
 def install_dnse_sdk() -> dict[str, object]:
     before = sdk_status()
-    if before["version_ok"]:
+    if before["ready"]:
         return {"status": "ALREADY_READY", "sdk": before}
     completed = subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            "pip",
-            "install",
-            "--disable-pip-version-check",
-            "--no-input",
-            f"dnse=={EXPECTED_DNSE_SDK_VERSION}",
-        ],
+        [sys.executable, "-m", "pip", "install", "--disable-pip-version-check", "--no-input", f"dnse=={EXPECTED_DNSE_SDK_VERSION}", "tzdata"],
         capture_output=True,
         text=True,
         timeout=300,
@@ -161,39 +151,46 @@ def install_dnse_sdk() -> dict[str, object]:
     )
     if completed.returncode != 0:
         tail = (completed.stderr or completed.stdout or "").strip()[-3000:]
-        raise RuntimeError(f"DNSE_SDK_INSTALL_FAILED:{tail}")
+        raise RuntimeError(f"DNSE_RUNTIME_INSTALL_FAILED:{tail}")
     importlib.invalidate_caches()
     after = sdk_status()
-    if not after["version_ok"]:
-        raise RuntimeError(f"DNSE_SDK_INSTALL_INCOMPLETE:{after}")
-    return {
-        "status": "SUCCESS",
-        "sdk": after,
-        "output_tail": (completed.stdout or "").strip()[-1500:],
-    }
+    if not after["ready"]:
+        raise RuntimeError(f"DNSE_RUNTIME_INSTALL_INCOMPLETE:{after}")
+    return {"status": "SUCCESS", "sdk": after, "output_tail": (completed.stdout or "").strip()[-1500:]}
 
 
-def _source_from_saved_credentials():
+def _require_runtime_ready() -> None:
+    status = sdk_status()
+    if not status["installed"]:
+        raise RuntimeError("DNSE_SDK_NOT_INSTALLED:0.5.0")
+    if not status["version_ok"]:
+        raise RuntimeError(f"DNSE_SDK_VERSION_MISMATCH:{status.get('version')}!={EXPECTED_DNSE_SDK_VERSION}")
+    if not status["timezone"]["ready"]:
+        raise RuntimeError("DNSE_TIMEZONE_DATA_MISSING:Asia/Ho_Chi_Minh")
+
+
+def _credentials_or_raise() -> tuple[dict[str, str], str]:
     credentials, source_name = _effective_credentials()
     if not credentials:
         raise ValueError("DNSE_CREDENTIALS_MISSING")
-    sdk = sdk_status()
-    if not sdk["installed"]:
-        raise RuntimeError("DNSE_SDK_NOT_INSTALLED:0.5.0")
-    if not sdk["version_ok"]:
-        raise RuntimeError(
-            f"DNSE_SDK_VERSION_MISMATCH:{sdk.get('version')}!={EXPECTED_DNSE_SDK_VERSION}"
-        )
-    from he_thong_dinh_luong.nguon_dnse import DnseRestSource
+    _require_runtime_ready()
+    return credentials, source_name
 
-    return (
-        DnseRestSource(credentials["api_key"], credentials["api_secret"]),
-        source_name,
-    )
+
+def source_from_saved_credentials():
+    credentials, source_name = _credentials_or_raise()
+    from he_thong_dinh_luong.nguon_dnse import DnseRestSource
+    return DnseRestSource(credentials["api_key"], credentials["api_secret"]), source_name
+
+
+def reader_from_saved_credentials():
+    credentials, source_name = _credentials_or_raise()
+    from he_thong_dinh_luong.dnse_portfolio import DnseReadOnlyClient
+    return DnseReadOnlyClient(credentials["api_key"], credentials["api_secret"]), source_name
 
 
 def test_dnse_connection() -> dict[str, object]:
-    source, credential_source = _source_from_saved_credentials()
+    source, credential_source = source_from_saved_credentials()
     end = datetime.now().astimezone().date()
     start = end - timedelta(days=21)
     try:
@@ -202,34 +199,35 @@ def test_dnse_connection() -> dict[str, object]:
         source.close()
     if not rows:
         raise ValueError("DNSE_CONNECTION_OK_BUT_NO_VNINDEX_ROWS")
-    latest = rows[-1]
+
+    portfolio: dict[str, object]
+    reader = None
+    try:
+        reader, _ = reader_from_saved_credentials()
+        accounts = reader.accounts()
+        portfolio = {"status": "SUCCESS", "account_count": len(accounts), "message": "API key có quyền đọc danh sách tiểu khoản."}
+    except Exception as exc:
+        portfolio = {"status": "FAILED", "message": "Market data hoạt động nhưng chưa đọc được danh mục/tài khoản.", "error": f"{type(exc).__name__}:{exc}"}
+    finally:
+        if reader is not None:
+            reader.close()
+
     return {
-        "status": "SUCCESS",
+        "status": "SUCCESS" if portfolio["status"] == "SUCCESS" else "PARTIAL",
         "credential_source": credential_source,
-        "row_count": len(rows),
-        "latest_day": latest.day.isoformat(),
-        "latest_close": latest.close,
+        "market_data": {"status": "SUCCESS", "row_count": len(rows), "latest_day": rows[-1].day.isoformat(), "latest_close": rows[-1].close},
+        "portfolio": portfolio,
         "sdk": sdk_status(),
     }
 
 
-def sync_incremental_market_data_local(
-    *,
-    end: date | None = None,
-    lookback_days: int = 14,
-) -> dict[str, object]:
+def sync_incremental_market_data_local(*, end: date | None = None, lookback_days: int = 14) -> dict[str, object]:
     p = paths()
     if not p.market_db.is_file():
         raise FileNotFoundError("Chưa bootstrap market database local")
     db = sqlite3.connect(p.market_db)
     try:
-        symbols = [
-            str(row[0])
-            for row in db.execute(
-                "SELECT DISTINCT symbol FROM bars "
-                "WHERE upper(asset_type)='STOCK' ORDER BY symbol"
-            ).fetchall()
-        ]
+        symbols = [str(row[0]) for row in db.execute("SELECT DISTINCT symbol FROM bars WHERE upper(asset_type)='STOCK' ORDER BY symbol").fetchall()]
         last_day_raw = db.execute("SELECT MAX(day) FROM bars").fetchone()[0]
     finally:
         db.close()
@@ -237,33 +235,19 @@ def sync_incremental_market_data_local(
         raise ValueError("Local market store không có dữ liệu STOCK")
 
     from he_thong_dinh_luong.dnse_historical_store_v20 import sync_historical_store
-
-    source, credential_source = _source_from_saved_credentials()
+    source, credential_source = source_from_saved_credentials()
     last_day = date.fromisoformat(str(last_day_raw))
     final_end = end or datetime.now().astimezone().date()
     start = min(last_day + timedelta(days=1), final_end)
     start = min(start, final_end) - timedelta(days=max(lookback_days, 0))
     try:
-        result = sync_historical_store(
-            store_path=p.market_db,
-            symbols=symbols,
-            start=start,
-            end=final_end,
-            include_vnindex=True,
-            force_refresh=False,
-            source=source,
-        )
+        result = sync_historical_store(store_path=p.market_db, symbols=symbols, start=start, end=final_end, include_vnindex=True, force_refresh=False, source=source)
     finally:
         source.close()
     result = dict(result)
     result["credential_source"] = credential_source
     with state_db() as state:
-        state.execute(
-            "INSERT INTO metadata(key,value,updated_at) VALUES(?,?,?) "
-            "ON CONFLICT(key) DO UPDATE SET "
-            "value=excluded.value,updated_at=excluded.updated_at",
-            ("last_market_sync", json.dumps(result, sort_keys=True), utc_now()),
-        )
+        state.execute("INSERT INTO metadata(key,value,updated_at) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at", ("last_market_sync", json.dumps(result, sort_keys=True), utc_now()))
     return result
 
 
@@ -286,11 +270,7 @@ def _positive_float(raw: str, field: str) -> float:
     return value
 
 
-def parse_manual_csv(
-    content: str,
-    *,
-    price_unit: str = "THOUSAND_VND",
-) -> list[dict[str, object]]:
+def parse_manual_csv(content: str, *, price_unit: str = "THOUSAND_VND") -> list[dict[str, object]]:
     if len(content.encode("utf-8")) > MAX_MANUAL_BYTES:
         raise ValueError("MANUAL_CSV_TOO_LARGE")
     unit = str(price_unit or "").strip().upper()
@@ -313,7 +293,7 @@ def parse_manual_csv(
         if not symbol or not symbol.replace(".", "").replace("_", "").isalnum():
             raise ValueError(f"MANUAL_CSV_SYMBOL_INVALID:line={line_number}")
         try:
-            day = date.fromisoformat(raw_day[:10])
+            day_value = date.fromisoformat(raw_day[:10])
         except ValueError as exc:
             raise ValueError(f"MANUAL_CSV_DAY_INVALID:line={line_number}:{raw_day}") from exc
         open_price = _positive_float(_pick(source_row, "open", "gia_mo_cua"), "open")
@@ -335,22 +315,11 @@ def parse_manual_csv(
             high /= 1000.0
             low /= 1000.0
             close /= 1000.0
-        key = (asset_type, symbol, day)
+        key = (asset_type, symbol, day_value)
         if key in seen:
-            raise ValueError(f"MANUAL_CSV_DUPLICATE_KEY:{asset_type}:{symbol}:{day}")
+            raise ValueError(f"MANUAL_CSV_DUPLICATE_KEY:{asset_type}:{symbol}:{day_value}")
         seen.add(key)
-        result.append(
-            {
-                "asset_type": asset_type,
-                "symbol": symbol,
-                "day": day,
-                "open": open_price,
-                "high": high,
-                "low": low,
-                "close": close,
-                "volume": volume,
-            }
-        )
+        result.append({"asset_type": asset_type, "symbol": symbol, "day": day_value, "open": open_price, "high": high, "low": low, "close": close, "volume": volume})
         if len(result) > MAX_MANUAL_ROWS:
             raise ValueError("MANUAL_CSV_TOO_MANY_ROWS")
     if not result:
@@ -360,43 +329,18 @@ def parse_manual_csv(
 
 
 def _normalized_hash(row: Mapping[str, object]) -> str:
-    normalized = (
-        row["symbol"],
-        row["day"].isoformat(),
-        row["open"],
-        row["high"],
-        row["low"],
-        row["close"],
-        row["volume"],
-    )
-    payload = (
-        json.dumps(
-            normalized,
-            ensure_ascii=False,
-            sort_keys=True,
-            indent=2,
-            allow_nan=False,
-        )
-        + "\n"
-    ).encode("utf-8")
+    normalized = (row["symbol"], row["day"].isoformat(), row["open"], row["high"], row["low"], row["close"], row["volume"])
+    payload = (json.dumps(normalized, ensure_ascii=False, sort_keys=True, indent=2, allow_nan=False) + "\n").encode("utf-8")
     return sha256(payload).hexdigest()
 
 
-def import_manual_csv(
-    content: str,
-    *,
-    filename: str = "manual_ohlcv.csv",
-    price_unit: str = "THOUSAND_VND",
-) -> dict[str, object]:
+def import_manual_csv(content: str, *, filename: str = "manual_ohlcv.csv", price_unit: str = "THOUSAND_VND") -> dict[str, object]:
     rows = parse_manual_csv(content, price_unit=price_unit)
     p = paths()
     if not p.market_db.is_file():
         raise FileNotFoundError("Chưa bootstrap market database local")
     fetched_at = utc_now()
-    safe_name = "".join(
-        character if character.isalnum() or character in {"-", "_", "."} else "_"
-        for character in Path(filename or "manual_ohlcv.csv").name
-    )
+    safe_name = "".join(character if character.isalnum() or character in {"-", "_", "."} else "_" for character in Path(filename or "manual_ohlcv.csv").name)
     archive_name = f"{datetime.now().strftime('%Y%m%d-%H%M%S')}_{safe_name}"
     MANUAL_IMPORT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -407,10 +351,7 @@ def import_manual_csv(
     inserts: list[dict[str, object]] = []
     try:
         for row in rows:
-            current = db.execute(
-                "SELECT * FROM bars WHERE asset_type=? AND symbol=? AND day=?",
-                (row["asset_type"], row["symbol"], row["day"].isoformat()),
-            ).fetchone()
+            current = db.execute("SELECT * FROM bars WHERE asset_type=? AND symbol=? AND day=?", (row["asset_type"], row["symbol"], row["day"].isoformat())).fetchone()
             if current is None:
                 inserts.append(row)
                 continue
@@ -423,85 +364,33 @@ def import_manual_csv(
         if conflicts:
             with db:
                 for row, current in conflicts:
-                    db.execute(
-                        """
-                        INSERT INTO conflicts(
-                            asset_type,symbol,day,existing_json,incoming_json,detected_at
-                        ) VALUES (?,?,?,?,?,?)
-                        """,
-                        (
-                            row["asset_type"],
-                            row["symbol"],
-                            row["day"].isoformat(),
-                            json.dumps({name: current[name] for name in ("open", "high", "low", "close", "volume")}, sort_keys=True),
-                            json.dumps({name: row[name] for name in ("open", "high", "low", "close", "volume")}, sort_keys=True, default=str),
-                            fetched_at,
-                        ),
-                    )
+                    db.execute("INSERT INTO conflicts(asset_type,symbol,day,existing_json,incoming_json,detected_at) VALUES (?,?,?,?,?,?)", (
+                        row["asset_type"], row["symbol"], row["day"].isoformat(),
+                        json.dumps({name: current[name] for name in ("open", "high", "low", "close", "volume")}, sort_keys=True),
+                        json.dumps({name: row[name] for name in ("open", "high", "low", "close", "volume")}, sort_keys=True, default=str), fetched_at,
+                    ))
             first = conflicts[0][0]
-            raise ValueError(
-                f"MANUAL_CSV_HISTORICAL_CONFLICT:{first['asset_type']}:{first['symbol']}:{first['day']}"
-            )
+            raise ValueError(f"MANUAL_CSV_HISTORICAL_CONFLICT:{first['asset_type']}:{first['symbol']}:{first['day']}")
         with db:
             for row in inserts:
-                db.execute(
-                    "INSERT INTO bars VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                    (
-                        row["asset_type"],
-                        row["symbol"],
-                        row["day"].isoformat(),
-                        row["open"],
-                        row["high"],
-                        row["low"],
-                        row["close"],
-                        row["volume"],
-                        "manual_csv",
-                        "v1",
-                        "CHUA_XAC_NHAN",
-                        _normalized_hash(row),
-                        fetched_at,
-                    ),
-                )
-                db.execute(
-                    """
-                    INSERT INTO fetched_ranges(
-                        asset_type,symbol,start_day,end_day,fetched_at,
-                        returned_rows,source,source_version
-                    ) VALUES (?,?,?,?,?,?,?,?)
-                    """,
-                    (
-                        row["asset_type"],
-                        row["symbol"],
-                        row["day"].isoformat(),
-                        row["day"].isoformat(),
-                        fetched_at,
-                        1,
-                        "manual_csv",
-                        "v1",
-                    ),
-                )
+                db.execute("INSERT INTO bars VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)", (
+                    row["asset_type"], row["symbol"], row["day"].isoformat(), row["open"], row["high"], row["low"], row["close"], row["volume"],
+                    "manual_csv", "v1", "CHUA_XAC_NHAN", _normalized_hash(row), fetched_at,
+                ))
+                db.execute("INSERT INTO fetched_ranges(asset_type,symbol,start_day,end_day,fetched_at,returned_rows,source,source_version) VALUES (?,?,?,?,?,?,?,?)", (
+                    row["asset_type"], row["symbol"], row["day"].isoformat(), row["day"].isoformat(), fetched_at, 1, "manual_csv", "v1",
+                ))
     finally:
         db.close()
 
     archive_path = MANUAL_IMPORT_DIR / archive_name
     archive_path.write_text(content, encoding="utf-8")
     report = {
-        "status": "SUCCESS",
-        "input_row_count": len(rows),
-        "inserted_row_count": len(inserts),
-        "existing_identical_row_count": identical,
-        "conflict_count": 0,
-        "price_unit": price_unit,
-        "archive_path": str(archive_path),
-        "archive_sha256": sha256(archive_path.read_bytes()).hexdigest(),
-        "latest_day": max(row["day"] for row in rows).isoformat(),
-        "source": "manual_csv",
+        "status": "SUCCESS", "input_row_count": len(rows), "inserted_row_count": len(inserts),
+        "existing_identical_row_count": identical, "conflict_count": 0, "price_unit": price_unit,
+        "archive_path": str(archive_path), "archive_sha256": sha256(archive_path.read_bytes()).hexdigest(),
+        "latest_day": max(row["day"] for row in rows).isoformat(), "source": "manual_csv",
     }
     with state_db() as state:
-        state.execute(
-            "INSERT INTO metadata(key,value,updated_at) VALUES(?,?,?) "
-            "ON CONFLICT(key) DO UPDATE SET "
-            "value=excluded.value,updated_at=excluded.updated_at",
-            ("last_manual_market_import", json.dumps(report, sort_keys=True), utc_now()),
-        )
+        state.execute("INSERT INTO metadata(key,value,updated_at) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at", ("last_manual_market_import", json.dumps(report, sort_keys=True), utc_now()))
     return report

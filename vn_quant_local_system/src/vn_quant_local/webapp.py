@@ -1,8 +1,4 @@
-"""Zero-dependency localhost web UI for the workstation.
-
-Server chỉ bind 127.0.0.1. Credentials DNSE được lưu trong data/state local,
-không trả secret về browser và không gửi lệnh broker.
-"""
+"""Zero-dependency localhost web UI cho VN Quant Local Workstation."""
 from __future__ import annotations
 
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -10,6 +6,7 @@ import json
 from typing import Callable, Mapping
 from urllib.parse import urlparse
 
+from .broker_portfolio import latest_broker_portfolio, sync_broker_portfolio
 from .c3_model import run_model
 from .core import (
     SYSTEM_ROOT,
@@ -34,35 +31,37 @@ MAX_JSON_BODY_BYTES = 20 * 1024 * 1024
 
 
 def _json_bytes(value: object) -> bytes:
-    return (
-        json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
-    ).encode("utf-8")
+    return (json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode("utf-8")
 
 
 def _friendly_error(exc: Exception) -> dict[str, object]:
     technical = f"{type(exc).__name__}:{exc}"
     text = str(exc)
     if "DNSE_CREDENTIALS_MISSING" in text:
-        message = "Chưa có DNSE API Key và API Secret. Mở tab Dữ liệu để nhập và lưu local."
+        message = "Chưa có đủ DNSE API Key và API Secret. Nhập lại trong tab Dữ liệu."
+    elif "DNSE_TIMEZONE_DATA_MISSING" in text or "No time zone found" in text:
+        message = "Windows Python đang thiếu dữ liệu múi giờ. Bấm 'Cài/Sửa DNSE runtime' rồi thử lại."
     elif "DNSE_SDK_NOT_INSTALLED" in text:
-        message = "Môi trường local chưa có DNSE SDK 0.5.0. Bấm 'Cài DNSE SDK' trong tab Dữ liệu."
+        message = "Môi trường local chưa có DNSE SDK 0.5.0. Bấm 'Cài/Sửa DNSE runtime'."
     elif "DNSE_SDK_VERSION_MISMATCH" in text:
-        message = "Phiên bản DNSE SDK không đúng 0.5.0. Cài lại từ tab Dữ liệu."
-    elif "DNSE_SDK_INSTALL_FAILED" in text:
-        message = "Không cài được DNSE SDK. Kiểm tra Internet rồi thử lại; vẫn có thể nhập CSV thủ công."
+        message = "Phiên bản DNSE SDK không đúng 0.5.0. Bấm 'Cài/Sửa DNSE runtime'."
+    elif "DNSE_RUNTIME_INSTALL" in text:
+        message = "Không cài được DNSE SDK hoặc tzdata. Kiểm tra Internet rồi thử lại."
+    elif "DNSE_STOCK_ACCOUNTS_EMPTY" in text:
+        message = "API kết nối được nhưng không trả về tiểu khoản cơ sở. Kiểm tra quyền API trên DNSE."
+    elif "DNSE" in text and ("401" in text or "403" in text or "AUTH" in text.upper()):
+        message = "DNSE từ chối xác thực hoặc API key chưa có quyền đọc tài khoản/danh mục."
     elif "MANUAL_CSV" in text:
-        message = "CSV thủ công không hợp lệ hoặc xung đột với dữ liệu đã có. Xem mã lỗi kỹ thuật bên dưới."
+        message = "CSV thủ công không hợp lệ hoặc xung đột với dữ liệu đã có."
+    elif "MONTHLY_CANONICAL" in text:
+        message = "Chưa có ranking tháng. Chạy C3 trước khi lập kế hoạch tuần."
     else:
         message = text or "Thao tác thất bại."
-    return {
-        "status": "FAILED",
-        "message": message,
-        "error": technical,
-    }
+    return {"status": "FAILED", "message": message, "error": technical}
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "VNQuantLocal/1.1"
+    server_version = "VNQuantLocal/1.2"
 
     def _send(self, status: int, payload: bytes, content_type: str) -> None:
         self.send_response(status)
@@ -114,9 +113,12 @@ class Handler(BaseHTTPRequestHandler):
                 value = workstation_status()
                 value["latest_weekly_plan"] = latest_weekly_plan()
                 value["data_source"] = credential_status()
+                value["broker_portfolio"] = latest_broker_portfolio()
                 self._send_json(value)
             elif path == "/api/data-source":
                 self._send_json(credential_status())
+            elif path == "/api/broker":
+                self._send_json(latest_broker_portfolio() or {})
             elif path == "/api/account":
                 self._send_json(account_snapshot())
             elif path == "/api/plan/latest":
@@ -124,12 +126,7 @@ class Handler(BaseHTTPRequestHandler):
             elif path == "/api/docs":
                 docs = []
                 for file in sorted((SYSTEM_ROOT / "docs").glob("*.md")):
-                    docs.append(
-                        {
-                            "name": file.name,
-                            "content": file.read_text(encoding="utf-8"),
-                        }
-                    )
+                    docs.append({"name": file.name, "content": file.read_text(encoding="utf-8")})
                 self._send_json({"documents": docs})
             else:
                 self._send_json({"error": "not found"}, 404)
@@ -143,12 +140,22 @@ class Handler(BaseHTTPRequestHandler):
             if not isinstance(body, Mapping):
                 body = {}
             actions: dict[str, Callable[[], object]] = {
-                "/api/actions/bootstrap": lambda: bootstrap_local_data(
-                    overwrite=bool(body.get("overwrite", False))
-                ),
+                "/api/actions/bootstrap": lambda: bootstrap_local_data(overwrite=bool(body.get("overwrite", False))),
                 "/api/actions/sync": sync_incremental_market_data_local,
+                "/api/actions/sync-broker": sync_broker_portfolio,
                 "/api/actions/model": run_model,
-                "/api/actions/plan": create_weekly_plan,
+                "/api/actions/plan": lambda: create_weekly_plan(
+                    weekly_budget_vnd=(
+                        float(body["weekly_budget_vnd"])
+                        if body.get("weekly_budget_vnd") not in (None, "")
+                        else None
+                    ),
+                    maximum_buy_orders=(
+                        int(body["maximum_buy_orders"])
+                        if body.get("maximum_buy_orders") not in (None, "")
+                        else None
+                    ),
+                ),
                 "/api/data-source/test": test_dnse_connection,
                 "/api/data-source/install-sdk": install_dnse_sdk,
                 "/api/data-source/clear": clear_credentials,
@@ -156,12 +163,7 @@ class Handler(BaseHTTPRequestHandler):
             if path in actions:
                 self._send_json(actions[path]())
             elif path == "/api/data-source/credentials":
-                self._send_json(
-                    save_credentials(
-                        str(body.get("api_key") or ""),
-                        str(body.get("api_secret") or ""),
-                    )
-                )
+                self._send_json(save_credentials(str(body.get("api_key") or ""), str(body.get("api_secret") or "")))
             elif path == "/api/data-source/import-csv":
                 self._send_json(
                     import_manual_csv(
@@ -177,10 +179,17 @@ class Handler(BaseHTTPRequestHandler):
                 self._send_json(
                     replace_account(
                         cash_vnd=float(body.get("cash_vnd", 0.0)),
-                        weekly_contribution_vnd=float(
-                            body.get("weekly_contribution_vnd", 250_000.0)
-                        ),
+                        weekly_contribution_vnd=float(body.get("weekly_contribution_vnd", 250_000.0)),
                         holdings=holdings,
+                    )
+                )
+            elif path == "/api/account/budget":
+                current = account_snapshot()
+                self._send_json(
+                    replace_account(
+                        cash_vnd=float(current["account"]["cash_vnd"]),
+                        weekly_contribution_vnd=float(body.get("weekly_budget_vnd", 250_000.0)),
+                        holdings=current["holdings"],
                     )
                 )
             else:
