@@ -1,0 +1,68 @@
+{
+  "schema_version": "v32_portfolio_ablation_contract_v1",
+  "recorded_at": "2026-08-03T08:30:00+07:00",
+  "repository": "Tienkhoaa2908/vn-quant-system",
+  "branch": "agent/model-lab-predictive-value-dnse-sync-v3",
+  "source_v31": {
+    "file_name": "all-history-protocol-v31-canonical-11y-v2-20260803-000838.zip",
+    "sha256": "6634060e33e21552b60749ad4fd5492e0f771197ead309da927fc34aab444759",
+    "status": "SUCCESS",
+    "primary_protocol": "EXPANDING_PURGED_WALK_FORWARD_ALL_TRAINABLE_HISTORY",
+    "first_test_date": "2021-10-29",
+    "last_test_date": "2026-06-30",
+    "fold_count": 57
+  },
+  "source_v22": {
+    "git_bash_path": "/c/Users/welcome/Documents/vn-quant-data/historical-research-input-v22-20260801-223238/daily_prediction_input.zip",
+    "sha256": "66f4dd6699026289501b260949237772f832ac716e700fa686f8b0b8accd38e5",
+    "use": "RESTORE_PORTFOLIO_ELIGIBILITY_AND_MARKET_REGIME"
+  },
+  "candidate_models": [
+    "C3_STABLE_3_PAST_IC_SHRUNK",
+    "V29_RIDGE_RANK_REGIME_INTERACTION",
+    "V29_LOGIT_BOTTOM20_SAFE",
+    "V32_LOGIT_RISK_ON_C3_RISK_OFF",
+    "V32_LOGIT_RISK_ON_RIDGE_RISK_OFF"
+  ],
+  "portfolio_protocol": {
+    "breadths": [10, 15, 20, 30],
+    "replacement_caps": [0, 1, 2, 3, 4, 5],
+    "validation_months": 6,
+    "test_months": 3,
+    "minimum_outer_test_periods": 48,
+    "replacement_cap_selected_only_from_prior_validation": true,
+    "portfolio_eligibility_restored_from_v22": true,
+    "equal_weight": true
+  },
+  "cost_contract": {
+    "broker_buy_fee_bps": 0.0,
+    "broker_sell_fee_bps": 0.0,
+    "exchange_buy_fee_bps": 2.7,
+    "exchange_sell_fee_bps": 2.7,
+    "sell_tax_bps": 10.0,
+    "transfer_fee_vnd_per_share": 0.3,
+    "transfer_reference_price_vnd": 10000.0,
+    "base_slippage_bps_each_side": 5.0,
+    "stress_slippage_bps_each_side": 10.0
+  },
+  "official_runner": "scripts/run_v32_canonical_11y_gitbash.sh",
+  "module": "he_thong_dinh_luong.portfolio_ablation_v32_safe_runner",
+  "output_contract": {
+    "portfolio_return_proxy_after_modeled_costs_computed": true,
+    "exact_cash_ledger_pnl_computed": false,
+    "exact_t1_open_execution_price_applied": false,
+    "lot_size_100_applied": false,
+    "inverse_volatility_allocation_applied": false,
+    "single_name_cap_15_percent_applied": false,
+    "sector_cap_25_percent_applied": false,
+    "corporate_actions_complete": false
+  },
+  "governance": {
+    "post_selection_sensitivity_analysis": true,
+    "independent_holdout": false,
+    "research_eligible": false,
+    "live_capital_approved": false,
+    "automatic_live_orders_allowed": false
+  },
+  "future_agent_instruction": "Run the official V32 runner against the exact V31 and V22 hashes. Do not use all-trainable V31 rows directly for portfolio selection; restore eligible=true from V22 first. Treat output as modeled-cost label-return proxy, not exact executable cash PnL."
+}
