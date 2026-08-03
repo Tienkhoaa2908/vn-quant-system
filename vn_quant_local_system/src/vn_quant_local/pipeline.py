@@ -12,9 +12,9 @@ from .core import (
     archive_validation_evidence,
     bootstrap_local_data,
     replace_account,
-    sync_incremental_market_data,
     workstation_status,
 )
+from .data_sources import credential_status, sync_incremental_market_data_local
 from .weekly_plan import create_weekly_plan, latest_weekly_plan
 
 
@@ -28,6 +28,7 @@ def _parser() -> argparse.ArgumentParser:
     bootstrap = sub.add_parser("bootstrap")
     bootstrap.add_argument("--overwrite", action="store_true")
     sub.add_parser("status")
+    sub.add_parser("data-source-status")
     sync = sub.add_parser("sync")
     sync.add_argument("--end", type=date.fromisoformat)
     sync.add_argument("--lookback-days", type=int, default=14)
@@ -52,8 +53,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         elif args.command == "status":
             result = workstation_status()
             result["latest_weekly_plan"] = latest_weekly_plan()
+            result["data_source"] = credential_status()
+        elif args.command == "data-source-status":
+            result = credential_status()
         elif args.command == "sync":
-            result = sync_incremental_market_data(end=args.end, lookback_days=args.lookback_days)
+            result = sync_incremental_market_data_local(
+                end=args.end,
+                lookback_days=args.lookback_days,
+            )
         elif args.command == "model":
             result = run_model()
         elif args.command == "plan":
@@ -66,7 +73,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             else:
                 current = account_snapshot()
                 result = replace_account(
-                    cash_vnd=args.cash if args.cash is not None else float(current["account"]["cash_vnd"]),
+                    cash_vnd=(
+                        args.cash
+                        if args.cash is not None
+                        else float(current["account"]["cash_vnd"])
+                    ),
                     weekly_contribution_vnd=(
                         args.contribution
                         if args.contribution is not None
@@ -80,9 +91,11 @@ def main(argv: Sequence[str] | None = None) -> int:
                 )
         elif args.command == "full":
             stages: dict[str, object] = {}
-            stages["bootstrap"] = bootstrap_local_data(overwrite=args.overwrite_bootstrap)
+            stages["bootstrap"] = bootstrap_local_data(
+                overwrite=args.overwrite_bootstrap
+            )
             if not args.skip_sync:
-                stages["sync"] = sync_incremental_market_data()
+                stages["sync"] = sync_incremental_market_data_local()
             stages["model"] = run_model()
             stages["plan"] = create_weekly_plan()
             result = {"status": "SUCCESS", "stages": stages}
