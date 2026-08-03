@@ -1,0 +1,58 @@
+{
+  "schema_version": "vn_quant_trade_readiness_v37_canonical_result_v1",
+  "recorded_at": "2026-08-03T11:45:00+07:00",
+  "artifact": {
+    "filename": "trade-readiness-v37-20260803-114309.zip",
+    "sha256": "015463bec230cda449e8be0971d29352425ea6073396fe9a85e9368397cabc82",
+    "size_bytes": 4324,
+    "manifest_sha256": "b517983d4a53a0e862e34945ef5479a047848025f5783bd175e31764dd7234cd",
+    "report_sha256": "c1dc032a1261323dc41b60a93b27c960d5b6386139e910e9899a36f39568ea82",
+    "manifest_payload_count": 5,
+    "all_manifest_entries_verified": true,
+    "status": "SUCCESS"
+  },
+  "source_v36": {
+    "filename": "integrated-data-ledger-v36-20260803-114309.zip",
+    "sha256": "f181e9a595457cd1ffed9355dadea987269979d77d9a735b90d1ca3d3fa36314",
+    "manifest_entry_count": 18
+  },
+  "frozen_policy": {
+    "policy_id": "c3-top10-cap3-c32fe6ec8c2fd4ce",
+    "model": "C3_STABLE_3_PAST_IC_SHRUNK",
+    "breadth": 10,
+    "fixed_voluntary_replacement_cap": 3,
+    "selection_lineage_exact": true,
+    "historical_period_count": 51
+  },
+  "decision": {
+    "capital_stage": "DATA_BLOCKED",
+    "readiness_score_percent": 30.0,
+    "next_action": "COMPLETE_AUTHORITATIVE_DATA_PACK_AND_RERUN_V36",
+    "paper_observations_completed": 0,
+    "paper_observations_required": 12,
+    "manual_micro_live_review_eligible": false,
+    "live_capital_approved": false,
+    "automatic_live_orders_allowed": false
+  },
+  "blockers": [
+    "AUTHORITATIVE_DATA_PACK_INCOMPLETE",
+    "EXACT_LEDGER_NOT_COMPUTED",
+    "EXACT_VNINDEX_NOT_COMPUTED",
+    "FUTURE_HOLDOUT_INCOMPLETE",
+    "FUTURE_HOLDOUT_QUALITY_FAIL",
+    "OPERATIONAL_CONTROLS_INCOMPLETE"
+  ],
+  "v38_follow_up": {
+    "decision_surface_sector_keys": 510,
+    "decision_surface_corporate_action_windows": 510,
+    "decision_surface_price_basis_dates": 52,
+    "operational_controls_automatable": 7,
+    "operational_controls_total": 9,
+    "workstation_controls_remaining": [
+      "account_sync_verified",
+      "position_reconciliation_verified"
+    ],
+    "no_model_retraining": true,
+    "no_policy_retuning": true
+  }
+}
