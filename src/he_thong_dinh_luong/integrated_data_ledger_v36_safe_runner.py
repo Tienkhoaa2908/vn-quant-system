@@ -9,7 +9,7 @@ import traceback
 from typing import Mapping, Sequence
 import zipfile
 
-from . import integrated_data_ledger_v36_strict as core
+from . import integrated_data_ledger_v36_auto as core
 
 MANIFEST_FILE = "analysis_bundle_manifest_v36.json"
 FAILURE_FILE = "run_failure_v36.json"
