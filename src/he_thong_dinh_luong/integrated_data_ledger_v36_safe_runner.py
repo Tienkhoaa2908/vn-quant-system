@@ -9,7 +9,7 @@ import traceback
 from typing import Mapping, Sequence
 import zipfile
 
-from . import integrated_data_ledger_v36 as core
+from . import integrated_data_ledger_v36_strict as core
 
 MANIFEST_FILE = "analysis_bundle_manifest_v36.json"
 FAILURE_FILE = "run_failure_v36.json"
@@ -112,6 +112,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             corporate_actions=args.corporate_actions,
             data_assurance_report=args.data_assurance_report,
             initial_capital_vnd=args.initial_capital_vnd,
+            benchmark_ohlcv=args.benchmark_ohlcv,
         )
         bundle, digest = _bundle(
             output_dir,
@@ -125,6 +126,9 @@ def main(argv: Sequence[str] | None = None) -> int:
                 "exact_cash_ledger_pnl_computed": report[
                     "exact_cash_ledger_pnl_computed"
                 ],
+                "exact_vnindex_comparison_computed": report.get(
+                    "exact_vnindex_comparison_computed", False
+                ),
             },
         )
     except Exception as exc:
@@ -185,6 +189,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             "exact_cash_ledger_pnl_computed": report[
                 "exact_cash_ledger_pnl_computed"
             ],
+            "exact_vnindex_comparison_computed": report.get(
+                "exact_vnindex_comparison_computed", False
+            ),
             "live_capital_approved": False,
         }
     )
