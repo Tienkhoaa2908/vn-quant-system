@@ -19,7 +19,7 @@ REPORT_FILE = "integrated_data_ledger_v36.json"
 def _sha256(path: Path) -> str:
     digest = sha256()
     with Path(path).open("rb") as stream:
-        for block in iter(lambda: stream.read(1024 * 1024, b"")):
+        for block in iter(lambda: stream.read(1024 * 1024), b""):
             digest.update(block)
     return digest.hexdigest()
 
