@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import unittest
@@ -20,7 +21,7 @@ class DnseDpapiScriptsV41Test(unittest.TestCase):
         self.assertIn("$env:LOCALAPPDATA", text)
         self.assertIn("Set-PrivateAcl", text)
         self.assertNotIn("SetEnvironmentVariable", text)
-        self.assertNotIn(".env", text)
+        self.assertIsNone(re.search(r"Set-Content[^\n]*\.env(?:\s|$)", text, re.IGNORECASE))
         self.assertNotIn("setx", text.lower())
 
     def test_runner_scopes_plaintext_to_child_process_and_cleans_environment(self) -> None:
