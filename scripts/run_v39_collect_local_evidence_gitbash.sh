@@ -22,9 +22,11 @@ if ! command -v cygpath >/dev/null 2>&1; then
     fail "runner nay can Git Bash tren Windows"
 fi
 
-echo "===== V39 COLLECT ACTUAL LOCAL EVIDENCE ====="
+echo "===== V39 COLLECT + APPLY VERIFIED LOCAL EVIDENCE ====="
 echo "Khong chay model, V36, V37, V38 hay exact ledger."
-echo "Tu quet lai va copy noi dung file corporate-action/price-basis/operations co gia tri cao."
+echo "Tu quet va copy corporate-action/price-basis/operations evidence co gia tri cao."
+echo "Tu kiem hash/CRC/noi dung DNSE snapshot va chi nang account_sync neu dat."
+echo "Khong tu nang position_reconciliation, sector, corporate action hoac price basis."
 echo "Khong copy full V22, SQLite, credential, .env, private key hay arbitrary user files."
 
 echo
@@ -36,20 +38,23 @@ git fetch origin \
 export PYTHONPATH="$PWD/src${PYTHONPATH:+:$PYTHONPATH}"
 
 echo
-echo "===== KIEM TRA COLLECTOR ====="
+echo "===== KIEM TRA COLLECTOR + APPLIER ====="
 python -m py_compile \
     src/he_thong_dinh_luong/v39_local_evidence_discovery.py \
     src/he_thong_dinh_luong/v39_local_evidence_collector.py \
+    src/he_thong_dinh_luong/v39_apply_local_operations_evidence.py \
     src/he_thong_dinh_luong/upload_handoff_bundle_v39.py \
     tests/test_v39_local_evidence_discovery.py \
     tests/test_v39_local_evidence_collector.py \
+    tests/test_v39_apply_local_operations_evidence.py \
     tests/test_upload_handoff_bundle_v39.py \
     || fail "py_compile that bai"
 python -m unittest \
     tests.test_v39_local_evidence_discovery \
     tests.test_v39_local_evidence_collector \
+    tests.test_v39_apply_local_operations_evidence \
     tests.test_upload_handoff_bundle_v39 \
-    -v || fail "unit test collector that bai"
+    -v || fail "unit test collector/applier that bai"
 
 [[ -f "$V22_POSIX" ]] || fail "thieu V22 canonical: $V22_POSIX"
 [[ -f "$SQLITE_POSIX" ]] || fail "thieu SQLite canonical: $SQLITE_POSIX"
@@ -85,9 +90,19 @@ COLLECTION_JSON="$(
 )" || fail "local evidence collector that bai"
 echo "$COLLECTION_JSON"
 
+echo
+echo "===== AP DUNG ACCOUNT SYNC EVIDENCE NEU DAT ====="
+APPLICATION_JSON="$(
+    python -m he_thong_dinh_luong.v39_apply_local_operations_evidence \
+        --workspace-dir "$(cygpath -w "$WORKSPACE_POSIX")" \
+        --collected-dir "$(cygpath -w "$COLLECTED_POSIX")"
+)" || fail "account sync evidence khong dat strict validation"
+echo "$APPLICATION_JSON"
+
 cp -a "$WORKSPACE_POSIX"/. "$STAGING_POSIX/workspace/"
 printf '%s\n' "$DISCOVERY_JSON" > "$STAGING_POSIX/metadata/local_discovery_stdout.json"
 printf '%s\n' "$COLLECTION_JSON" > "$STAGING_POSIX/metadata/local_collection_stdout.json"
+printf '%s\n' "$APPLICATION_JSON" > "$STAGING_POSIX/metadata/local_operations_application_stdout.json"
 printf '%s\n' "$REPO_FULL_NAME" > "$STAGING_POSIX/metadata/repository.txt"
 git branch --show-current > "$STAGING_POSIX/metadata/git_branch.txt"
 git rev-parse HEAD > "$STAGING_POSIX/metadata/git_head.txt"
@@ -109,10 +124,13 @@ Bundle nay khong chay lai model/ledger. No chua noi dung thuc te cua:
 - corporate-action inventory/audit da tim thay trong m4_tier_a;
 - price-basis audit va provenance lien quan;
 - DNSE read-only portfolio snapshot moi nhat;
+- strict application audit cua account_sync;
 - discovery report, workspace, Git metadata va canonical hashes.
 
-Sector master point-in-time khong duoc tim thay trong local data.
-File duoc copy chi la evidence de review; khong tu dong duoc coi la authoritative.
+Account sync chi duoc nang neu snapshot dat hash/CRC, nested manifest,
+read-only, no-credential, no-trading-token va portfolio consistency checks.
+Broker snapshot khong duoc coi la independent position reconciliation.
+Sector master point-in-time van khong duoc tim thay trong local data.
 Live capital va automatic orders van bi khoa.
 EOF
 
