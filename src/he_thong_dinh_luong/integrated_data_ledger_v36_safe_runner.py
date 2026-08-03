@@ -13,12 +13,13 @@ from . import integrated_data_ledger_v36_auto as core
 
 MANIFEST_FILE = "analysis_bundle_manifest_v36.json"
 FAILURE_FILE = "run_failure_v36.json"
+REPORT_FILE = "integrated_data_ledger_v36.json"
 
 
 def _sha256(path: Path) -> str:
     digest = sha256()
     with Path(path).open("rb") as stream:
-        for block in iter(lambda: stream.read(1024 * 1024), b""):
+        for block in iter(lambda: stream.read(1024 * 1024, b"")):
             digest.update(block)
     return digest.hexdigest()
 
@@ -118,7 +119,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             output_dir,
             status="SUCCESS",
             summary={
-                "report_file": core.REPORT_FILE,
+                "report_file": REPORT_FILE,
                 "decision": report["decision"],
                 "recommendation": report["recommendation"],
                 "blockers": report["blockers"],
