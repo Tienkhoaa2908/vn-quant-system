@@ -68,8 +68,8 @@ _SECRET_PATTERNS = (
     re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
     re.compile(r"(?i)authorization\s*:\s*bearer\s+[^\s]+"),
     re.compile(
-        r"(?i)(?:api[_ -]?secret|secret[_ -]?key|access[_ -]?token|"
-        r"refresh[_ -]?token|password)\s*[:=]\s*[\"']?[^\s\"']{8,}"
+        r"(?i)[\"']?(?:api[_ -]?secret|secret[_ -]?key|access[_ -]?token|"
+        r"refresh[_ -]?token|password)[\"']?\s*[:=]\s*[\"']?[^\s\"']{8,}"
     ),
 )
 
