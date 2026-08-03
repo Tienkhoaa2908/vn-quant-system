@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VN Quant Local Workstation</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header>
+    <div>
+      <p class="eyebrow">LOCAL RESEARCH WORKSTATION</p>
+      <h1>VN Quant System</h1>
+      <p class="subtitle">C3 monthly ranking · P1 weekly accumulation · research only</p>
+    </div>
+    <button id="refresh">Làm mới</button>
+  </header>
+
+  <nav>
+    <button data-tab="dashboard" class="active">Tổng quan</button>
+    <button data-tab="model">Model</button>
+    <button data-tab="plan">Kế hoạch tuần</button>
+    <button data-tab="account">Tài khoản</button>
+    <button data-tab="docs">Tài liệu</button>
+  </nav>
+
+  <main>
+    <section id="dashboard" class="tab active">
+      <div class="actions">
+        <button data-action="bootstrap">Khởi tạo kho local</button>
+        <button data-action="sync">Đồng bộ dữ liệu mới</button>
+        <button data-action="model">Chạy C3</button>
+        <button data-action="plan">Tạo kế hoạch tuần</button>
+      </div>
+      <div id="notice" class="notice">Sẵn sàng.</div>
+      <div id="cards" class="cards"></div>
+      <h2>Coverage dữ liệu</h2>
+      <div id="coverage"></div>
+    </section>
+
+    <section id="model" class="tab">
+      <div class="section-head">
+        <div><h2>Ranking C3 tháng gần nhất</h2><p>Ranking tháng là tín hiệu chính. Preview ngày gần nhất chỉ để theo dõi.</p></div>
+        <button data-action="model">Chạy lại model</button>
+      </div>
+      <div id="model-meta" class="notice"></div>
+      <div class="table-wrap"><table id="ranking-table"></table></div>
+    </section>
+
+    <section id="plan" class="tab">
+      <div class="section-head">
+        <div><h2>Kế hoạch mua tuần</h2><p>P1: Top-10 underweight, buffer Top-20 hai tháng, tối đa một lệnh mua.</p></div>
+        <button data-action="plan">Tạo kế hoạch mới</button>
+      </div>
+      <div id="plan-content"></div>
+    </section>
+
+    <section id="account" class="tab">
+      <h2>Trạng thái tài khoản nghiên cứu</h2>
+      <p>Nhập số dư và holdings thực tế. Hệ thống chỉ lưu local.</p>
+      <div class="form-grid">
+        <label>Tiền mặt hiện tại (VND)<input id="cash" type="number" min="0" step="1000"></label>
+        <label>Tiền nạp mỗi tuần (VND)<input id="contribution" type="number" min="1" step="1000"></label>
+      </div>
+      <label>Holdings JSON<textarea id="holdings" rows="12" spellcheck="false"></textarea></label>
+      <button id="save-account">Lưu tài khoản</button>
+      <pre id="account-result"></pre>
+    </section>
+
+    <section id="docs" class="tab"><h2>Tài liệu hệ thống</h2><div id="docs-content"></div></section>
+  </main>
+
+  <footer><span>research_only=true</span><span>live_capital_approved=false</span><span>automatic_live_orders_allowed=false</span></footer>
+  <script src="/app.js"></script>
+</body>
+</html>
