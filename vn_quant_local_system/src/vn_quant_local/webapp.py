@@ -1,7 +1,7 @@
 """Zero-dependency localhost web UI for the workstation.
 
-The server binds to 127.0.0.1 only. It exposes research actions but never sends
-broker orders.
+Server chỉ bind 127.0.0.1. Credentials DNSE được lưu trong data/state local,
+không trả secret về browser và không gửi lệnh broker.
 """
 from __future__ import annotations
 
@@ -16,26 +16,60 @@ from .core import (
     account_snapshot,
     bootstrap_local_data,
     replace_account,
-    sync_incremental_market_data,
     workstation_status,
+)
+from .data_sources import (
+    clear_credentials,
+    credential_status,
+    import_manual_csv,
+    install_dnse_sdk,
+    save_credentials,
+    sync_incremental_market_data_local,
+    test_dnse_connection,
 )
 from .weekly_plan import create_weekly_plan, latest_weekly_plan
 
 WEB_ROOT = SYSTEM_ROOT / "web"
+MAX_JSON_BODY_BYTES = 20 * 1024 * 1024
 
 
 def _json_bytes(value: object) -> bytes:
-    return (json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode("utf-8")
+    return (
+        json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+    ).encode("utf-8")
+
+
+def _friendly_error(exc: Exception) -> dict[str, object]:
+    technical = f"{type(exc).__name__}:{exc}"
+    text = str(exc)
+    if "DNSE_CREDENTIALS_MISSING" in text:
+        message = "Chưa có DNSE API Key và API Secret. Mở tab Dữ liệu để nhập và lưu local."
+    elif "DNSE_SDK_NOT_INSTALLED" in text:
+        message = "Môi trường local chưa có DNSE SDK 0.5.0. Bấm 'Cài DNSE SDK' trong tab Dữ liệu."
+    elif "DNSE_SDK_VERSION_MISMATCH" in text:
+        message = "Phiên bản DNSE SDK không đúng 0.5.0. Cài lại từ tab Dữ liệu."
+    elif "DNSE_SDK_INSTALL_FAILED" in text:
+        message = "Không cài được DNSE SDK. Kiểm tra Internet rồi thử lại; vẫn có thể nhập CSV thủ công."
+    elif "MANUAL_CSV" in text:
+        message = "CSV thủ công không hợp lệ hoặc xung đột với dữ liệu đã có. Xem mã lỗi kỹ thuật bên dưới."
+    else:
+        message = text or "Thao tác thất bại."
+    return {
+        "status": "FAILED",
+        "message": message,
+        "error": technical,
+    }
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "VNQuantLocal/1.0"
+    server_version = "VNQuantLocal/1.1"
 
     def _send(self, status: int, payload: bytes, content_type: str) -> None:
         self.send_response(status)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(payload)))
         self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
         self.end_headers()
         self.wfile.write(payload)
 
@@ -46,11 +80,14 @@ class Handler(BaseHTTPRequestHandler):
         length = int(self.headers.get("Content-Length", "0"))
         if length <= 0:
             return {}
+        if length > MAX_JSON_BODY_BYTES:
+            raise ValueError("REQUEST_BODY_TOO_LARGE")
         return json.loads(self.rfile.read(length).decode("utf-8"))
 
     def _static(self, relative: str) -> None:
         target = (WEB_ROOT / relative).resolve()
-        if WEB_ROOT.resolve() not in target.parents and target != WEB_ROOT.resolve():
+        root = WEB_ROOT.resolve()
+        if root not in target.parents and target != root:
             self._send_json({"error": "invalid path"}, 400)
             return
         if not target.is_file():
@@ -76,7 +113,10 @@ class Handler(BaseHTTPRequestHandler):
             elif path == "/api/status":
                 value = workstation_status()
                 value["latest_weekly_plan"] = latest_weekly_plan()
+                value["data_source"] = credential_status()
                 self._send_json(value)
+            elif path == "/api/data-source":
+                self._send_json(credential_status())
             elif path == "/api/account":
                 self._send_json(account_snapshot())
             elif path == "/api/plan/latest":
@@ -84,12 +124,17 @@ class Handler(BaseHTTPRequestHandler):
             elif path == "/api/docs":
                 docs = []
                 for file in sorted((SYSTEM_ROOT / "docs").glob("*.md")):
-                    docs.append({"name": file.name, "content": file.read_text(encoding="utf-8")})
+                    docs.append(
+                        {
+                            "name": file.name,
+                            "content": file.read_text(encoding="utf-8"),
+                        }
+                    )
                 self._send_json({"documents": docs})
             else:
                 self._send_json({"error": "not found"}, 404)
         except Exception as exc:
-            self._send_json({"status": "FAILED", "error": f"{type(exc).__name__}:{exc}"}, 500)
+            self._send_json(_friendly_error(exc), 500)
 
     def do_POST(self) -> None:  # noqa: N802
         path = urlparse(self.path).path
@@ -98,13 +143,33 @@ class Handler(BaseHTTPRequestHandler):
             if not isinstance(body, Mapping):
                 body = {}
             actions: dict[str, Callable[[], object]] = {
-                "/api/actions/bootstrap": lambda: bootstrap_local_data(overwrite=bool(body.get("overwrite", False))),
-                "/api/actions/sync": lambda: sync_incremental_market_data(),
+                "/api/actions/bootstrap": lambda: bootstrap_local_data(
+                    overwrite=bool(body.get("overwrite", False))
+                ),
+                "/api/actions/sync": sync_incremental_market_data_local,
                 "/api/actions/model": run_model,
                 "/api/actions/plan": create_weekly_plan,
+                "/api/data-source/test": test_dnse_connection,
+                "/api/data-source/install-sdk": install_dnse_sdk,
+                "/api/data-source/clear": clear_credentials,
             }
             if path in actions:
                 self._send_json(actions[path]())
+            elif path == "/api/data-source/credentials":
+                self._send_json(
+                    save_credentials(
+                        str(body.get("api_key") or ""),
+                        str(body.get("api_secret") or ""),
+                    )
+                )
+            elif path == "/api/data-source/import-csv":
+                self._send_json(
+                    import_manual_csv(
+                        str(body.get("content") or ""),
+                        filename=str(body.get("filename") or "manual_ohlcv.csv"),
+                        price_unit=str(body.get("price_unit") or "THOUSAND_VND"),
+                    )
+                )
             elif path == "/api/account":
                 holdings = body.get("holdings", [])
                 if not isinstance(holdings, list):
@@ -112,14 +177,16 @@ class Handler(BaseHTTPRequestHandler):
                 self._send_json(
                     replace_account(
                         cash_vnd=float(body.get("cash_vnd", 0.0)),
-                        weekly_contribution_vnd=float(body.get("weekly_contribution_vnd", 250_000.0)),
+                        weekly_contribution_vnd=float(
+                            body.get("weekly_contribution_vnd", 250_000.0)
+                        ),
                         holdings=holdings,
                     )
                 )
             else:
                 self._send_json({"error": "not found"}, 404)
         except Exception as exc:
-            self._send_json({"status": "FAILED", "error": f"{type(exc).__name__}:{exc}"}, 500)
+            self._send_json(_friendly_error(exc), 500)
 
     def log_message(self, fmt: str, *args: object) -> None:
         print(f"[web] {self.address_string()} - {fmt % args}")
