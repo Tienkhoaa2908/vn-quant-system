@@ -31,9 +31,14 @@ export PYTHONPATH="$PWD/src${PYTHONPATH:+:$PYTHONPATH}"
 
 python -m py_compile \
     src/he_thong_dinh_luong/hnx_cross_market_validation_v41.py \
+    src/he_thong_dinh_luong/hnx_cross_market_validation_v41_fallback.py \
     tests/test_hnx_cross_market_validation_v41.py \
+    tests/test_hnx_cross_market_validation_v41_fallback.py \
     || fail "py_compile V41 that bai"
-python -m unittest tests.test_hnx_cross_market_validation_v41 -v \
+python -m unittest \
+    tests.test_hnx_cross_market_validation_v41 \
+    tests.test_hnx_cross_market_validation_v41_fallback \
+    -v \
     || fail "unit test V41 that bai"
 
 V22_ZIP="$(
@@ -56,24 +61,39 @@ OUTPUT_DIR="$PWD/artifacts/hnx-cross-market-v41-$RUN_ID"
 OUTPUT_ZIP="$PWD/artifacts/UPLOAD_THIS_v41_HNX-$RUN_ID.zip"
 LOG="$PWD/artifacts/v41-hnx-$RUN_ID.log"
 EXIT_FILE="$PWD/artifacts/v41-hnx-$RUN_ID-exit-code.txt"
+MODE_FILE="$PWD/artifacts/v41-hnx-$RUN_ID-source-mode.txt"
 mkdir -p "$DATA_ROOT" "$PWD/artifacts"
+
+if [[ -n "${DNSE_API_KEY:-}" && -n "${DNSE_API_SECRET:-}" ]]; then
+    SOURCE_MODE="DNSE_OPENAPI"
+    MODULE="he_thong_dinh_luong.hnx_cross_market_validation_v41"
+    SOURCE_ARGS=(
+        --source-store "$(cygpath -w "$SOURCE_STORE")"
+        --chunk-days 5000
+    )
+else
+    SOURCE_MODE="VNSTOCK_FREE_FALLBACK"
+    MODULE="he_thong_dinh_luong.hnx_cross_market_validation_v41_fallback"
+    SOURCE_ARGS=()
+fi
+printf '%s\n' "$SOURCE_MODE" > "$MODE_FILE"
+echo "V41_SOURCE_MODE=$SOURCE_MODE"
 
 set +e
 uv run --python 3.12 --with vnstock==4.0.4 \
-    python -m he_thong_dinh_luong.hnx_cross_market_validation_v41 \
+    python -m "$MODULE" \
     --v22-input-zip "$(cygpath -w "$V22_ZIP")" \
-    --source-store "$(cygpath -w "$SOURCE_STORE")" \
     --store "$(cygpath -w "$STORE")" \
     --output-dir "$(cygpath -w "$OUTPUT_DIR")" \
     --output-zip "$(cygpath -w "$OUTPUT_ZIP")" \
     --start 2015-06-29 \
     --end "$(date +%F)" \
-    --chunk-days 5000 \
     --universe-size 70 \
     --top-k 10 \
     --price-multiplier 1000 \
     --initial-capital 1000000000 \
     --max-adv-share 0.05 \
+    "${SOURCE_ARGS[@]}" \
     2>&1 | tee "$LOG"
 V41_EXIT=${PIPESTATUS[0]}
 set -e
@@ -84,15 +104,20 @@ STAGING="$PWD/artifacts/.v41-upload-$RUN_ID"
 rm -rf "$STAGING"
 mkdir -p "$STAGING"
 [[ -d "$OUTPUT_DIR" ]] && cp -R "$OUTPUT_DIR" "$STAGING/output"
-FAILURE_JSON="$PWD/artifacts/hnx-cross-market-v41-$RUN_ID-failure.json"
-[[ -f "$FAILURE_JSON" ]] && cp "$FAILURE_JSON" "$STAGING/"
-cp "$LOG" "$EXIT_FILE" "$STAGING/"
+find "$PWD/artifacts" -maxdepth 1 -type f \
+    \( -name "hnx-cross-market-v41-$RUN_ID-failure.json" \
+       -o -name "hnx-cross-market-v41-$RUN_ID-fallback-failure.json" \) \
+    -exec cp {} "$STAGING/" \;
+cp "$LOG" "$EXIT_FILE" "$MODE_FILE" "$STAGING/"
 python - "$STAGING/v41_uncompressed_source.py" <<'PY'
 from pathlib import Path
 import sys
 from he_thong_dinh_luong import hnx_cross_market_validation_v41 as v41
 Path(sys.argv[1]).write_bytes(v41._SOURCE)
 PY
+cp \
+    src/he_thong_dinh_luong/hnx_cross_market_validation_v41_fallback.py \
+    "$STAGING/v41_vnstock_fallback_source.py"
 printf '%s\n' "$BRANCH" > "$STAGING/git_branch.txt"
 git rev-parse HEAD > "$STAGING/git_head.txt"
 printf '%s\n' "$V22_ZIP" > "$STAGING/v22_input_path.txt"
@@ -121,6 +146,7 @@ rm -rf "$STAGING"
 
 echo
 echo "===== V41 DA HOAN TAT ONE-SHOT ====="
+echo "V41_SOURCE_MODE=$SOURCE_MODE"
 echo "V41_EXIT_CODE=$V41_EXIT"
 echo "UPLOAD_ZIP=$OUTPUT_ZIP"
 echo "UPLOAD_ZIP_WINDOWS=$(cygpath -w "$OUTPUT_ZIP")"
