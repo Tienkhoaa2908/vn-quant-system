@@ -14,6 +14,7 @@ from . import future_paper_holdout_freeze_v34 as base
 
 UPGRADE_SCHEMA_VERSION = "future_paper_holdout_freeze_v34_1"
 _ORIGINAL_POLICY_CORE = base._policy_core
+_ORIGINAL_FREEZE_POLICY = base.freeze_policy
 
 
 def _stable_policy_core(
@@ -42,7 +43,7 @@ def freeze_policy(**kwargs: object) -> dict[str, object]:
     original = base._policy_core
     base._policy_core = _stable_policy_core
     try:
-        result = base.freeze_policy(**kwargs)
+        result = _ORIGINAL_FREEZE_POLICY(**kwargs)
     finally:
         base._policy_core = original
 
