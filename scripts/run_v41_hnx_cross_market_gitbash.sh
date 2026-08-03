@@ -34,10 +34,12 @@ python -m py_compile \
     src/he_thong_dinh_luong/hnx_cross_market_validation_v41_fallback.py \
     tests/test_hnx_cross_market_validation_v41.py \
     tests/test_hnx_cross_market_validation_v41_fallback.py \
+    tests/test_dnse_dpapi_scripts_v41.py \
     || fail "py_compile V41 that bai"
 python -m unittest \
     tests.test_hnx_cross_market_validation_v41 \
     tests.test_hnx_cross_market_validation_v41_fallback \
+    tests.test_dnse_dpapi_scripts_v41 \
     -v \
     || fail "unit test V41 that bai"
 
@@ -62,6 +64,7 @@ OUTPUT_ZIP="$PWD/artifacts/UPLOAD_THIS_v41_HNX-$RUN_ID.zip"
 LOG="$PWD/artifacts/v41-hnx-$RUN_ID.log"
 EXIT_FILE="$PWD/artifacts/v41-hnx-$RUN_ID-exit-code.txt"
 MODE_FILE="$PWD/artifacts/v41-hnx-$RUN_ID-source-mode.txt"
+CREDENTIAL_MODE_FILE="$PWD/artifacts/v41-hnx-$RUN_ID-credential-source.txt"
 mkdir -p "$DATA_ROOT" "$PWD/artifacts"
 
 if [[ -n "${DNSE_API_KEY:-}" && -n "${DNSE_API_SECRET:-}" ]]; then
@@ -77,10 +80,14 @@ else
     SOURCE_ARGS=()
 fi
 printf '%s\n' "$SOURCE_MODE" > "$MODE_FILE"
+printf '%s\n' "${VN_QUANT_CREDENTIAL_SOURCE:-NONE}" > "$CREDENTIAL_MODE_FILE"
 echo "V41_SOURCE_MODE=$SOURCE_MODE"
+echo "V41_CREDENTIAL_SOURCE=${VN_QUANT_CREDENTIAL_SOURCE:-NONE}"
 
 set +e
-uv run --python 3.12 --with vnstock==4.0.4 \
+uv run --python 3.12 \
+    --with vnstock==4.0.4 \
+    --with dnse==0.5.0 \
     python -m "$MODULE" \
     --v22-input-zip "$(cygpath -w "$V22_ZIP")" \
     --store "$(cygpath -w "$STORE")" \
@@ -108,7 +115,7 @@ find "$PWD/artifacts" -maxdepth 1 -type f \
     \( -name "hnx-cross-market-v41-$RUN_ID-failure.json" \
        -o -name "hnx-cross-market-v41-$RUN_ID-fallback-failure.json" \) \
     -exec cp {} "$STAGING/" \;
-cp "$LOG" "$EXIT_FILE" "$MODE_FILE" "$STAGING/"
+cp "$LOG" "$EXIT_FILE" "$MODE_FILE" "$CREDENTIAL_MODE_FILE" "$STAGING/"
 python - "$STAGING/v41_uncompressed_source.py" <<'PY'
 from pathlib import Path
 import sys
@@ -147,6 +154,7 @@ rm -rf "$STAGING"
 echo
 echo "===== V41 DA HOAN TAT ONE-SHOT ====="
 echo "V41_SOURCE_MODE=$SOURCE_MODE"
+echo "V41_CREDENTIAL_SOURCE=${VN_QUANT_CREDENTIAL_SOURCE:-NONE}"
 echo "V41_EXIT_CODE=$V41_EXIT"
 echo "UPLOAD_ZIP=$OUTPUT_ZIP"
 echo "UPLOAD_ZIP_WINDOWS=$(cygpath -w "$OUTPUT_ZIP")"
