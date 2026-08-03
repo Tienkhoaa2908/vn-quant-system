@@ -18,6 +18,7 @@
 
   <nav>
     <button data-tab="dashboard" class="active">Tổng quan</button>
+    <button data-tab="data">Dữ liệu</button>
     <button data-tab="model">Model</button>
     <button data-tab="plan">Kế hoạch tuần</button>
     <button data-tab="account">Tài khoản</button>
@@ -36,6 +37,53 @@
       <div id="cards" class="cards"></div>
       <h2>Coverage dữ liệu</h2>
       <div id="coverage"></div>
+    </section>
+
+    <section id="data" class="tab">
+      <div class="section-head">
+        <div>
+          <h2>Nguồn dữ liệu thị trường</h2>
+          <p>Nhập DNSE API Key/Secret một lần hoặc import CSV thủ công. Mọi thứ chỉ lưu trên máy này.</p>
+        </div>
+        <button id="refresh-data-source">Kiểm tra trạng thái</button>
+      </div>
+      <div id="data-source-status" class="cards"></div>
+
+      <div class="panel">
+        <h3>DNSE OpenAPI</h3>
+        <p class="help">API Secret không bao giờ được trả lại trình duyệt sau khi lưu. File credentials nằm trong <code>data/state</code> và bị Git bỏ qua.</p>
+        <div class="form-grid">
+          <label>API Key<input id="dnse-api-key" type="text" autocomplete="off" spellcheck="false" placeholder="Nhập API Key"></label>
+          <label>API Secret<input id="dnse-api-secret" type="password" autocomplete="new-password" spellcheck="false" placeholder="Nhập API Secret"></label>
+        </div>
+        <div class="inline-actions">
+          <button id="save-credentials">Lưu credentials local</button>
+          <button id="test-credentials">Kiểm tra kết nối</button>
+          <button id="install-sdk">Cài DNSE SDK 0.5.0</button>
+          <button id="clear-credentials" class="danger">Xóa credentials local</button>
+          <button data-action="sync">Đồng bộ ngay</button>
+        </div>
+        <pre id="credential-result">Chưa thao tác.</pre>
+      </div>
+
+      <div class="panel">
+        <h3>Nhập CSV thủ công</h3>
+        <p class="help">Dùng khi chưa có API hoặc API lỗi. CSV mới sẽ được kiểm tra xung đột, chèn vào SQLite local và lưu bản gốc để audit.</p>
+        <div class="form-grid">
+          <label>File CSV<input id="manual-csv-file" type="file" accept=".csv,text/csv"></label>
+          <label>Đơn vị giá cổ phiếu
+            <select id="manual-price-unit">
+              <option value="THOUSAND_VND">Nghìn đồng — giống kho hiện tại</option>
+              <option value="VND">Đồng — hệ thống tự chia 1.000</option>
+            </select>
+          </label>
+        </div>
+        <p class="help">Cột chấp nhận: <code>asset_type,symbol,day,open,high,low,close,volume</code> hoặc tên Việt <code>ma,ngay,gia_mo_cua,gia_cao_nhat,gia_thap_nhat,gia_dong_cua,khoi_luong</code>. Nếu bỏ <code>asset_type</code>, VNINDEX được nhận là INDEX, mã khác là STOCK.</p>
+        <div class="inline-actions">
+          <button id="import-manual-csv">Import CSV vào kho local</button>
+        </div>
+        <pre id="manual-import-result">Chưa import.</pre>
+      </div>
     </section>
 
     <section id="model" class="tab">
