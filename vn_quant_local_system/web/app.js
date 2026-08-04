@@ -12,8 +12,15 @@ async function api(path, options={}) {
   if (!response.ok) throw new Error(data.message || data.error || 'Yêu cầu thất bại');
   return data;
 }
-function setNotice(text, cls='') { const n=$('#notice'); n.textContent=text; n.className=`notice ${cls}`; }
-function card(label,value,sub='') { return `<div class="card"><div class="label">${escapeHtml(label)}</div><div class="value">${value}</div>${sub?`<div class="sub">${sub}</div>`:''}</div>`; }
+function setNotice(text, cls='') {
+  const n=$('#notice');
+  if(!n) return;
+  n.textContent=text;
+  n.className=`notice ${cls}`;
+}
+function card(label,value,sub='') {
+  return `<div class="card"><div class="label">${escapeHtml(label)}</div><div class="value">${value}</div>${sub?`<div class="sub">${sub}</div>`:''}</div>`;
+}
 function badge(text, cls='') { return `<span class="badge ${cls}">${escapeHtml(text)}</span>`; }
 function humanAction(action) {
   return ({
@@ -27,7 +34,9 @@ function actionClass(action) {
   return 'good';
 }
 function showResult(selector, data, cls='good') {
-  const el=$(selector); el.className=`result-box ${cls}`;
+  const el=$(selector);
+  if(!el) return;
+  el.className=`result-box ${cls}`;
   const message=data.message || data.status || 'Hoàn tất';
   const details=[];
   if(data.market_data) details.push(`Market: ${data.market_data.status} · ${data.market_data.latest_day||'-'}`);
@@ -66,16 +75,23 @@ function renderPortfolio(broker, account) {
       <div><span>Giá tham chiếu</span><strong>${fmtMoney(p.valuation_price_vnd)}</strong></div>
       <div><span>Giá trị</span><strong>${fmtMoney(p.market_value_vnd)}</strong></div>
       <div><span>Lãi/lỗ tạm tính</span><strong class="${Number(p.unrealized_pnl_vnd)>=0?'good':'bad'}">${fmtMoney(p.unrealized_pnl_vnd)}</strong></div>
+      <div><span>Có thể bán</span><strong>${fmtNum(p.sellable_quantity??p.quantity,0)} cp</strong></div>
     </div>
   </article>`).join('');
 }
 
-function renderRanking(payload, broker) {
-  const grid=$('#ranking-grid');
-  if(!payload||!payload.ranking?.length){grid.innerHTML='<div class="empty">Chưa có ranking. Bấm Chạy C3.</div>';$('#model-meta').textContent='';return;}
+function renderRanking(payload, broker, targetSelector='#ranking-grid', metaSelector='#model-meta', limit=20) {
+  const grid=$(targetSelector);
+  const meta=$(metaSelector);
+  if(!grid) return;
+  if(!payload||!payload.ranking?.length){
+    grid.innerHTML='<div class="empty">Chưa có ranking. Bấm Chạy C3.</div>';
+    if(meta) meta.textContent='';
+    return;
+  }
   const holdings=new Map((broker?.positions||[]).map(p=>[p.symbol,p]));
-  const rows=payload.ranking.slice(0,20);
-  $('#model-meta').textContent=`Run ${payload.run.run_id} · signal ${rows[0].signal_day} · hoàn tất ${payload.run.finished_at}`;
+  const rows=payload.ranking.slice(0,limit);
+  if(meta) meta.textContent=`Run ${payload.run.run_id} · signal ${rows[0].signal_day} · hoàn tất ${payload.run.finished_at}`;
   grid.innerHTML=rows.map(r=>{
     const held=holdings.get(r.symbol);
     return `<article class="security-card rank-card">
@@ -151,8 +167,12 @@ function renderDataSource(ds) {
 
 function renderStatus(data) {
   latestState=data;
-  const coverage=data.market?.coverage||[]; const stock=coverage.find(x=>x.asset_type==='STOCK')||{}; const index=coverage.find(x=>x.asset_type==='INDEX')||{};
-  const ranking=data.latest_monthly_ranking; const account=data.account?.account||{}; const broker=data.broker_portfolio;
+  const coverage=data.market?.coverage||[];
+  const stock=coverage.find(x=>x.asset_type==='STOCK')||{};
+  const index=coverage.find(x=>x.asset_type==='INDEX')||{};
+  const ranking=data.latest_monthly_ranking;
+  const account=data.account?.account||{};
+  const broker=data.broker_portfolio;
   $('#cards').innerHTML=[
     card('Dữ liệu cổ phiếu',`${stock.symbol_count||0} mã`,`${stock.first_day||'-'} → ${stock.last_day||'-'}`),
     card('VNINDEX',`${index.row_count||0} phiên`,`Đến ${index.last_day||'-'}`),
@@ -162,9 +182,14 @@ function renderStatus(data) {
     card('Danh mục DNSE',broker?`${broker.position_count} mã`:'Chưa đồng bộ',broker?.captured_at||'')
   ].join('');
   $('#dashboard-budget').value=account.weekly_contribution_vnd??250000;
-  renderCoverage(coverage); renderPortfolio(broker,data.account); renderRanking(ranking,broker);
-  renderPlan(data.latest_weekly_plan,'#plan-content'); renderPlan(data.latest_weekly_plan,'#dashboard-plan');
-  renderAccountEditor(data.account); renderDataSource(data.data_source);
+  renderCoverage(coverage);
+  renderPortfolio(broker,data.account);
+  renderRanking(ranking,broker,'#ranking-grid','#model-meta',20);
+  renderRanking(ranking,broker,'#dashboard-ranking-grid','#dashboard-model-meta',10);
+  renderPlan(data.latest_weekly_plan,'#plan-content');
+  renderPlan(data.latest_weekly_plan,'#dashboard-plan');
+  renderAccountEditor(data.account);
+  renderDataSource(data.data_source);
 }
 
 function holdingRow(row={symbol:'',quantity:0,average_cost:''}) {
@@ -176,38 +201,120 @@ function holdingRow(row={symbol:'',quantity:0,average_cost:''}) {
   </div>`;
 }
 function renderAccountEditor(data){
-  if(!data)return; $('#cash').value=data.account?.cash_vnd??0; $('#contribution').value=data.account?.weekly_contribution_vnd??250000;
-  const rows=data.holdings||[]; $('#holdings-editor').innerHTML=(rows.length?rows:[{}]).map(holdingRow).join(''); bindHoldingRemove();
+  if(!data)return;
+  $('#cash').value=data.account?.cash_vnd??0;
+  $('#contribution').value=data.account?.weekly_contribution_vnd??250000;
+  const rows=data.holdings||[];
+  $('#holdings-editor').innerHTML=(rows.length?rows:[{}]).map(holdingRow).join('');
+  bindHoldingRemove();
 }
 function bindHoldingRemove(){ $$('.remove-holding').forEach(btn=>btn.onclick=()=>btn.closest('.holding-row').remove()); }
 
-async function refresh(){
-  try{const data=await api('/api/status');renderStatus(data);setNotice('Đã cập nhật trạng thái.','good');}
-  catch(e){setNotice(e.message,'bad');}
+function dashboardActionSummary(name, data) {
+  if(name==='sync-broker') {
+    return {
+      title:'Đồng bộ danh mục DNSE hoàn tất',
+      details:[
+        `${data.position_count||0} mã đang nắm giữ`,
+        `Tiền khả dụng an toàn: ${fmtMoney(data.planner_cash_vnd)}`,
+        `${data.details?.readable_account_count||data.masked_accounts?.length||0} tiểu khoản đọc được`
+      ]
+    };
+  }
+  if(name==='model') {
+    return {title:'C3 đã chạy xong',details:['Top C3 ở ngay bên dưới đã được cập nhật.']};
+  }
+  if(name==='plan') {
+    return {
+      title:'Kế hoạch tuần đã tạo',
+      details:[
+        `${(data.buy_orders||[]).length} mã mua đề xuất`,
+        `Tổng mua ước tính: ${fmtMoney(data.estimated_buy_value_vnd)}`,
+        `Ngân sách còn lại: ${fmtMoney(data.remaining_budget_vnd)}`
+      ]
+    };
+  }
+  if(name==='sync') {
+    return {title:'Đồng bộ dữ liệu giá hoàn tất',details:['Coverage dữ liệu ở cuối trang đã được cập nhật.']};
+  }
+  return {title:data.message||data.status||'Hoàn tất',details:[]};
 }
-async function action(name){
+function renderDashboardActionResult(name, data, cls='good') {
+  const el=$('#dashboard-action-result');
+  if(!el) return;
+  const summary=dashboardActionSummary(name,data);
+  el.className=`result-box dashboard-result ${cls}`;
+  el.innerHTML=`<strong>${escapeHtml(summary.title)}</strong>${summary.details.length?`<div>${summary.details.map(escapeHtml).join('<br>')}</div>`:''}${data.error?`<div class="technical">${escapeHtml(data.error)}</div>`:''}`;
+}
+function dashboardTarget(name) {
+  return ({
+    'sync':'#coverage-section',
+    'sync-broker':'#portfolio-section',
+    'model':'#dashboard-model-section',
+    'plan':'#dashboard-plan-section'
+  })[name] || '#dashboard-action-result';
+}
+
+async function refresh(silent=false){
+  try{
+    const data=await api('/api/status');
+    renderStatus(data);
+    if(!silent) setNotice('Đã cập nhật trạng thái.','good');
+    return data;
+  } catch(e) {
+    if(!silent) setNotice(e.message,'bad');
+    throw e;
+  }
+}
+async function action(name, trigger=null){
+  const fromDashboard=Boolean(trigger?.closest('#dashboard'));
   setNotice(`Đang chạy ${name}...`,'warn');
+  if(fromDashboard) renderDashboardActionResult(name,{message:'Đang xử lý...'},'warn');
   try{
     let body={};
-    if(name==='plan') body={weekly_budget_vnd:Number($('#dashboard-budget').value),maximum_buy_orders:Number($('#dashboard-max-orders').value)};
+    if(name==='plan') {
+      body={
+        weekly_budget_vnd:Number($('#dashboard-budget').value),
+        maximum_buy_orders:Number($('#dashboard-max-orders').value)
+      };
+    }
     const data=await api(`/api/actions/${name}`,{method:'POST',body:JSON.stringify(body)});
+
+    if(name==='sync-broker') renderPortfolio(data,latestState?.account);
+    if(name==='plan') {
+      renderPlan(data,'#plan-content');
+      renderPlan(data,'#dashboard-plan');
+    }
+    if(fromDashboard) renderDashboardActionResult(name,data,'good');
+    if(trigger?.closest('#data')) showResult('#credential-result',data,'good');
     setNotice(data.message||`${data.status||'SUCCESS'}: ${name}`,'good');
-    await refresh();
-  }catch(e){setNotice(e.message,'bad');}
+    await refresh(true);
+
+    if(fromDashboard) {
+      const target=$(dashboardTarget(name));
+      if(target) target.scrollIntoView({behavior:'smooth',block:'start'});
+    }
+    return data;
+  } catch(e) {
+    setNotice(e.message,'bad');
+    if(fromDashboard) renderDashboardActionResult(name,{message:e.message},'bad');
+    if(trigger?.closest('#data')) showResult('#credential-result',{message:e.message},'bad');
+    return null;
+  }
 }
 
 $$('nav button').forEach(btn=>btn.addEventListener('click',()=>switchTab(btn.dataset.tab)));
 $$('[data-tab-jump]').forEach(btn=>btn.addEventListener('click',()=>switchTab(btn.dataset.tabJump)));
-$$('[data-action]').forEach(btn=>btn.addEventListener('click',()=>action(btn.dataset.action)));
-$('#refresh').addEventListener('click',refresh);
+$$('[data-action]').forEach(btn=>btn.addEventListener('click',event=>action(btn.dataset.action,event.currentTarget)));
+$('#refresh').addEventListener('click',()=>refresh(false));
 $('#refresh-data-source').addEventListener('click',async()=>{try{const d=await api('/api/data-source');renderDataSource(d);showResult('#credential-result',{status:'Đã làm mới trạng thái.'});}catch(e){showResult('#credential-result',{message:e.message},'bad');}});
-$('#save-budget').addEventListener('click',async()=>{try{await api('/api/account/budget',{method:'POST',body:JSON.stringify({weekly_budget_vnd:Number($('#dashboard-budget').value)})});setNotice('Đã lưu ngân sách tuần.','good');await refresh();}catch(e){setNotice(e.message,'bad');}});
+$('#save-budget').addEventListener('click',async()=>{try{await api('/api/account/budget',{method:'POST',body:JSON.stringify({weekly_budget_vnd:Number($('#dashboard-budget').value)})});setNotice('Đã lưu ngân sách tuần.','good');renderDashboardActionResult('budget',{message:'Đã lưu ngân sách tuần.'},'good');await refresh(true);}catch(e){setNotice(e.message,'bad');renderDashboardActionResult('budget',{message:e.message},'bad');}});
 $('#save-credentials').addEventListener('click',async()=>{try{const data=await api('/api/data-source/credentials',{method:'POST',body:JSON.stringify({api_key:$('#dnse-api-key').value,api_secret:$('#dnse-api-secret').value})});$('#dnse-api-key').value='';$('#dnse-api-secret').value='';renderDataSource(data);showResult('#credential-result',{status:'Đã lưu credentials local.'});}catch(e){showResult('#credential-result',{message:e.message},'bad');}});
-$('#test-credentials').addEventListener('click',async()=>{try{const data=await api('/api/data-source/test',{method:'POST',body:'{}'});showResult('#credential-result',data,data.status==='SUCCESS'?'good':'warn');await refresh();}catch(e){showResult('#credential-result',{message:e.message},'bad');}});
-$('#install-sdk').addEventListener('click',async()=>{try{showResult('#credential-result',{status:'Đang cài DNSE SDK và tzdata...'},'warn');const data=await api('/api/data-source/install-sdk',{method:'POST',body:'{}'});showResult('#credential-result',{status:data.status==='ALREADY_READY'?'Runtime đã sẵn sàng.':'Đã cài runtime thành công.'});await refresh();}catch(e){showResult('#credential-result',{message:e.message},'bad');}});
+$('#test-credentials').addEventListener('click',async()=>{try{const data=await api('/api/data-source/test',{method:'POST',body:'{}'});showResult('#credential-result',data,data.status==='SUCCESS'?'good':'warn');await refresh(true);}catch(e){showResult('#credential-result',{message:e.message},'bad');}});
+$('#install-sdk').addEventListener('click',async()=>{try{showResult('#credential-result',{status:'Đang cài DNSE SDK và tzdata...'},'warn');const data=await api('/api/data-source/install-sdk',{method:'POST',body:'{}'});showResult('#credential-result',{status:data.status==='ALREADY_READY'?'Runtime đã sẵn sàng.':'Đã cài runtime thành công.'});await refresh(true);}catch(e){showResult('#credential-result',{message:e.message},'bad');}});
 $('#clear-credentials').addEventListener('click',async()=>{if(!confirm('Xóa API Key và Secret đang lưu local?'))return;try{const data=await api('/api/data-source/clear',{method:'POST',body:'{}'});renderDataSource(data);showResult('#credential-result',{status:'Đã xóa credentials local.'},'warn');}catch(e){showResult('#credential-result',{message:e.message},'bad');}});
-$('#import-manual-csv').addEventListener('click',async()=>{const file=$('#manual-csv-file').files[0];if(!file){showResult('#manual-import-result',{message:'Chưa chọn file CSV.'},'bad');return;}try{const content=await file.text();const data=await api('/api/data-source/import-csv',{method:'POST',body:JSON.stringify({filename:file.name,price_unit:$('#manual-price-unit').value,content})});showResult('#manual-import-result',data);await refresh();}catch(e){showResult('#manual-import-result',{message:e.message},'bad');}});
+$('#import-manual-csv').addEventListener('click',async()=>{const file=$('#manual-csv-file').files[0];if(!file){showResult('#manual-import-result',{message:'Chưa chọn file CSV.'},'bad');return;}try{const content=await file.text();const data=await api('/api/data-source/import-csv',{method:'POST',body:JSON.stringify({filename:file.name,price_unit:$('#manual-price-unit').value,content})});showResult('#manual-import-result',data);await refresh(true);}catch(e){showResult('#manual-import-result',{message:e.message},'bad');}});
 $('#add-holding').addEventListener('click',()=>{$('#holdings-editor').insertAdjacentHTML('beforeend',holdingRow());bindHoldingRemove();});
-$('#save-account').addEventListener('click',async()=>{try{const holdings=$$('.holding-row').map(row=>({symbol:row.querySelector('.holding-symbol').value.trim().toUpperCase(),quantity:Number(row.querySelector('.holding-quantity').value),average_cost:Number(row.querySelector('.holding-cost').value)||null})).filter(x=>x.symbol&&x.quantity>0);const data=await api('/api/account',{method:'POST',body:JSON.stringify({cash_vnd:Number($('#cash').value),weekly_contribution_vnd:Number($('#contribution').value),holdings})});showResult('#account-result',{status:`Đã lưu ${data.holdings.length} mã nhập tay.`});await refresh();}catch(e){showResult('#account-result',{message:e.message},'bad');}});
+$('#save-account').addEventListener('click',async()=>{try{const holdings=$$('.holding-row').map(row=>({symbol:row.querySelector('.holding-symbol').value.trim().toUpperCase(),quantity:Number(row.querySelector('.holding-quantity').value),average_cost:Number(row.querySelector('.holding-cost').value)||null})).filter(x=>x.symbol&&x.quantity>0);const data=await api('/api/account',{method:'POST',body:JSON.stringify({cash_vnd:Number($('#cash').value),weekly_contribution_vnd:Number($('#contribution').value),holdings})});showResult('#account-result',{status:`Đã lưu ${data.holdings.length} mã nhập tay.`});await refresh(true);}catch(e){showResult('#account-result',{message:e.message},'bad');}});
 async function loadDocs(){try{const data=await api('/api/docs');$('#docs-content').innerHTML=data.documents.map(d=>`<article class="doc"><h3>${escapeHtml(d.name)}</h3><pre>${escapeHtml(d.content)}</pre></article>`).join('');}catch(e){$('#docs-content').textContent=e.message;}}
-refresh(); loadDocs();
+refresh(false); loadDocs();
