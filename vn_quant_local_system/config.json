@@ -1,5 +1,5 @@
 {
-  "schema_version": "vn_quant_local_workstation_v1_6",
+  "schema_version": "vn_quant_local_workstation_v1_7",
   "paths": {
     "market_db": "data/market/dnse_ohlcv.sqlite3",
     "reference_zip": "data/reference/daily_prediction_input_v22.zip",
@@ -25,8 +25,9 @@
   },
   "weekly_policy": {
     "policy_id": "P1_TOP10_UNDERWEIGHT_BUFFER20",
-    "planner_variant": "V44_5_HISTORICAL_TWO_MONTH_SELL_REVIEW",
-    "cash_semantics": "SPENDABLE_EQUALS_BROKER_AVAILABLE_CASH_PLUS_PLANNED_WEEKLY_CONTRIBUTION",
+    "planner_variant": "V46_EVENT_DRIVEN_CAPITAL_CYCLE",
+    "planning_frequency": "ON_DEMAND_WHEN_CAPITAL_IS_AVAILABLE",
+    "cash_semantics": "SPENDABLE_EQUALS_BROKER_AVAILABLE_CASH_PLUS_NEW_CAPITAL_FOR_THIS_CYCLE",
     "default_contribution_vnd": 250000,
     "weekly_contribution_is_new_cash": true,
     "planning_cost_bps": 50.0,
@@ -41,9 +42,9 @@
     "sell_proceeds_reused_only_after_broker_resync": true
   },
   "performance": {
-    "version": "V45_LIVE_PERFORMANCE_OBSERVATORY",
+    "version": "V46_EVENT_DRIVEN_PERFORMANCE_OBSERVATORY",
     "default_legacy_classification": "LEGACY_EXCLUDED",
-    "shadow_plan_selection": "FIRST_PLAN_PER_ISO_WEEK",
+    "shadow_plan_selection": "EVERY_CAPITAL_CYCLE_AFTER_OBSERVATORY_START",
     "shadow_execution": "NEXT_SESSION_OPEN",
     "shadow_cost_bps": 50.0,
     "sell_tax_bps": 10.0,
@@ -52,6 +53,12 @@
     "benchmark": "VNINDEX_SAME_SHADOW_CASH_FLOWS",
     "signal_horizons_sessions": [5, 20, 60],
     "automatic_live_orders_allowed": false
+  },
+  "market_overview": {
+    "mode": "READ_ONLY",
+    "default_limit": 30,
+    "creates_trade_plan": false,
+    "ranking_source": "LATEST_MONTHLY_CANONICAL_C3"
   },
   "validation_archive": {
     "source_files": [
