@@ -1,12 +1,12 @@
-"""Runtime safety và event-cycle selection cho V45/V46.
+"""Runtime safety và event-cycle selection cho V45–V47.
 
-Module được package init áp dụng ngay khi import và khóa bốn nguyên tắc:
+Module được package init áp dụng ngay khi import và khóa các nguyên tắc:
 
 * XIRR không công bố khi chưa có thời gian trôi qua;
 * hai fill/dòng tiền giống nhau vẫn là hai event độc lập;
 * shadow chỉ nhận plan phát hành sau snapshot mở đầu;
-* từ V46, mọi capital planning cycle hợp lệ là một shadow cycle độc lập,
-  không còn giới hạn một plan mỗi tuần.
+* mọi capital planning cycle hợp lệ là một shadow cycle độc lập;
+* canonical/preview guard của từng cycle được giữ nguyên trong audit ledger.
 """
 from __future__ import annotations
 
@@ -126,7 +126,7 @@ def select_plans_after_opening(config: Mapping[str, object]) -> None:
     """Đưa mọi capital cycle sau opening snapshot vào shadow.
 
     ``performance_shadow_plans.week_key`` được giữ để migration không phá schema,
-    nhưng từ V46 giá trị là ``CYCLE:<cycle_id>`` chứ không phải tuần ISO.
+    nhưng giá trị mới là ``CYCLE:<cycle_id>`` chứ không phải tuần ISO.
     """
 
     from .capital_plan import _ensure_schema as ensure_capital_schema
@@ -155,11 +155,21 @@ def select_plans_after_opening(config: Mapping[str, object]) -> None:
                 continue
             plan = json.loads(str(row["details_json"]))
             rationale = dict(plan.get("rationale") or {})
-            reviews = list(plan.get("position_reviews") or rationale.get("position_reviews", []))
-            exits = list(plan.get("exit_candidates") or rationale.get("exit_candidates", [])) or [
-                item for item in reviews if item.get("action") == "EXIT_CANDIDATE"
+            reviews = list(
+                plan.get("position_reviews")
+                or rationale.get("position_reviews", [])
+            )
+            exits = list(
+                plan.get("exit_candidates")
+                or rationale.get("exit_candidates", [])
+            ) or [
+                item
+                for item in reviews
+                if item.get("action") == "EXIT_CANDIDATE"
             ]
-            execution_day = performance._next_session(str(row["created_at"])[:10])
+            execution_day = performance._next_session(
+                str(row["created_at"])[:10]
+            )
             db.execute(
                 """
                 INSERT INTO performance_shadow_plans(
@@ -172,19 +182,41 @@ def select_plans_after_opening(config: Mapping[str, object]) -> None:
                     str(row["plan_id"]),
                     str(row["created_at"]),
                     execution_day,
-                    "PENDING_MARKET_DATA" if execution_day is None else "SELECTED",
+                    (
+                        "PENDING_MARKET_DATA"
+                        if execution_day is None
+                        else "SELECTED"
+                    ),
                     float(row["new_capital_vnd"]),
                     json.dumps(
                         {
-                            "selection_rule": "EVERY_EVENT_DRIVEN_CAPITAL_CYCLE_AFTER_OPENING",
+                            "selection_rule": (
+                                "EVERY_EVENT_DRIVEN_CAPITAL_CYCLE_AFTER_OPENING"
+                            ),
                             "cycle_id": str(row["cycle_id"]),
                             "trigger_type": str(row["trigger_type"]),
                             "new_capital_vnd": float(row["new_capital_vnd"]),
+                            "canonical_signal_day": plan.get(
+                                "canonical_signal_day"
+                            ),
+                            "preview_signal_day": plan.get(
+                                "preview_signal_day"
+                            ),
+                            "preview_snapshot_id": plan.get(
+                                "preview_snapshot_id"
+                            ),
+                            "preview_purchase_guard": plan.get(
+                                "preview_purchase_guard"
+                            )
+                            or rationale.get("preview_purchase_guard"),
                             "buy_orders": plan.get("buy_orders", []),
                             "exit_candidates": exits,
                             "position_reviews": reviews,
-                            "maximum_buy_orders": rationale.get("maximum_buy_orders"),
+                            "maximum_buy_orders": rationale.get(
+                                "maximum_buy_orders"
+                            ),
                             "not_limited_to_calendar_week": True,
+                            "preview_can_trigger_sell": False,
                         },
                         ensure_ascii=False,
                         sort_keys=True,
