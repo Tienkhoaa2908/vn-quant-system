@@ -67,28 +67,67 @@
         </div>
       </div>
 
+      <div class="panel quick-actions-panel">
+        <div>
+          <p class="eyebrow">THAO TÁC NHANH</p>
+          <h2>Chạy trực tiếp tại trang Tổng quan</h2>
+          <p>Kết quả của từng thao tác sẽ hiện ngay bên dưới, không tự chuyển sang tab khác.</p>
+        </div>
+        <div class="inline-actions dashboard-actions">
+          <button data-action="sync">Đồng bộ dữ liệu giá</button>
+          <button data-action="sync-broker">Đồng bộ danh mục DNSE</button>
+          <button data-action="model">Chạy C3</button>
+          <button data-action="plan">Tạo kế hoạch tuần</button>
+        </div>
+      </div>
+
       <div id="notice" class="notice">Sẵn sàng.</div>
+      <div id="dashboard-action-result" class="result-box dashboard-result">Chưa chạy thao tác mới.</div>
       <div id="cards" class="cards"></div>
 
-      <div class="section-head">
-        <div>
-          <h2>Danh mục đang nắm giữ</h2>
-          <p>Nguồn ưu tiên là snapshot DNSE read-only gần nhất.</p>
+      <section id="portfolio-section" class="dashboard-output-section">
+        <div class="section-head">
+          <div>
+            <h2>Danh mục đang nắm giữ</h2>
+            <p>Nguồn ưu tiên là snapshot DNSE read-only gần nhất.</p>
+          </div>
+          <span id="portfolio-source-badge" class="badge muted">Chưa có dữ liệu</span>
         </div>
-        <span id="portfolio-source-badge" class="badge muted">Chưa có dữ liệu</span>
-      </div>
-      <div id="portfolio-grid" class="security-grid"></div>
+        <div id="portfolio-grid" class="security-grid"></div>
+      </section>
 
-      <div class="section-head">
-        <div>
-          <h2>Đề xuất gần nhất</h2>
-          <p>Mua dựa trên Top-10 C3, tỷ trọng hiện tại và ngân sách tuần.</p>
+      <section id="dashboard-model-section" class="dashboard-output-section">
+        <div class="section-head">
+          <div>
+            <h2>Top C3 tháng gần nhất</h2>
+            <p>Bấm Chạy C3 ở trên, danh sách mới sẽ hiện ngay tại đây và vẫn được giữ trong tab Model.</p>
+          </div>
+          <button data-action="model" class="secondary">Chạy lại C3</button>
         </div>
-      </div>
-      <div id="dashboard-plan"></div>
+        <div id="dashboard-model-meta" class="notice compact-notice"></div>
+        <div id="dashboard-ranking-grid" class="security-grid"></div>
+      </section>
 
-      <h2>Coverage dữ liệu</h2>
-      <div id="coverage" class="coverage-grid"></div>
+      <section id="dashboard-plan-section" class="dashboard-output-section">
+        <div class="section-head">
+          <div>
+            <h2>Kế hoạch tuần gần nhất</h2>
+            <p>Mua dựa trên Top-10 C3, tỷ trọng danh mục thực tế và ngân sách tuần.</p>
+          </div>
+          <button data-action="plan" class="secondary">Tạo lại kế hoạch</button>
+        </div>
+        <div id="dashboard-plan"></div>
+      </section>
+
+      <section id="coverage-section" class="dashboard-output-section">
+        <div class="section-head">
+          <div>
+            <h2>Coverage dữ liệu</h2>
+            <p>Kết quả đồng bộ giá sẽ cập nhật ngay tại đây.</p>
+          </div>
+        </div>
+        <div id="coverage" class="coverage-grid"></div>
+      </section>
     </section>
 
     <section id="data" class="tab">
