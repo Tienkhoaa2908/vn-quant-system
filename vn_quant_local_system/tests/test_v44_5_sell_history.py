@@ -74,7 +74,7 @@ class SellHistoryTests(unittest.TestCase):
         self.assertEqual(action, "DATA_REVIEW_REQUIRED")
         self.assertEqual(reason, "SELL_HISTORY_HAS_DATA_GAP")
 
-    def test_completed_month_days_exclude_latest_data_month(self) -> None:
+    def test_current_calendar_month_is_excluded(self) -> None:
         calendar = [
             date(2026, 3, 31),
             date(2026, 4, 29),
@@ -82,7 +82,11 @@ class SellHistoryTests(unittest.TestCase):
             date(2026, 6, 30),
             date(2026, 7, 31),
         ]
-        days = _completed_month_signal_days(calendar, count=3)
+        days = _completed_month_signal_days(
+            calendar,
+            count=3,
+            today=date(2026, 7, 31),
+        )
         self.assertEqual(
             days,
             [date(2026, 6, 30), date(2026, 5, 29), date(2026, 4, 29)],
