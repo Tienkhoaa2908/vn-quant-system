@@ -47,8 +47,10 @@ def _friendly_error(exc: Exception) -> dict[str, object]:
         message = "Phiên bản DNSE SDK không đúng 0.5.0. Bấm 'Cài/Sửa DNSE runtime'."
     elif "DNSE_RUNTIME_INSTALL" in text:
         message = "Không cài được DNSE SDK hoặc tzdata. Kiểm tra Internet rồi thử lại."
-    elif "DNSE_STOCK_ACCOUNTS_EMPTY" in text:
-        message = "API kết nối được nhưng không trả về tiểu khoản cơ sở. Kiểm tra quyền API trên DNSE."
+    elif "DNSE_ACCOUNT_LIST_EMPTY" in text:
+        message = "DNSE xác thực được nhưng danh sách tiểu khoản không có mã định danh hợp lệ."
+    elif "DNSE_ACCOUNT_READ_FAILED" in text:
+        message = "DNSE trả danh sách tiểu khoản nhưng không đọc được số dư hoặc vị thế. Kiểm tra quyền đọc tài khoản của API Key."
     elif "DNSE" in text and ("401" in text or "403" in text or "AUTH" in text.upper()):
         message = "DNSE từ chối xác thực hoặc API key chưa có quyền đọc tài khoản/danh mục."
     elif "MANUAL_CSV" in text:
@@ -61,7 +63,7 @@ def _friendly_error(exc: Exception) -> dict[str, object]:
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "VNQuantLocal/1.2"
+    server_version = "VNQuantLocal/1.3"
 
     def _send(self, status: int, payload: bytes, content_type: str) -> None:
         self.send_response(status)
