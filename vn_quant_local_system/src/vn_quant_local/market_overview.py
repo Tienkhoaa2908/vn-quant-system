@@ -31,7 +31,7 @@ def _latest_two_runs() -> list[dict[str, object]]:
                   AND k.signal_kind='MONTHLY_CANONICAL'
                 GROUP BY r.run_id,r.finished_at,k.signal_day
                 ORDER BY k.signal_day DESC,r.finished_at DESC
-                LIMIT 2
+                LIMIT 50
                 """
             ).fetchall()
         ]
@@ -47,7 +47,7 @@ def _latest_two_runs() -> list[dict[str, object]]:
                     (run["run_id"],),
                 ).fetchall()
             ]
-    # Có thể có hai run cùng signal_day do các bản cũ chạy lại C3. Chỉ giữ
+    # Có thể có nhiều run cùng signal_day do các bản cũ chạy lại C3. Chỉ giữ
     # signal_day khác nhau để rank_change thực sự là thay đổi theo tháng.
     distinct: list[dict[str, object]] = []
     seen: set[str] = set()
@@ -57,7 +57,9 @@ def _latest_two_runs() -> list[dict[str, object]]:
             continue
         seen.add(day)
         distinct.append(run)
-    return distinct[:2]
+        if len(distinct) >= 2:
+            break
+    return distinct
 
 
 def _index_regime() -> dict[str, object]:
