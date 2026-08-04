@@ -11,7 +11,7 @@
     <div>
       <p class="eyebrow">LOCAL RESEARCH WORKSTATION</p>
       <h1>VN Quant System</h1>
-      <p class="subtitle">C3 monthly ranking · DNSE read-only portfolio · weekly budget planner</p>
+      <p class="subtitle">C3 monthly ranking · DNSE read-only portfolio · weekly contribution planner</p>
     </div>
     <button id="refresh" class="secondary">Làm mới</button>
   </header>
@@ -32,13 +32,13 @@
           <div class="section-head compact">
             <div>
               <p class="eyebrow">TÁC VỤ HÀNG TUẦN</p>
-              <h2>Ngân sách mua tuần</h2>
-              <p>Đây là trần chi tiêu tuần, không phải toàn bộ tiền mặt trong tài khoản.</p>
+              <h2>Tiền dự kiến nạp tuần</h2>
+              <p>Khoản này sẽ được cộng với tiền khả dụng đang có tại DNSE để lập kế hoạch mua.</p>
             </div>
           </div>
           <div class="budget-row">
-            <label>Ngân sách (VND)
-              <input id="dashboard-budget" type="number" min="10000" step="10000" value="250000">
+            <label>Tiền dự kiến nạp thêm (VND)
+              <input id="dashboard-budget" type="number" min="0" step="10000" value="250000">
             </label>
             <label>Số mã mua tối đa
               <select id="dashboard-max-orders">
@@ -51,9 +51,10 @@
             </label>
           </div>
           <div class="inline-actions">
-            <button id="save-budget">Lưu ngân sách</button>
+            <button id="save-budget">Lưu khoản nạp tuần</button>
             <button data-action="plan">Tạo kế hoạch tuần</button>
           </div>
+          <div class="research-note">Công thức: tiền có thể giải ngân = tiền khả dụng DNSE + tiền dự kiến nạp tuần. Nếu tiền đã được nạp và đã xuất hiện trong DNSE, nhập 0 để tránh tính hai lần.</div>
         </div>
 
         <div class="panel broker-quick-panel">
@@ -112,7 +113,7 @@
         <div class="section-head">
           <div>
             <h2>Kế hoạch tuần gần nhất</h2>
-            <p>Mua dựa trên Top-10 C3, tỷ trọng danh mục thực tế và ngân sách tuần.</p>
+            <p>Mua dựa trên Top-10 C3, danh mục thực tế, tiền DNSE hiện có và khoản dự kiến nạp thêm.</p>
           </div>
           <button data-action="plan" class="secondary">Tạo lại kế hoạch</button>
         </div>
@@ -191,7 +192,7 @@
       <div class="section-head">
         <div>
           <h2>Kế hoạch mua và rà soát bán</h2>
-          <p>Không tự gửi lệnh. Bán chỉ được gắn nhãn EXIT khi ngoài Top-20 hai tháng liên tiếp.</p>
+          <p>Tiền mua bằng tiền khả dụng DNSE cộng khoản dự kiến nạp tuần. Không tự gửi lệnh.</p>
         </div>
         <button data-action="plan">Tạo kế hoạch mới</button>
       </div>
@@ -202,12 +203,12 @@
       <div class="section-head">
         <div>
           <h2>Nhập tay khi DNSE API chưa dùng được</h2>
-          <p>Dữ liệu DNSE sẽ ghi đè phần này ở lần đồng bộ danh mục tiếp theo.</p>
+          <p>Dữ liệu DNSE sẽ ghi đè phần tiền mặt và holdings ở lần đồng bộ danh mục tiếp theo.</p>
         </div>
       </div>
       <div class="form-grid">
-        <label>Tiền mặt khả dụng (VND)<input id="cash" type="number" min="0" step="1000"></label>
-        <label>Ngân sách mua tuần (VND)<input id="contribution" type="number" min="1" step="1000"></label>
+        <label>Tiền mặt hiện có (VND)<input id="cash" type="number" min="0" step="1000"></label>
+        <label>Tiền dự kiến nạp tuần (VND)<input id="contribution" type="number" min="0" step="1000"></label>
       </div>
       <div class="section-head compact">
         <h3>Danh sách holdings</h3>
