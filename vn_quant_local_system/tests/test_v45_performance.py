@@ -16,13 +16,21 @@ from vn_quant_local.performance import (
     _xirr,
     start_observatory,
 )
-from vn_quant_local.performance_safety import append_unique_event, safe_xirr
+from vn_quant_local.performance_safety import (
+    append_unique_event,
+    safe_xirr,
+    select_plans_after_opening,
+)
 
 
 class V45PerformanceTests(unittest.TestCase):
     def test_safety_guards_are_active(self) -> None:
         self.assertIs(performance._xirr, safe_xirr)
         self.assertIs(performance._append_event, append_unique_event)
+        self.assertIs(
+            performance._sync_shadow_plan_selection,
+            select_plans_after_opening,
+        )
 
     def test_schema_is_additive_and_idempotent(self) -> None:
         db = sqlite3.connect(":memory:")
