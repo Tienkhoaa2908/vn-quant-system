@@ -1,5 +1,5 @@
 {
-  "schema_version": "vn_quant_local_workstation_v1_2",
+  "schema_version": "vn_quant_local_workstation_v1_3",
   "paths": {
     "market_db": "data/market/dnse_ohlcv.sqlite3",
     "reference_zip": "data/reference/daily_prediction_input_v22.zip",
