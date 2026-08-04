@@ -1,10 +1,10 @@
 """Runtime safety fixes cho V45.
 
-Module này được package init áp dụng ngay khi import. Nó giữ implementation chính
-ổn định nhưng khóa hai edge case:
+Module này được package init áp dụng ngay khi import và khóa ba edge case:
 
 * XIRR không được công bố khi chưa có thời gian trôi qua;
-* hai fill/dòng tiền có cùng nội dung vẫn phải là hai event độc lập.
+* hai fill/dòng tiền có cùng nội dung vẫn là hai event độc lập;
+* shadow chỉ nhận plan được phát hành sau thời điểm chốt snapshot mở đầu.
 """
 from __future__ import annotations
 
@@ -124,6 +124,77 @@ def append_unique_event(
     return {"status": "SUCCESS", "event_id": event_id, **payload}
 
 
+def select_plans_after_opening(config: Mapping[str, object]) -> None:
+    started_at = str(config["started_at"])
+    with state_db() as db:
+        performance._ensure_schema(db)
+        plans = db.execute(
+            """
+            SELECT * FROM weekly_plans
+            WHERE created_at>=?
+            ORDER BY created_at,plan_id
+            """,
+            (started_at,),
+        ).fetchall()
+        existing = {
+            str(row["week_key"])
+            for row in db.execute(
+                "SELECT week_key FROM performance_shadow_plans"
+            ).fetchall()
+        }
+        for row in plans:
+            week = performance._week_key(str(row["created_at"]))
+            if week in existing:
+                continue
+            rationale = json.loads(str(row["rationale_json"]))
+            reviews = list(rationale.get("position_reviews", []))
+            exits = list(rationale.get("exit_candidates", [])) or [
+                item
+                for item in reviews
+                if item.get("action") == "EXIT_CANDIDATE"
+            ]
+            execution_day = performance._next_session(
+                str(row["created_at"])[:10]
+            )
+            db.execute(
+                """
+                INSERT INTO performance_shadow_plans(
+                    week_key,plan_id,created_at,execution_day,status,
+                    planned_contribution_vnd,details_json
+                ) VALUES(?,?,?,?,?,?,?)
+                """,
+                (
+                    week,
+                    str(row["plan_id"]),
+                    str(row["created_at"]),
+                    execution_day,
+                    (
+                        "PENDING_MARKET_DATA"
+                        if execution_day is None
+                        else "SELECTED"
+                    ),
+                    float(row["contribution_vnd"]),
+                    json.dumps(
+                        {
+                            "selection_rule": (
+                                "FIRST_PLAN_PER_ISO_WEEK_AFTER_OPENING_SNAPSHOT"
+                            ),
+                            "buy_orders": rationale.get("buy_orders", []),
+                            "exit_candidates": exits,
+                            "position_reviews": reviews,
+                            "maximum_buy_orders": rationale.get(
+                                "maximum_buy_orders"
+                            ),
+                        },
+                        ensure_ascii=False,
+                        sort_keys=True,
+                    ),
+                ),
+            )
+            existing.add(week)
+
+
 def apply() -> None:
     performance._xirr = safe_xirr
     performance._append_event = append_unique_event
+    performance._sync_shadow_plan_selection = select_plans_after_opening
