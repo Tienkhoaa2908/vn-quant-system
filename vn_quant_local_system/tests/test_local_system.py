@@ -24,7 +24,8 @@ class LocalSystemTests(unittest.TestCase):
 
     def test_signal_day_uses_previous_completed_month(self) -> None:
         canonical, preview = _signal_days(
-            [date(2026, 6, 30), date(2026, 7, 31), date(2026, 8, 3)]
+            [date(2026, 6, 30), date(2026, 7, 31), date(2026, 8, 3)],
+            today=date(2026, 8, 4),
         )
         self.assertEqual(canonical, date(2026, 7, 31))
         self.assertEqual(preview, date(2026, 8, 3))
