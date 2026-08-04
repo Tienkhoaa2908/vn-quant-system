@@ -104,9 +104,14 @@ status = performance_status()
 assert status["status"] in {"NOT_STARTED", "ACTIVE"}
 assert PLANNING_MODE == "EVENT_DRIVEN_CAPITAL_CYCLE"
 assert PURCHASE_GUARD_MODE == "CANONICAL_TOP10_AND_PREVIEW_TOP20_ELIGIBLE"
-assert Handler.server_version == "VNQuantLocal/1.8"
+server_prefix = "VNQuantLocal/"
+assert Handler.server_version.startswith(server_prefix)
+version_parts = Handler.server_version.removeprefix(server_prefix).split(".")
+assert len(version_parts) == 2 and all(part.isdigit() for part in version_parts)
+assert tuple(map(int, version_parts)) >= (1, 8)
 assert callable(market_overview)
 print("WORKSTATION_IMPORT=PASS")
+print("WORKSTATION_SERVER_VERSION=" + Handler.server_version)
 print("WORKSTATION_CURRENT_STATUS=" + status["status"])
 PY
 
