@@ -1,5 +1,5 @@
 {
-  "schema_version": "vn_quant_local_workstation_v1_8",
+  "schema_version": "vn_quant_local_workstation_v1_9",
   "paths": {
     "market_db": "data/market/dnse_ohlcv.sqlite3",
     "reference_zip": "data/reference/daily_prediction_input_v22.zip",
@@ -57,7 +57,7 @@
     "duplicate_guard_seconds": 90
   },
   "performance": {
-    "version": "V47_CANONICAL_PREVIEW_PERFORMANCE_OBSERVATORY",
+    "version": "V48_AUDITABLE_EVENT_CORRECTIONS",
     "default_legacy_classification": "LEGACY_EXCLUDED",
     "shadow_plan_selection": "EVERY_CAPITAL_CYCLE_AFTER_OBSERVATORY_START",
     "shadow_execution": "NEXT_SESSION_OPEN",
@@ -67,6 +67,12 @@
     "whole_dnse_source": "BROKER_SNAPSHOTS",
     "benchmark": "VNINDEX_SAME_SHADOW_CASH_FLOWS",
     "signal_horizons_sessions": [5, 20, 60],
+    "event_ledger": "APPEND_ONLY_WITH_VOID_AND_REPLACEMENT",
+    "direct_event_update_or_delete_allowed": false,
+    "manual_event_corrections_enabled": true,
+    "pending_valuation_enabled": true,
+    "minimum_reasonable_stock_price_vnd": 1000,
+    "accepted_fill_price_units": ["VND", "THOUSAND_VND"],
     "automatic_live_orders_allowed": false
   },
   "market_overview": {
