@@ -26,8 +26,16 @@ echo "===== V45 UNIT TESTS ====="
 
 echo "===== V45 DATABASE MIGRATION SMOKE ====="
 "$PYTHON_EXE" - <<'PY'
+from datetime import date
 import sqlite3
-from vn_quant_local.performance import _ensure_schema, _event_hash, _week_key
+from vn_quant_local import performance
+from vn_quant_local.performance import (
+    _ensure_schema,
+    _event_hash,
+    _week_key,
+    _xirr,
+)
+from vn_quant_local.performance_safety import append_unique_event, safe_xirr
 
 db = sqlite3.connect(":memory:")
 _ensure_schema(db)
@@ -51,9 +59,17 @@ if missing:
     raise SystemExit("MISSING_TABLES=" + ",".join(missing))
 assert _week_key("2026-08-04T09:00:00+07:00") == "2026-W32"
 assert _event_hash({"a": 1, "b": 2}) == _event_hash({"b": 2, "a": 1})
+assert performance._xirr is safe_xirr
+assert performance._append_event is append_unique_event
+assert _xirr([
+    (date(2026, 8, 4), -100.0),
+    (date(2026, 8, 4), 100.0),
+]) is None
 print("V45_SCHEMA=PASS")
 print("V45_EVENT_LEDGER=PASS")
 print("V45_WEEK_SELECTION=PASS")
+print("V45_XIRR_GUARD=PASS")
+print("V45_DUPLICATE_FILL_GUARD=PASS")
 PY
 
 echo "===== V45 WEB ASSETS ====="
