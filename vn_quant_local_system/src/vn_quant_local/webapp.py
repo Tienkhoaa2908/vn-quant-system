@@ -6,7 +6,12 @@ import json
 from typing import Callable, Mapping
 from urllib.parse import parse_qs, urlparse
 
-from .broker_portfolio import latest_broker_portfolio, sync_broker_portfolio
+from .broker_portfolio import (
+    broker_account_options,
+    latest_broker_portfolio,
+    select_broker_account,
+    sync_broker_portfolio,
+)
 from .capital_plan import (
     capital_plan_history,
     create_capital_plan,
@@ -24,6 +29,7 @@ from .data_sources import (
     credential_status,
     import_manual_csv,
     install_dnse_sdk,
+    market_source_integrity_status,
     save_credentials,
     sync_incremental_market_data_local,
     test_dnse_connection,
@@ -65,6 +71,13 @@ def _friendly_error(exc: Exception) -> dict[str, object]:
         message = "Phiên bản DNSE SDK không đúng 0.5.0. Bấm 'Cài/Sửa DNSE runtime'."
     elif "DNSE_RUNTIME_INSTALL" in text:
         message = "Không cài được DNSE SDK hoặc tzdata. Kiểm tra Internet rồi thử lại."
+    elif "DNSE_ACCOUNT_SELECTION_REQUIRED" in text:
+        message = (
+            "Có nhiều tiểu khoản cơ sở có thể đọc. Chọn đúng tiểu khoản "
+            "trong khối DNSE Source Integrity rồi đồng bộ lại."
+        )
+    elif "DNSE_ACCOUNT_SELECTION" in text:
+        message = "Không chọn được tiểu khoản DNSE. Tải lại danh sách tiểu khoản rồi thử lại."
     elif "DNSE_ACCOUNT_LIST_EMPTY" in text:
         message = "DNSE xác thực được nhưng danh sách tiểu khoản không có mã định danh hợp lệ."
     elif "DNSE_ACCOUNT_READ_FAILED" in text:
@@ -103,6 +116,13 @@ def _sync_broker_and_refresh() -> dict[str, object]:
     status = performance_status()
     if status.get("status") == "ACTIVE":
         refresh_performance()
+    return result
+
+
+def _select_broker_and_refresh(selection_token: str) -> dict[str, object]:
+    selection = select_broker_account(selection_token)
+    result = _sync_broker_and_refresh()
+    result["selection"] = selection
     return result
 
 
@@ -154,8 +174,6 @@ def _plan_and_refresh(
     trigger_type: str | None,
     note: str | None,
 ) -> dict[str, object]:
-    # Fail closed: kế hoạch mới phải dùng dữ liệu giá và broker snapshot vừa được
-    # đồng bộ, sau đó capital_plan tự khóa canonical + preview snapshot.
     market_sync = sync_incremental_market_data_local()
     broker_sync = sync_broker_portfolio()
     result = create_capital_plan(
@@ -177,7 +195,7 @@ def _plan_and_refresh(
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "VNQuantLocal/1.8"
+    server_version = "VNQuantLocal/1.9"
 
     def _send(self, status: int, payload: bytes, content_type: str) -> None:
         self.send_response(status)
@@ -234,6 +252,8 @@ class Handler(BaseHTTPRequestHandler):
                 "/planning_v46.css",
                 "/signal_v47.js",
                 "/signal_v47.css",
+                "/source_integrity_v49.js",
+                "/source_integrity_v49.css",
             }:
                 self._static(path.lstrip("/"))
             elif path == "/api/status":
@@ -247,8 +267,12 @@ class Handler(BaseHTTPRequestHandler):
                 self._send_json(value)
             elif path == "/api/data-source":
                 self._send_json(credential_status())
+            elif path == "/api/source-integrity":
+                self._send_json(market_source_integrity_status())
             elif path == "/api/broker":
                 self._send_json(latest_broker_portfolio() or {})
+            elif path == "/api/broker/accounts":
+                self._send_json(broker_account_options())
             elif path == "/api/account":
                 self._send_json(account_snapshot())
             elif path == "/api/plan/latest":
@@ -314,6 +338,12 @@ class Handler(BaseHTTPRequestHandler):
             }
             if path in actions:
                 self._send_json(actions[path]())
+            elif path == "/api/broker/select-account":
+                self._send_json(
+                    _select_broker_and_refresh(
+                        str(body.get("selection_token") or "")
+                    )
+                )
             elif path == "/api/performance/start":
                 classifications = body.get("classifications", {})
                 if not isinstance(classifications, Mapping):
