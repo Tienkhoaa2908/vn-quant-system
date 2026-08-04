@@ -38,21 +38,77 @@ def _mask_account(value: str) -> str:
 
 
 def _account_id(account: Mapping[str, object]) -> str:
-    for key in ("id", "accountNo", "account_no", "accountId", "investorAccountId"):
+    for key in (
+        "id",
+        "accountNo",
+        "account_no",
+        "accountId",
+        "investorAccountId",
+        "investor_account_id",
+    ):
         value = str(account.get(key) or "").strip()
         if value:
             return value
     return ""
 
 
-def _is_derivative(account: Mapping[str, object]) -> bool:
-    if bool(account.get("derivativeAccount")):
-        return True
-    text = " ".join(
+def _account_type_text(account: Mapping[str, object]) -> str:
+    return " ".join(
         str(account.get(key) or "")
-        for key in ("accountType", "accountTypeName", "type", "name")
-    ).upper()
-    return "DERIV" in text or "PHÁI SINH" in text or "PHAI SINH" in text
+        for key in (
+            "accountType",
+            "accountTypeName",
+            "account_type",
+            "account_type_name",
+            "type",
+            "name",
+        )
+    ).strip()
+
+
+def _is_explicit_derivative_account(account: Mapping[str, object]) -> bool:
+    """Chỉ loại tài khoản được mô tả rõ là tài khoản phái sinh.
+
+    Trường ``derivativeAccount`` trong payload DNSE biểu thị khách hàng đã đăng
+    ký giao dịch phái sinh, không phải bản thân tiểu khoản đang xét là tiểu khoản
+    phái sinh. Vì vậy tuyệt đối không dùng boolean đó để loại tài khoản cơ sở.
+    """
+
+    text = _account_type_text(account).upper()
+    return any(
+        marker in text
+        for marker in (
+            "DERIVATIVE",
+            "DERIVATIVES",
+            "DERIV",
+            "PHÁI SINH",
+            "PHAI SINH",
+        )
+    )
+
+
+def _candidate_accounts(
+    raw_accounts: Sequence[Mapping[str, object]],
+) -> tuple[list[Mapping[str, object]], str]:
+    identified = [account for account in raw_accounts if _account_id(account)]
+    if not identified:
+        return [], "NO_IDENTIFIED_ACCOUNT"
+    non_derivative = [
+        account for account in identified if not _is_explicit_derivative_account(account)
+    ]
+    if non_derivative:
+        return non_derivative, "EXCLUDE_EXPLICIT_DERIVATIVE_TYPES"
+    return identified, "FALLBACK_ALL_IDENTIFIED_ACCOUNTS"
+
+
+def _account_diagnostic(account: Mapping[str, object]) -> dict[str, object]:
+    account_no = _account_id(account)
+    return {
+        "masked_account": _mask_account(account_no),
+        "account_type_name": _account_type_text(account) or None,
+        "derivative_registration_flag": account.get("derivativeAccount"),
+        "explicit_derivative_type": _is_explicit_derivative_account(account),
+    }
 
 
 def _find_number(payload: object, names: Sequence[str]) -> float | None:
@@ -76,7 +132,13 @@ def _find_number(payload: object, names: Sequence[str]) -> float | None:
 
 
 def _normalize_position(raw: Mapping[str, object]) -> dict[str, object] | None:
-    symbol = str(raw.get("symbol") or raw.get("instrument") or raw.get("ticker") or "").strip().upper()
+    symbol = str(
+        raw.get("symbol")
+        or raw.get("instrument")
+        or raw.get("ticker")
+        or raw.get("securitySymbol")
+        or ""
+    ).strip().upper()
     if not symbol:
         return None
     quantity = _int(
@@ -92,6 +154,7 @@ def _normalize_position(raw: Mapping[str, object]) -> dict[str, object] | None:
         raw.get("tradeQuantity")
         or raw.get("availableQuantity")
         or raw.get("sellableQuantity")
+        or raw.get("available")
         or quantity
     )
     return {
@@ -105,7 +168,10 @@ def _normalize_position(raw: Mapping[str, object]) -> dict[str, object] | None:
             or raw.get("breakEvenPrice")
         ),
         "broker_market_price_vnd": _float(
-            raw.get("marketPrice") or raw.get("currentPrice") or raw.get("price")
+            raw.get("marketPrice")
+            or raw.get("currentPrice")
+            or raw.get("price")
+            or raw.get("closePrice")
         ),
     }
 
@@ -191,9 +257,9 @@ def sync_broker_portfolio() -> dict[str, object]:
     reader, credential_source = reader_from_saved_credentials()
     try:
         raw_accounts = reader.accounts()
-        accounts = [account for account in raw_accounts if _account_id(account) and not _is_derivative(account)]
+        accounts, account_selection_mode = _candidate_accounts(raw_accounts)
         if not accounts:
-            raise ValueError("DNSE_STOCK_ACCOUNTS_EMPTY")
+            raise ValueError("DNSE_ACCOUNT_LIST_EMPTY")
 
         raw_by_symbol: dict[str, list[dict[str, object]]] = defaultdict(list)
         masked_accounts: list[str] = []
@@ -202,27 +268,65 @@ def sync_broker_portfolio() -> dict[str, object]:
         withdrawable_values: list[float] = []
         stock_values: list[float] = []
         nav_values: list[float] = []
+        account_diagnostics: list[dict[str, object]] = []
+        readable_account_count = 0
 
         for account in accounts:
             account_no = _account_id(account)
+            diagnostic = _account_diagnostic(account)
+            balance: object = {}
+            positions_payload: list[Mapping[str, object]] = []
+            balance_ok = False
+            positions_ok = False
+
+            try:
+                balance = reader.balances(account_no)
+                balance_ok = True
+            except Exception as exc:
+                diagnostic["balance_error"] = f"{type(exc).__name__}:{exc}"
+
+            try:
+                positions_payload = reader.positions(account_no)
+                positions_ok = True
+            except Exception as exc:
+                diagnostic["positions_error"] = f"{type(exc).__name__}:{exc}"
+
+            diagnostic["balance_ok"] = balance_ok
+            diagnostic["positions_ok"] = positions_ok
+            diagnostic["position_payload_count"] = len(positions_payload)
+            account_diagnostics.append(diagnostic)
+
+            if not (balance_ok or positions_ok):
+                continue
+
+            readable_account_count += 1
             masked_accounts.append(_mask_account(account_no))
-            balance = reader.balances(account_no)
-            total_cash_values.append(_find_number(balance, ("totalCash",)) or 0.0)
-            available_value = _find_number(balance, ("availableCash",))
-            withdrawable_value = _find_number(balance, ("withdrawableCash",))
-            if available_value is not None:
-                available_cash_values.append(max(available_value, 0.0))
-            if withdrawable_value is not None:
-                withdrawable_values.append(max(withdrawable_value, 0.0))
-            stock_values.append(_find_number(balance, ("stockValue",)) or 0.0)
-            nav_values.append(_find_number(balance, ("netAssetValue",)) or 0.0)
-            for raw in reader.positions(account_no):
-                normalized = _normalize_position(raw)
-                if normalized is not None:
-                    normalized["masked_account"] = _mask_account(account_no)
-                    raw_by_symbol[str(normalized["symbol"])].append(normalized)
+
+            if balance_ok:
+                total_cash_values.append(_find_number(balance, ("totalCash",)) or 0.0)
+                available_value = _find_number(balance, ("availableCash",))
+                withdrawable_value = _find_number(balance, ("withdrawableCash",))
+                if available_value is not None:
+                    available_cash_values.append(max(available_value, 0.0))
+                if withdrawable_value is not None:
+                    withdrawable_values.append(max(withdrawable_value, 0.0))
+                stock_values.append(_find_number(balance, ("stockValue",)) or 0.0)
+                nav_values.append(_find_number(balance, ("netAssetValue",)) or 0.0)
+
+            if positions_ok:
+                for raw in positions_payload:
+                    normalized = _normalize_position(raw)
+                    if normalized is not None:
+                        normalized["masked_account"] = _mask_account(account_no)
+                        raw_by_symbol[str(normalized["symbol"])].append(normalized)
     finally:
         reader.close()
+
+    if readable_account_count <= 0:
+        raise ValueError(
+            "DNSE_ACCOUNT_READ_FAILED:"
+            + json.dumps(account_diagnostics, ensure_ascii=False, sort_keys=True)
+        )
 
     market_day, local_prices = _local_prices(list(raw_by_symbol))
     positions: list[dict[str, object]] = []
@@ -280,37 +384,53 @@ def sync_broker_portfolio() -> dict[str, object]:
     captured_at = utc_now()
     details = {
         "credential_source": credential_source,
-        "account_count": len(accounts),
-        "masked_accounts": sorted(masked_accounts),
+        "raw_account_count": len(raw_accounts),
+        "candidate_account_count": len(accounts),
+        "readable_account_count": readable_account_count,
+        "account_selection_mode": account_selection_mode,
+        "masked_accounts": sorted(set(masked_accounts)),
+        "account_diagnostics": account_diagnostics,
         "broker_reported_stock_value_vnd": broker_stock_value,
         "valuation_source": "LOCAL_EOD_CLOSE_FALLBACK_BROKER_PRICE",
+        "derivative_registration_flag_is_not_account_type": True,
         "read_only": True,
     }
     with state_db() as db:
         _ensure_schema(db)
         db.execute(
-            """
-            INSERT INTO broker_snapshots VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)
-            """,
+            "INSERT INTO broker_snapshots VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (
-                snapshot_id, captured_at, "DNSE_OPENAPI_READ_ONLY",
-                json.dumps(sorted(masked_accounts), ensure_ascii=False),
-                total_cash, available_cash, withdrawable_cash, planner_cash,
-                stock_value, nav, len(positions), market_day,
+                snapshot_id,
+                captured_at,
+                "DNSE_OPENAPI_READ_ONLY",
+                json.dumps(sorted(set(masked_accounts)), ensure_ascii=False),
+                total_cash,
+                available_cash,
+                withdrawable_cash,
+                planner_cash,
+                stock_value,
+                nav,
+                len(positions),
+                market_day,
                 json.dumps(details, ensure_ascii=False, sort_keys=True),
             ),
         )
         db.executemany(
-            """
-            INSERT INTO broker_positions VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
-            """,
+            "INSERT INTO broker_positions VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
             [
                 (
-                    snapshot_id, row["symbol"], row["quantity"], row["sellable_quantity"],
-                    row["average_cost_vnd"], row["broker_market_price_vnd"],
-                    row["local_market_price_vnd"], row["valuation_price_vnd"],
-                    row["market_value_vnd"], row["unrealized_pnl_vnd"],
-                    row["unrealized_pnl_pct"], row["account_count"],
+                    snapshot_id,
+                    row["symbol"],
+                    row["quantity"],
+                    row["sellable_quantity"],
+                    row["average_cost_vnd"],
+                    row["broker_market_price_vnd"],
+                    row["local_market_price_vnd"],
+                    row["valuation_price_vnd"],
+                    row["market_value_vnd"],
+                    row["unrealized_pnl_vnd"],
+                    row["unrealized_pnl_pct"],
+                    row["account_count"],
                 )
                 for row in positions
             ],
@@ -346,7 +466,11 @@ def latest_broker_portfolio() -> dict[str, object] | None:
         positions = [
             dict(row)
             for row in db.execute(
-                "SELECT * FROM broker_positions WHERE snapshot_id=? ORDER BY market_value_vnd DESC,symbol",
+                """
+                SELECT * FROM broker_positions
+                WHERE snapshot_id=?
+                ORDER BY market_value_vnd DESC,symbol
+                """,
                 (snapshot["snapshot_id"],),
             ).fetchall()
         ]
@@ -355,6 +479,10 @@ def latest_broker_portfolio() -> dict[str, object] | None:
     result["details"] = json.loads(str(result.pop("details_json")))
     result["positions"] = positions
     result["status"] = "SUCCESS"
+    result["message"] = (
+        f"Đã đồng bộ {result['position_count']} mã từ "
+        f"{result['details'].get('readable_account_count', 0)} tiểu khoản đọc được."
+    )
     result["research_only"] = True
     result["automatic_live_orders_allowed"] = False
     return result
