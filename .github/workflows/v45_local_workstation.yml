@@ -1,4 +1,4 @@
-name: v47_local_workstation
+name: v48_local_workstation
 
 on:
   push:
@@ -44,3 +44,5 @@ jobs:
           grep -q 'signal_v47.js' vn_quant_local_system/web/index.html
           grep -q 'LATEST_SESSION_WITH_CANONICAL_WEIGHTS' vn_quant_local_system/src/vn_quant_local/signal_refresh.py
           grep -q 'CANONICAL_TOP10_AND_PREVIEW_TOP20_ELIGIBLE' vn_quant_local_system/src/vn_quant_local/signal_refresh.py
+          grep -q 'V48_AUDITABLE_EVENT_CORRECTIONS' vn_quant_local_system/src/vn_quant_local/performance_corrections.py
+          grep -q 'Sửa có audit' vn_quant_local_system/web/signal_v47.js
