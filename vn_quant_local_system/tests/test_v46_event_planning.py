@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
+from datetime import datetime
 import json
 from pathlib import Path
 import sqlite3
@@ -8,7 +9,10 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from vn_quant_local.capital_plan import _ensure_schema as ensure_capital_schema
+from vn_quant_local.capital_plan import (
+    _ensure_schema as ensure_capital_schema,
+    _recent_duplicate,
+)
 from vn_quant_local import performance
 from vn_quant_local.performance_safety import select_plans_after_opening
 
@@ -66,19 +70,14 @@ class V46EventPlanningTests(unittest.TestCase):
                         plan = {
                             "plan_id": f"plan-{index}",
                             "buy_orders": [
-                                {
-                                    "symbol": "FPT",
-                                    "quantity": index,
-                                }
+                                {"symbol": "FPT", "quantity": index}
                             ],
                             "position_reviews": [],
                             "exit_candidates": [],
                             "rationale": {"maximum_buy_orders": 3},
                         }
                         db.execute(
-                            """
-                            INSERT INTO capital_plans VALUES(?,?,?,?,?,?,?,?,?,?)
-                            """,
+                            "INSERT INTO capital_plans VALUES(?,?,?,?,?,?,?,?,?,?)",
                             (
                                 f"cycle-{index}",
                                 f"plan-{index}",
@@ -127,9 +126,6 @@ class V46EventPlanningTests(unittest.TestCase):
             with patch(
                 "vn_quant_local.performance_safety.state_db",
                 temporary_state_db,
-            ), patch(
-                "vn_quant_local.capital_plan.state_db",
-                temporary_state_db,
             ):
                 with temporary_state_db() as db:
                     performance._ensure_schema(db)
@@ -157,6 +153,56 @@ class V46EventPlanningTests(unittest.TestCase):
                         "SELECT COUNT(*) FROM performance_shadow_plans"
                     ).fetchone()[0]
             self.assertEqual(count, 0)
+
+    def test_duplicate_guard_returns_existing_cycle(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database = Path(directory) / "state.sqlite3"
+
+            @contextmanager
+            def temporary_state_db():
+                db = sqlite3.connect(database)
+                db.row_factory = sqlite3.Row
+                try:
+                    yield db
+                    db.commit()
+                finally:
+                    db.close()
+
+            existing = {
+                "cycle_id": "cycle-existing",
+                "plan_id": "plan-existing",
+                "rationale": {"maximum_buy_orders": 3},
+            }
+            with patch(
+                "vn_quant_local.capital_plan.state_db",
+                temporary_state_db,
+            ):
+                with temporary_state_db() as db:
+                    ensure_capital_schema(db)
+                    db.execute(
+                        "INSERT INTO capital_plans VALUES(?,?,?,?,?,?,?,?,?,?)",
+                        (
+                            "cycle-existing",
+                            "plan-existing",
+                            datetime.now().astimezone().isoformat(timespec="seconds"),
+                            "NEW_CAPITAL",
+                            250_000.0,
+                            "broker-test",
+                            "2026-08-04",
+                            "model-test",
+                            None,
+                            json.dumps(existing),
+                        ),
+                    )
+                duplicate = _recent_duplicate(
+                    amount=250_000.0,
+                    trigger="NEW_CAPITAL",
+                    broker_snapshot_id="broker-test",
+                    maximum_buy_orders=3,
+                )
+            self.assertIsNotNone(duplicate)
+            self.assertEqual(duplicate["status"], "ALREADY_CREATED")
+            self.assertTrue(duplicate["duplicate_prevented"])
 
 
 if __name__ == "__main__":
