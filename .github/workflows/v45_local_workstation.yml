@@ -1,0 +1,43 @@
+name: v45_local_workstation
+
+on:
+  push:
+    branches:
+      - agent/v44-local-quant-workstation
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile workstation
+        env:
+          PYTHONPATH: vn_quant_local_system/src:src
+        run: >-
+          python -m compileall -q
+          vn_quant_local_system/src
+          vn_quant_local_system/tests
+      - name: Run workstation tests
+        env:
+          PYTHONPATH: vn_quant_local_system/src:src
+        run: >-
+          python -m unittest discover
+          -s vn_quant_local_system/tests
+          -p 'test_*.py'
+          -v
+      - name: Check JavaScript syntax
+        run: |
+          node --check vn_quant_local_system/web/app.js
+          node --check vn_quant_local_system/web/sell_review_v44_5.js
+          node --check vn_quant_local_system/web/performance_v45.js
+      - name: Verify V45 assets
+        run: |
+          grep -q 'performance_v45.css' vn_quant_local_system/web/index.html
+          grep -q 'performance_v45.js' vn_quant_local_system/web/index.html
+          grep -q 'V45_LIVE_PERFORMANCE_OBSERVATORY' vn_quant_local_system/src/vn_quant_local/performance.py
