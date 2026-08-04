@@ -95,8 +95,11 @@
     if (!target) return;
     const sync = sourceSync(integrity);
     const presentation = freshnessPresentation(sync.source_freshness);
-    const ratio = Number(sync.expected_session_stock_coverage_ratio || 0);
-    const coverage = ratio > 0 ? `${(ratio * 100).toFixed(1)}%` : '—';
+    const ratioRaw = sync.expected_session_stock_coverage_ratio;
+    const ratio = Number(ratioRaw || 0);
+    const coverage = ratioRaw === null || ratioRaw === undefined
+      ? '—'
+      : `${(ratio * 100).toFixed(1)}%`;
     target.innerHTML = `
       <div class="v49-integrity-banner ${presentation.cls}">
         <div>
@@ -194,8 +197,13 @@
     ensureIntegrityPanels();
     const target = document.querySelector('#v49-broker-summary');
     if (!target) return;
+    const version = broker?.version || broker?.details?.version;
     if (!broker || broker.status !== 'SUCCESS') {
       target.innerHTML = '';
+      return;
+    }
+    if (version !== VERSION) {
+      target.innerHTML = '<div class="notice warn">Snapshot hiện tại được tạo trước V49. Bấm Đồng bộ danh mục DNSE để tạo snapshot theo parser mới.</div>';
       return;
     }
     const details = broker.details || {};
@@ -203,7 +211,7 @@
     target.innerHTML = `
       <div class="v49-integrity-banner current">
         <div><div class="v49-state">Snapshot broker: ${esc(selected)}</div><div class="v49-source-note">Gọi API lúc ${esc(broker.captured_at || '—')} · ${esc(broker.source_freshness || 'BROKER_SNAPSHOT')}</div></div>
-        <div class="v49-freshness-technical">${esc(broker.version || details.version || 'LEGACY')}</div>
+        <div class="v49-freshness-technical">${esc(version)}</div>
       </div>
       <div class="v49-integrity-grid">
         <article class="v49-integrity-card"><span>Tiền khả dụng DNSE</span><strong>${money(broker.available_cash_vnd)}</strong><small>Planner dùng số này</small></article>
@@ -211,7 +219,7 @@
         <article class="v49-integrity-card"><span>Planner cash</span><strong>${money(broker.planner_cash_vnd)}</strong><small>${esc(details.planner_cash_source || 'LEGACY')}</small></article>
         <article class="v49-integrity-card"><span>Broker NAV</span><strong>${money(broker.broker_nav_vnd || broker.net_asset_value_vnd)}</strong><small>Giá broker tại lúc gọi API</small></article>
         <article class="v49-integrity-card"><span>Research EOD NAV</span><strong>${money(broker.research_eod_nav_vnd)}</strong><small>Close local ngày ${esc(broker.market_day || '—')}</small></article>
-        <article class="v49-integrity-card"><span>Vị thế mở</span><strong>${fmtNum(broker.position_count || 0,0)} mã</strong><small>Không dùng accumulateQuantity lịch sử khi openQuantity = 0</small></article>
+        <article class="v49-integrity-card"><span>Vị thế mở</span><strong>${fmtNum(broker.position_count || 0,0)} mã</strong><small>Không dùng accumulateQuantity khi openQuantity = 0</small></article>
       </div>`;
   }
 
@@ -270,11 +278,5 @@
     renderIntegrity(data?.data_source?.source_integrity || {});
   };
 
-  const observer = new MutationObserver(() => {
-    ensureIntegrityPanels();
-    const integrity = latestState?.data_source?.source_integrity;
-    if (integrity) renderIntegrity(integrity);
-  });
-  observer.observe(document.body, {childList: true, subtree: true});
   ensureIntegrityPanels();
 })();
