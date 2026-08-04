@@ -41,7 +41,6 @@ function renderPositionReviews(rows=[]) {
   }).join('')}</div>`;
 }
 
-/* V46: kế hoạch theo sự kiện vốn, không phụ thuộc tuần. */
 function renderPlan(plan, targetSelector='#plan-content') {
   const el=$(targetSelector); if(!el)return;
   if(!plan||!Object.keys(plan).length){el.innerHTML='<div class="empty">Chưa có kế hoạch vốn.</div>';return;}
@@ -70,27 +69,31 @@ function dashboardActionSummary(name, data) {
 }
 
 (() => {
+  const setText=(el,text)=>{if(el&&el.textContent!==text)el.textContent=text;};
   function rewriteLabels(){
-    const subtitle=document.querySelector('.subtitle'); if(subtitle) subtitle.textContent='C3 monthly ranking · DNSE read-only portfolio · event-driven capital planner';
-    const planTab=document.querySelector('[data-tab="plan"]'); if(planTab) planTab.textContent='Kế hoạch vốn';
+    setText(document.querySelector('.subtitle'),'C3 monthly ranking · DNSE read-only portfolio · event-driven capital planner');
+    setText(document.querySelector('[data-tab="plan"]'),'Kế hoạch vốn');
     const budget=document.querySelector('.budget-panel');
     if(budget){
-      const eyebrow=budget.querySelector('.eyebrow'); if(eyebrow) eyebrow.textContent='TẠO KẾ HOẠCH BẤT KỲ LÚC NÀO';
-      const h2=budget.querySelector('h2'); if(h2) h2.textContent='Tiền mới cho lần lập kế hoạch này';
-      const p=budget.querySelector('.section-head p:not(.eyebrow)'); if(p) p.textContent='Nhập số tiền mới dự kiến đưa vào. Hệ thống cộng với tiền khả dụng DNSE và tạo một capital cycle ngay lúc bấm.';
-      const label=budget.querySelector('label'); if(label && label.firstChild) label.firstChild.textContent='Tiền mới dự kiến (VND) ';
-      const save=document.querySelector('#save-budget'); if(save) save.textContent='Lưu mức mặc định';
-      budget.querySelectorAll('[data-action="plan"]').forEach(b=>b.textContent='Tạo kế hoạch ngay');
+      setText(budget.querySelector('.eyebrow'),'TẠO KẾ HOẠCH BẤT KỲ LÚC NÀO');
+      setText(budget.querySelector('h2'),'Tiền mới cho lần lập kế hoạch này');
+      setText(budget.querySelector('.section-head p:not(.eyebrow)'),'Nhập số tiền mới dự kiến đưa vào. Hệ thống cộng với tiền khả dụng DNSE và tạo một capital cycle ngay lúc bấm.');
+      const label=budget.querySelector('label');
+      if(label&&label.firstChild&&label.firstChild.nodeValue!=='Tiền mới dự kiến (VND) ') label.firstChild.nodeValue='Tiền mới dự kiến (VND) ';
+      setText(document.querySelector('#save-budget'),'Lưu mức mặc định');
+      budget.querySelectorAll('[data-action="plan"]').forEach(b=>setText(b,'Tạo kế hoạch ngay'));
     }
-    document.querySelectorAll('[data-action="plan"]').forEach(b=>{ if(!b.closest('.budget-panel')) b.textContent=b.textContent.replace('tuần','vốn').replace('Tuần','Vốn'); });
-    document.querySelectorAll('h2,h3,p,span,small').forEach(el=>{
-      if(el.children.length) return;
-      el.textContent=el.textContent
+    document.querySelectorAll('[data-action="plan"]').forEach(b=>{if(!b.closest('.budget-panel'))setText(b,b.textContent.replace('tuần','vốn').replace('Tuần','Vốn'));});
+    document.querySelectorAll('h2,h3,p,span,small,.label').forEach(el=>{
+      if(el.children.length)return;
+      const next=el.textContent
         .replace('Kế hoạch tuần gần nhất','Kế hoạch vốn gần nhất')
         .replace('Kế hoạch mua và rà soát bán','Kế hoạch vốn và rà soát danh mục')
+        .replace('Ngân sách tuần','Tiền mới mặc định')
         .replace('Plan đầu tiên mỗi tuần','Mỗi capital cycle')
         .replace('plan đầu tiên mỗi tuần','mỗi capital cycle')
         .replace('Tuần 1, chuyển khoản','Lần nạp vốn, chuyển khoản');
+      setText(el,next);
     });
   }
 
@@ -99,7 +102,7 @@ function dashboardActionSummary(name, data) {
     const content=document.querySelector('#market-overview-content');
     if(!content)return;
     try{
-      if(notice) notice.textContent='Đang tải ranking thị trường...';
+      setText(notice,'Đang tải ranking thị trường...');
       const data=await api('/api/market-overview?limit=30');
       const m=data.market||{};
       const regime=m.market_risk_on?'Risk-on':'Risk-off';
@@ -109,19 +112,20 @@ function dashboardActionSummary(name, data) {
       };
       render(30);
       content.querySelectorAll('[data-market-limit]').forEach(btn=>btn.onclick=()=>{content.querySelectorAll('[data-market-limit]').forEach(x=>x.classList.remove('active'));btn.classList.add('active');render(Number(btn.dataset.marketLimit));});
-      if(notice) notice.textContent=`${data.model_id||'C3'} · cập nhật ${data.run?.finished_at||'-'}`;
-    }catch(e){ if(notice) notice.textContent=e.message; content.innerHTML='<div class="empty">Không tải được tổng quan thị trường.</div>'; }
+      setText(notice,`${data.model_id||'C3'} · cập nhật ${data.run?.finished_at||'-'}`);
+    }catch(e){setText(notice,e.message);content.innerHTML='<div class="empty">Không tải được tổng quan thị trường.</div>';}
   }
 
   const nav=document.querySelector('.tabs-nav');
   const docs=document.querySelector('[data-tab="docs"]');
-  if(nav && !document.querySelector('[data-v46-market]')){
-    const button=document.createElement('button'); button.textContent='Thị trường'; button.dataset.v46Market='true'; nav.insertBefore(button,docs||null);
-    const section=document.createElement('section'); section.id='market-overview'; section.className='tab'; section.innerHTML='<div class="section-head"><div><p class="eyebrow">READ-ONLY MARKET OVERVIEW</p><h2>Tổng quan thị trường và Top C3</h2><p>Xem ranking bất kỳ lúc nào, tách hoàn toàn khỏi quyết định mua bán.</p></div><button id="market-overview-refresh" class="secondary">Làm mới thị trường</button></div><div id="market-overview-notice" class="notice">Chưa tải.</div><div id="market-overview-content"></div>';
-    const docsSection=document.querySelector('#docs'); docsSection?.parentNode?.insertBefore(section,docsSection);
+  if(nav&&!document.querySelector('[data-v46-market]')){
+    const button=document.createElement('button');button.textContent='Thị trường';button.dataset.v46Market='true';nav.insertBefore(button,docs||null);
+    const section=document.createElement('section');section.id='market-overview';section.className='tab';section.innerHTML='<div class="section-head"><div><p class="eyebrow">READ-ONLY MARKET OVERVIEW</p><h2>Tổng quan thị trường và Top C3</h2><p>Xem ranking bất kỳ lúc nào, tách hoàn toàn khỏi quyết định mua bán.</p></div><button id="market-overview-refresh" class="secondary">Làm mới thị trường</button></div><div id="market-overview-notice" class="notice">Chưa tải.</div><div id="market-overview-content"></div>';
+    const docsSection=document.querySelector('#docs');docsSection?.parentNode?.insertBefore(section,docsSection);
     button.onclick=()=>{document.querySelectorAll('.tabs-nav button').forEach(x=>x.classList.remove('active'));document.querySelectorAll('main > .tab').forEach(x=>x.classList.remove('active'));button.classList.add('active');section.classList.add('active');loadMarket();};
     section.querySelector('#market-overview-refresh').onclick=loadMarket;
   }
+  const originalRenderStatus=renderStatus;
+  renderStatus=function(data){originalRenderStatus(data);rewriteLabels();};
   rewriteLabels();
-  new MutationObserver(rewriteLabels).observe(document.body,{subtree:true,childList:true});
 })();
