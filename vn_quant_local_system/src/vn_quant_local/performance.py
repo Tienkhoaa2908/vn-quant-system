@@ -1,13 +1,13 @@
 """V45 Live Performance Observatory.
 
-Theo dõi bốn lớp tách biệt:
+Bốn lớp được tách riêng:
 
 * toàn bộ tài khoản DNSE từ snapshot read-only;
 * actual model sleeve từ opening classification, dòng tiền và fill đã xác nhận;
-* plan shadow thực thi output kế hoạch đầu tiên mỗi tuần tại T+1 open;
+* plan shadow thực thi plan đầu tiên mỗi ISO week tại giá mở cửa T+1;
 * VNINDEX benchmark nhận cùng dòng tiền với shadow.
 
-Không suy diễn giá khớp thật từ average cost của broker và không gửi lệnh.
+Không suy diễn giá khớp thật từ average cost và không gửi lệnh broker.
 """
 from __future__ import annotations
 
@@ -46,7 +46,6 @@ def _ensure_schema(db: sqlite3.Connection) -> None:
             sell_tax_bps REAL NOT NULL,
             details_json TEXT NOT NULL
         );
-
         CREATE TABLE IF NOT EXISTS performance_opening_positions(
             symbol TEXT PRIMARY KEY,
             classification TEXT NOT NULL,
@@ -55,7 +54,6 @@ def _ensure_schema(db: sqlite3.Connection) -> None:
             opening_value_vnd REAL NOT NULL,
             details_json TEXT NOT NULL
         );
-
         CREATE TABLE IF NOT EXISTS performance_events(
             event_id TEXT PRIMARY KEY,
             event_time TEXT NOT NULL,
@@ -77,7 +75,6 @@ def _ensure_schema(db: sqlite3.Connection) -> None:
         );
         CREATE INDEX IF NOT EXISTS idx_performance_events_day
         ON performance_events(event_day,event_type);
-
         CREATE TABLE IF NOT EXISTS performance_shadow_plans(
             week_key TEXT PRIMARY KEY,
             plan_id TEXT NOT NULL,
@@ -87,7 +84,6 @@ def _ensure_schema(db: sqlite3.Connection) -> None:
             planned_contribution_vnd REAL NOT NULL,
             details_json TEXT NOT NULL
         );
-
         CREATE TABLE IF NOT EXISTS performance_shadow_trades(
             trade_id TEXT PRIMARY KEY,
             plan_id TEXT NOT NULL,
@@ -102,7 +98,6 @@ def _ensure_schema(db: sqlite3.Connection) -> None:
             taxes_vnd REAL NOT NULL,
             details_json TEXT NOT NULL
         );
-
         CREATE TABLE IF NOT EXISTS performance_nav(
             stream TEXT NOT NULL,
             valuation_day TEXT NOT NULL,
@@ -136,8 +131,7 @@ def _config() -> dict[str, object] | None:
 def _iso_day(value: object | None) -> str:
     if value in (None, ""):
         return datetime.now().astimezone().date().isoformat()
-    text = str(value)
-    return date.fromisoformat(text[:10]).isoformat()
+    return date.fromisoformat(str(value)[:10]).isoformat()
 
 
 def _market_connection() -> sqlite3.Connection:
@@ -148,17 +142,15 @@ def _market_connection() -> sqlite3.Connection:
 
 def _market_days() -> list[str]:
     with _market_connection() as db:
-        return [
-            str(row[0])
-            for row in db.execute(
-                """
-                SELECT day FROM bars
-                WHERE upper(asset_type)='INDEX'
-                  AND upper(symbol) IN ('VNINDEX','VN-INDEX','VN_INDEX')
-                ORDER BY day
-                """
-            ).fetchall()
-        ]
+        rows = db.execute(
+            """
+            SELECT day FROM bars
+            WHERE upper(asset_type)='INDEX'
+              AND upper(symbol) IN ('VNINDEX','VN-INDEX','VN_INDEX')
+            ORDER BY day
+            """
+        ).fetchall()
+    return [str(row[0]) for row in rows]
 
 
 def _latest_market_day() -> str:
@@ -182,13 +174,39 @@ def _next_session(after_day: str) -> str | None:
     return str(row[0]) if row and row[0] else None
 
 
-def _price(symbol: str, day: str, field: str = "close") -> float | None:
-    if field not in {"open", "close"}:
-        raise ValueError("field must be open or close")
-    asset = "INDEX" if symbol.upper() in {"VNINDEX", "VN-INDEX", "VN_INDEX"} else "STOCK"
-    multiplier = 1.0 if asset == "INDEX" else float(
+def _asset(symbol: str) -> tuple[str, float]:
+    is_index = symbol.upper() in {"VNINDEX", "VN-INDEX", "VN_INDEX"}
+    multiplier = 1.0 if is_index else float(
         load_config().get("model", {}).get("price_multiplier", 1000.0)
     )
+    return ("INDEX" if is_index else "STOCK", multiplier)
+
+
+def _price_exact(symbol: str, day: str, field: str = "close") -> float | None:
+    if field not in {"open", "close"}:
+        raise ValueError("field must be open or close")
+    asset, multiplier = _asset(symbol)
+    with _market_connection() as db:
+        row = db.execute(
+            f"""
+            SELECT {field} FROM bars
+            WHERE upper(asset_type)=? AND upper(symbol)=? AND day=?
+            LIMIT 1
+            """,
+            (asset, symbol.upper(), day),
+        ).fetchone()
+    if row is None or row[0] is None:
+        return None
+    value = float(row[0]) * multiplier
+    return value if math.isfinite(value) and value > 0 else None
+
+
+def _price_on_or_before(
+    symbol: str, day: str, field: str = "close"
+) -> float | None:
+    if field not in {"open", "close"}:
+        raise ValueError("field must be open or close")
+    asset, multiplier = _asset(symbol)
     with _market_connection() as db:
         row = db.execute(
             f"""
@@ -205,7 +223,12 @@ def _price(symbol: str, day: str, field: str = "close") -> float | None:
 
 
 def _event_hash(payload: Mapping[str, object]) -> str:
-    raw = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    raw = json.dumps(
+        payload,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
     return sha256(raw.encode("utf-8")).hexdigest()
 
 
@@ -236,7 +259,9 @@ def _append_event(
         "symbol": symbol.upper() if symbol else None,
         "side": side,
         "quantity": int(quantity) if quantity is not None else None,
-        "price_vnd": round(float(price_vnd), 4) if price_vnd is not None else None,
+        "price_vnd": (
+            round(float(price_vnd), 4) if price_vnd is not None else None
+        ),
         "fees_vnd": round(float(fees_vnd), 4),
         "taxes_vnd": round(float(taxes_vnd), 4),
         "plan_id": plan_id,
@@ -273,7 +298,9 @@ def _append_event(
                 plan_id,
                 note,
                 digest,
-                json.dumps(payload["details"], ensure_ascii=False, sort_keys=True),
+                json.dumps(
+                    payload["details"], ensure_ascii=False, sort_keys=True
+                ),
             ),
         )
     return {"status": "SUCCESS", "event_id": event_id, **payload}
@@ -290,7 +317,11 @@ def start_observatory(
     broker = latest_broker_portfolio()
     if not broker:
         raise ValueError("PERFORMANCE_REQUIRES_BROKER_SNAPSHOT")
-    day = _iso_day(start_day or broker.get("market_day") or _latest_market_day())
+    day = _iso_day(
+        start_day or broker.get("market_day") or _latest_market_day()
+    )
+    if day not in set(_market_days()):
+        raise ValueError("PERFORMANCE_START_DAY_MUST_BE_MARKET_SESSION")
     classification_map = {
         str(key).upper(): str(value).upper()
         for key, value in (classifications or {}).items()
@@ -301,7 +332,9 @@ def start_observatory(
         symbol = str(raw.get("symbol") or "").upper()
         classification = classification_map.get(symbol, LEGACY_EXCLUDED)
         if classification not in VALID_CLASSIFICATIONS:
-            raise ValueError(f"PERFORMANCE_CLASSIFICATION_INVALID:{symbol}:{classification}")
+            raise ValueError(
+                f"PERFORMANCE_CLASSIFICATION_INVALID:{symbol}:{classification}"
+            )
         quantity = int(raw.get("quantity") or 0)
         price = float(raw.get("valuation_price_vnd") or 0.0)
         value = quantity * price
@@ -321,15 +354,23 @@ def start_observatory(
             }
         )
     broker_cash = float(broker.get("planner_cash_vnd") or 0.0)
-    model_cash = broker_cash if opening_model_cash_vnd is None else float(opening_model_cash_vnd)
+    model_cash = (
+        broker_cash
+        if opening_model_cash_vnd is None
+        else float(opening_model_cash_vnd)
+    )
     if model_cash < 0:
         raise ValueError("PERFORMANCE_OPENING_CASH_NEGATIVE")
     performance_cfg = load_config().get("performance", {})
-    cost_bps = float(performance_cfg.get("shadow_cost_bps", 50.0)) if isinstance(performance_cfg, Mapping) else 50.0
-    tax_bps = float(performance_cfg.get("sell_tax_bps", 10.0)) if isinstance(performance_cfg, Mapping) else 10.0
+    if not isinstance(performance_cfg, Mapping):
+        performance_cfg = {}
+    cost_bps = float(performance_cfg.get("shadow_cost_bps", 50.0))
+    tax_bps = float(performance_cfg.get("sell_tax_bps", 10.0))
     started_at = utc_now()
     details = {
-        "opening_broker_nav_vnd": float(broker.get("net_asset_value_vnd") or 0.0),
+        "opening_broker_nav_vnd": float(
+            broker.get("net_asset_value_vnd") or 0.0
+        ),
         "opening_broker_cash_vnd": broker_cash,
         "opening_adopted_value_vnd": adopted_value,
         "legacy_default": LEGACY_EXCLUDED,
@@ -339,41 +380,111 @@ def start_observatory(
     }
     with state_db() as db:
         _ensure_schema(db)
-        db.execute(
-            "INSERT INTO performance_config VALUES(1,?,?,?,?,?,?,?,?)",
-            (
-                "ACTIVE",
-                OBSERVATORY_VERSION,
-                started_at,
-                day,
-                str(broker["snapshot_id"]),
-                model_cash,
-                cost_bps,
-                tax_bps,
-                json.dumps(details, ensure_ascii=False, sort_keys=True),
-            ),
-        )
-        db.executemany(
-            """
-            INSERT INTO performance_opening_positions(
-                symbol,classification,quantity,opening_price_vnd,
-                opening_value_vnd,details_json
-            ) VALUES(?,?,?,?,?,?)
-            """,
-            [
+        db.execute("BEGIN IMMEDIATE")
+        try:
+            db.execute(
+                """
+                INSERT INTO performance_config(
+                    singleton,status,version,started_at,start_day,
+                    opening_broker_snapshot_id,opening_model_cash_vnd,
+                    shadow_cost_bps,sell_tax_bps,details_json
+                ) VALUES(1,?,?,?,?,?,?,?,?,?)
+                """,
                 (
-                    row["symbol"],
-                    row["classification"],
-                    row["quantity"],
-                    row["opening_price_vnd"],
-                    row["opening_value_vnd"],
-                    json.dumps(row["details"], ensure_ascii=False, sort_keys=True),
-                )
-                for row in positions
-            ],
-        )
+                    "ACTIVE",
+                    OBSERVATORY_VERSION,
+                    started_at,
+                    day,
+                    str(broker["snapshot_id"]),
+                    model_cash,
+                    cost_bps,
+                    tax_bps,
+                    json.dumps(
+                        details, ensure_ascii=False, sort_keys=True
+                    ),
+                ),
+            )
+            db.executemany(
+                """
+                INSERT INTO performance_opening_positions(
+                    symbol,classification,quantity,opening_price_vnd,
+                    opening_value_vnd,details_json
+                ) VALUES(?,?,?,?,?,?)
+                """,
+                [
+                    (
+                        row["symbol"],
+                        row["classification"],
+                        row["quantity"],
+                        row["opening_price_vnd"],
+                        row["opening_value_vnd"],
+                        json.dumps(
+                            row["details"],
+                            ensure_ascii=False,
+                            sort_keys=True,
+                        ),
+                    )
+                    for row in positions
+                ],
+            )
+        except Exception:
+            db.rollback()
+            raise
+        else:
+            db.commit()
     refresh_performance()
     return performance_status()
+
+
+def _opening_positions() -> list[dict[str, object]]:
+    with state_db() as db:
+        _ensure_schema(db)
+        rows = db.execute(
+            "SELECT * FROM performance_opening_positions ORDER BY symbol"
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def _actual_events() -> list[dict[str, object]]:
+    with state_db() as db:
+        _ensure_schema(db)
+        rows = db.execute(
+            """
+            SELECT * FROM performance_events
+            ORDER BY event_day,event_time,event_id
+            """
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def _actual_state_until(event_day: str) -> tuple[float, dict[str, int]]:
+    config = _config()
+    if config is None:
+        return 0.0, {}
+    cash = float(config["opening_model_cash_vnd"])
+    positions = {
+        str(row["symbol"]): int(row["quantity"])
+        for row in _opening_positions()
+        if row["classification"] == ADOPTED_AT_START
+    }
+    for row in _actual_events():
+        if str(row["event_day"]) > event_day:
+            break
+        if row["event_type"] == "ACTUAL_CASHFLOW":
+            cash += float(row["amount_vnd"])
+        elif row["event_type"] == "ACTUAL_FILL":
+            symbol = str(row["symbol"])
+            quantity = int(row["quantity"] or 0)
+            gross = float(row["amount_vnd"])
+            fees = float(row["fees_vnd"])
+            taxes = float(row["taxes_vnd"])
+            if row["side"] == "BUY":
+                positions[symbol] = positions.get(symbol, 0) + quantity
+                cash -= gross + fees
+            else:
+                positions[symbol] = positions.get(symbol, 0) - quantity
+                cash += gross - fees - taxes
+    return cash, positions
 
 
 def add_actual_cashflow(
@@ -389,13 +500,12 @@ def add_actual_cashflow(
     amount = float(amount_vnd)
     if kind not in VALID_CASHFLOW_TYPES or amount <= 0:
         raise ValueError("PERFORMANCE_CASHFLOW_INVALID")
-    signed = amount if kind == "DEPOSIT" else -amount
     event = _append_event(
         event_type="ACTUAL_CASHFLOW",
         stream="ACTUAL_MODEL_SLEEVE",
         source="USER_CONFIRMED",
         event_day=event_day,
-        amount_vnd=signed,
+        amount_vnd=amount if kind == "DEPOSIT" else -amount,
         note=note,
         details={"flow_type": kind},
     )
@@ -423,16 +533,25 @@ def add_actual_fill(
     price = float(price_vnd)
     fees = float(fees_vnd)
     taxes = float(taxes_vnd)
-    if normalized_side not in VALID_SIDES or not ticker or qty <= 0 or price <= 0:
+    day = _iso_day(event_day)
+    if (
+        normalized_side not in VALID_SIDES
+        or not ticker
+        or qty <= 0
+        or price <= 0
+    ):
         raise ValueError("PERFORMANCE_FILL_INVALID")
     if fees < 0 or taxes < 0:
         raise ValueError("PERFORMANCE_FILL_COST_NEGATIVE")
+    _, positions = _actual_state_until(day)
+    if normalized_side == "SELL" and positions.get(ticker, 0) < qty:
+        raise ValueError("PERFORMANCE_SELL_EXCEEDS_MODEL_SLEEVE_POSITION")
     gross = qty * price
     event = _append_event(
         event_type="ACTUAL_FILL",
         stream="ACTUAL_MODEL_SLEEVE",
         source="USER_CONFIRMED_DNSE_FILL",
-        event_day=event_day,
+        event_day=day,
         amount_vnd=gross,
         symbol=ticker,
         side=normalized_side,
@@ -458,7 +577,7 @@ def _sync_shadow_plan_selection(config: Mapping[str, object]) -> None:
     start_day = str(config["start_day"])
     with state_db() as db:
         _ensure_schema(db)
-        rows = db.execute(
+        plans = db.execute(
             """
             SELECT * FROM weekly_plans
             WHERE substr(created_at,1,10)>=?
@@ -472,14 +591,18 @@ def _sync_shadow_plan_selection(config: Mapping[str, object]) -> None:
                 "SELECT week_key FROM performance_shadow_plans"
             ).fetchall()
         }
-        for row in rows:
+        for row in plans:
             week = _week_key(str(row["created_at"]))
             if week in existing:
                 continue
             rationale = json.loads(str(row["rationale_json"]))
-            contribution = float(row["contribution_vnd"])
+            position_reviews = list(rationale.get("position_reviews", []))
+            exits = list(rationale.get("exit_candidates", [])) or [
+                item
+                for item in position_reviews
+                if item.get("action") == "EXIT_CANDIDATE"
+            ]
             execution_day = _next_session(str(row["created_at"])[:10])
-            status = "PENDING_MARKET_DATA" if execution_day is None else "SELECTED"
             db.execute(
                 """
                 INSERT INTO performance_shadow_plans(
@@ -492,15 +615,21 @@ def _sync_shadow_plan_selection(config: Mapping[str, object]) -> None:
                     str(row["plan_id"]),
                     str(row["created_at"]),
                     execution_day,
-                    status,
-                    contribution,
+                    (
+                        "PENDING_MARKET_DATA"
+                        if execution_day is None
+                        else "SELECTED"
+                    ),
+                    float(row["contribution_vnd"]),
                     json.dumps(
                         {
                             "selection_rule": "FIRST_PLAN_PER_ISO_WEEK",
                             "buy_orders": rationale.get("buy_orders", []),
-                            "exit_candidates": rationale.get("exit_candidates", []),
-                            "position_reviews": rationale.get("position_reviews", []),
-                            "maximum_buy_orders": rationale.get("maximum_buy_orders"),
+                            "exit_candidates": exits,
+                            "position_reviews": position_reviews,
+                            "maximum_buy_orders": rationale.get(
+                                "maximum_buy_orders"
+                            ),
                         },
                         ensure_ascii=False,
                         sort_keys=True,
@@ -510,37 +639,13 @@ def _sync_shadow_plan_selection(config: Mapping[str, object]) -> None:
             existing.add(week)
 
 
-def _opening_positions() -> list[dict[str, object]]:
-    with state_db() as db:
-        _ensure_schema(db)
-        return [
-            dict(row)
-            for row in db.execute(
-                "SELECT * FROM performance_opening_positions ORDER BY symbol"
-            ).fetchall()
-        ]
-
-
-def _actual_events() -> list[dict[str, object]]:
-    with state_db() as db:
-        _ensure_schema(db)
-        return [
-            dict(row)
-            for row in db.execute(
-                "SELECT * FROM performance_events ORDER BY event_day,event_time,event_id"
-            ).fetchall()
-        ]
-
-
 def _rebuild_shadow(config: Mapping[str, object]) -> None:
-    start_day = str(config["start_day"])
     latest_day = _latest_market_day()
     cost_rate = float(config["shadow_cost_bps"]) / 10_000.0
     tax_rate = float(config["sell_tax_bps"]) / 10_000.0
-    opening = _opening_positions()
     adopted_value = sum(
         float(row["opening_value_vnd"])
-        for row in opening
+        for row in _opening_positions()
         if row["classification"] == ADOPTED_AT_START
     )
     cash = float(config["opening_model_cash_vnd"]) + adopted_value
@@ -551,34 +656,37 @@ def _rebuild_shadow(config: Mapping[str, object]) -> None:
         plans = [
             dict(row)
             for row in db.execute(
-                "SELECT * FROM performance_shadow_plans ORDER BY created_at,week_key"
+                """
+                SELECT * FROM performance_shadow_plans
+                ORDER BY created_at,week_key
+                """
             ).fetchall()
         ]
     for plan in plans:
-        execution_day = plan.get("execution_day")
-        if not execution_day:
-            candidate = _next_session(str(plan["created_at"])[:10])
-            if candidate:
-                execution_day = candidate
+        execution_day = plan.get("execution_day") or _next_session(
+            str(plan["created_at"])[:10]
+        )
         if not execution_day or str(execution_day) > latest_day:
             continue
         details = json.loads(str(plan["details_json"]))
         cash += float(plan["planned_contribution_vnd"])
         for raw in details.get("exit_candidates", []):
             symbol = str(raw.get("symbol") or "").upper()
-            requested = int(raw.get("sellable_quantity") or raw.get("quantity") or 0)
             held = positions.get(symbol, 0)
-            qty = min(held, requested if requested > 0 else held)
-            if qty <= 0:
+            requested = int(
+                raw.get("sellable_quantity")
+                or raw.get("quantity")
+                or held
+            )
+            quantity = min(held, requested)
+            price = _price_exact(symbol, str(execution_day), "open")
+            if quantity <= 0 or price is None:
                 continue
-            price = _price(symbol, str(execution_day), "open")
-            if not price:
-                continue
-            gross = qty * price
+            gross = quantity * price
             fees = gross * cost_rate
             taxes = gross * tax_rate
             cash += gross - fees - taxes
-            positions[symbol] = held - qty
+            positions[symbol] = held - quantity
             trades.append(
                 {
                     "trade_id": f"shadow-{plan['plan_id']}-SELL-{symbol}",
@@ -587,31 +695,30 @@ def _rebuild_shadow(config: Mapping[str, object]) -> None:
                     "side": "SELL",
                     "symbol": symbol,
                     "requested_quantity": requested,
-                    "filled_quantity": qty,
+                    "filled_quantity": quantity,
                     "price_vnd": price,
                     "gross_vnd": gross,
                     "fees_vnd": fees,
                     "taxes_vnd": taxes,
-                    "details": {"execution_rule": "T_PLUS_1_OPEN_SELL_FIRST"},
+                    "details": {
+                        "execution_rule": "T_PLUS_1_EXACT_OPEN_SELL_FIRST"
+                    },
                 }
             )
         for raw in details.get("buy_orders", []):
             symbol = str(raw.get("symbol") or "").upper()
             requested = int(raw.get("quantity") or 0)
-            if requested <= 0:
-                continue
-            price = _price(symbol, str(execution_day), "open")
-            if not price:
+            price = _price_exact(symbol, str(execution_day), "open")
+            if requested <= 0 or price is None:
                 continue
             unit_cost = price * (1.0 + cost_rate)
-            affordable = int(cash // unit_cost)
-            qty = min(requested, affordable)
-            if qty <= 0:
+            quantity = min(requested, int(max(cash, 0.0) // unit_cost))
+            if quantity <= 0:
                 continue
-            gross = qty * price
+            gross = quantity * price
             fees = gross * cost_rate
             cash -= gross + fees
-            positions[symbol] = positions.get(symbol, 0) + qty
+            positions[symbol] = positions.get(symbol, 0) + quantity
             trades.append(
                 {
                     "trade_id": f"shadow-{plan['plan_id']}-BUY-{symbol}",
@@ -620,14 +727,14 @@ def _rebuild_shadow(config: Mapping[str, object]) -> None:
                     "side": "BUY",
                     "symbol": symbol,
                     "requested_quantity": requested,
-                    "filled_quantity": qty,
+                    "filled_quantity": quantity,
                     "price_vnd": price,
                     "gross_vnd": gross,
                     "fees_vnd": fees,
                     "taxes_vnd": 0.0,
                     "details": {
-                        "execution_rule": "T_PLUS_1_OPEN",
-                        "limited_by_cash": qty < requested,
+                        "execution_rule": "T_PLUS_1_EXACT_OPEN",
+                        "limited_by_cash": quantity < requested,
                     },
                 }
             )
@@ -636,7 +743,11 @@ def _rebuild_shadow(config: Mapping[str, object]) -> None:
         db.execute("DELETE FROM performance_shadow_trades")
         db.executemany(
             """
-            INSERT INTO performance_shadow_trades VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
+            INSERT INTO performance_shadow_trades(
+                trade_id,plan_id,execution_day,side,symbol,
+                requested_quantity,filled_quantity,price_vnd,gross_vnd,
+                fees_vnd,taxes_vnd,details_json
+            ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
             """,
             [
                 (
@@ -651,34 +762,44 @@ def _rebuild_shadow(config: Mapping[str, object]) -> None:
                     row["gross_vnd"],
                     row["fees_vnd"],
                     row["taxes_vnd"],
-                    json.dumps(row["details"], ensure_ascii=False, sort_keys=True),
+                    json.dumps(
+                        row["details"], ensure_ascii=False, sort_keys=True
+                    ),
                 )
                 for row in trades
             ],
         )
         for plan in plans:
-            execution_day = plan.get("execution_day") or _next_session(str(plan["created_at"])[:10])
+            execution_day = plan.get("execution_day") or _next_session(
+                str(plan["created_at"])[:10]
+            )
             status = (
                 "EXECUTED"
                 if execution_day and str(execution_day) <= latest_day
                 else "PENDING_MARKET_DATA"
             )
             db.execute(
-                "UPDATE performance_shadow_plans SET execution_day=?,status=? WHERE week_key=?",
+                """
+                UPDATE performance_shadow_plans
+                SET execution_day=?,status=? WHERE week_key=?
+                """,
                 (execution_day, status, plan["week_key"]),
             )
 
 
 def _stream_events() -> dict[str, list[dict[str, object]]]:
     config = _config()
-    if not config:
+    if config is None:
         return {}
     events: dict[str, list[dict[str, object]]] = defaultdict(list)
     start_day = str(config["start_day"])
     opening_cash = float(config["opening_model_cash_vnd"])
     adopted = [
-        row for row in _opening_positions() if row["classification"] == ADOPTED_AT_START
+        row
+        for row in _opening_positions()
+        if row["classification"] == ADOPTED_AT_START
     ]
+    adopted_value = sum(float(row["opening_value_vnd"]) for row in adopted)
     events["ACTUAL_MODEL_SLEEVE"].append(
         {
             "day": start_day,
@@ -686,63 +807,84 @@ def _stream_events() -> dict[str, list[dict[str, object]]]:
             "cash_flow": opening_cash,
             "cash_delta": opening_cash,
             "positions": {
-                str(row["symbol"]): int(row["quantity"]) for row in adopted
+                str(row["symbol"]): int(row["quantity"])
+                for row in adopted
             },
         }
     )
-    adopted_value = sum(float(row["opening_value_vnd"]) for row in adopted)
-    events["PLAN_SHADOW"].append(
-        {
-            "day": start_day,
-            "kind": "OPENING",
-            "cash_flow": opening_cash + adopted_value,
-            "cash_delta": opening_cash + adopted_value,
-            "positions": {},
-        }
-    )
-    events["VNINDEX_BENCHMARK"].append(
-        {
-            "day": start_day,
-            "kind": "OPENING",
-            "cash_flow": opening_cash + adopted_value,
-            "cash_delta": opening_cash + adopted_value,
-        }
-    )
+    for stream in ("PLAN_SHADOW", "VNINDEX_BENCHMARK"):
+        events[stream].append(
+            {
+                "day": start_day,
+                "kind": "OPENING",
+                "cash_flow": opening_cash + adopted_value,
+                "cash_delta": opening_cash + adopted_value,
+            }
+        )
     for row in _actual_events():
         day = str(row["event_day"])
         if row["event_type"] == "ACTUAL_CASHFLOW":
             amount = float(row["amount_vnd"])
             events["ACTUAL_MODEL_SLEEVE"].append(
-                {"day": day, "kind": "CASHFLOW", "cash_flow": amount, "cash_delta": amount}
+                {
+                    "day": day,
+                    "kind": "CASHFLOW",
+                    "cash_flow": amount,
+                    "cash_delta": amount,
+                }
             )
         elif row["event_type"] == "ACTUAL_FILL":
-            side = str(row["side"])
             gross = float(row["amount_vnd"])
             fees = float(row["fees_vnd"])
             taxes = float(row["taxes_vnd"])
-            qty = int(row["quantity"] or 0)
+            side = str(row["side"])
             events["ACTUAL_MODEL_SLEEVE"].append(
                 {
                     "day": day,
                     "kind": "TRADE",
                     "side": side,
                     "symbol": str(row["symbol"]),
-                    "quantity": qty,
-                    "cash_delta": -(gross + fees) if side == "BUY" else gross - fees - taxes,
+                    "quantity": int(row["quantity"] or 0),
+                    "cash_delta": (
+                        -(gross + fees)
+                        if side == "BUY"
+                        else gross - fees - taxes
+                    ),
                     "cash_flow": 0.0,
                 }
             )
     with state_db() as db:
         _ensure_schema(db)
-        plans = [dict(row) for row in db.execute("SELECT * FROM performance_shadow_plans ORDER BY execution_day,week_key").fetchall()]
-        trades = [dict(row) for row in db.execute("SELECT * FROM performance_shadow_trades ORDER BY execution_day,trade_id").fetchall()]
+        plans = [
+            dict(row)
+            for row in db.execute(
+                """
+                SELECT * FROM performance_shadow_plans
+                ORDER BY execution_day,week_key
+                """
+            ).fetchall()
+        ]
+        trades = [
+            dict(row)
+            for row in db.execute(
+                """
+                SELECT * FROM performance_shadow_trades
+                ORDER BY execution_day,trade_id
+                """
+            ).fetchall()
+        ]
     for plan in plans:
         if plan["status"] != "EXECUTED" or not plan["execution_day"]:
             continue
         amount = float(plan["planned_contribution_vnd"])
         for stream in ("PLAN_SHADOW", "VNINDEX_BENCHMARK"):
             events[stream].append(
-                {"day": str(plan["execution_day"]), "kind": "CASHFLOW", "cash_flow": amount, "cash_delta": amount}
+                {
+                    "day": str(plan["execution_day"]),
+                    "kind": "CASHFLOW",
+                    "cash_flow": amount,
+                    "cash_delta": amount,
+                }
             )
     for row in trades:
         side = str(row["side"])
@@ -756,22 +898,39 @@ def _stream_events() -> dict[str, list[dict[str, object]]]:
                 "side": side,
                 "symbol": str(row["symbol"]),
                 "quantity": int(row["filled_quantity"]),
-                "cash_delta": -(gross + fees) if side == "BUY" else gross - fees - taxes,
+                "cash_delta": (
+                    -(gross + fees)
+                    if side == "BUY"
+                    else gross - fees - taxes
+                ),
                 "cash_flow": 0.0,
             }
         )
     for values in events.values():
-        values.sort(key=lambda row: (str(row["day"]), 0 if row["kind"] in {"OPENING", "CASHFLOW"} else 1))
+        values.sort(
+            key=lambda row: (
+                str(row["day"]),
+                0 if row["kind"] in {"OPENING", "CASHFLOW"} else 1,
+            )
+        )
     return events
 
 
-def _calculate_nav_rows(config: Mapping[str, object]) -> list[dict[str, object]]:
-    days = [day for day in _market_days() if day >= str(config["start_day"])]
+def _calculate_nav_rows(
+    config: Mapping[str, object]
+) -> list[dict[str, object]]:
+    days = [
+        day for day in _market_days() if day >= str(config["start_day"])
+    ]
     if not days:
         return []
     stream_events = _stream_events()
     rows: list[dict[str, object]] = []
-    for stream in ("ACTUAL_MODEL_SLEEVE", "PLAN_SHADOW", "VNINDEX_BENCHMARK"):
+    for stream in (
+        "ACTUAL_MODEL_SLEEVE",
+        "PLAN_SHADOW",
+        "VNINDEX_BENCHMARK",
+    ):
         events_by_day: dict[str, list[dict[str, object]]] = defaultdict(list)
         for event in stream_events.get(stream, []):
             events_by_day[str(event["day"])].append(event)
@@ -786,33 +945,53 @@ def _calculate_nav_rows(config: Mapping[str, object]) -> list[dict[str, object]]
             for event in events_by_day.get(day, []):
                 flow = float(event.get("cash_flow") or 0.0)
                 external_flow += flow
-                cash += float(event.get("cash_delta") or 0.0)
-                if event.get("kind") == "OPENING" and event.get("positions"):
-                    positions.update({str(k): int(v) for k, v in dict(event["positions"]).items()})
+                if stream == "VNINDEX_BENCHMARK" and flow != 0.0:
+                    index_open = _price_exact("VNINDEX", day, "open")
+                    if index_open is None:
+                        cash += flow
+                    elif flow > 0:
+                        benchmark_units += flow / index_open
+                    else:
+                        units_to_sell = min(
+                            benchmark_units, -flow / index_open
+                        )
+                        benchmark_units -= units_to_sell
+                        uncovered = -flow - units_to_sell * index_open
+                        cash -= max(uncovered, 0.0)
+                else:
+                    cash += float(event.get("cash_delta") or 0.0)
+                if event.get("kind") == "OPENING" and event.get(
+                    "positions"
+                ):
+                    positions.update(
+                        {
+                            str(key): int(value)
+                            for key, value in dict(
+                                event["positions"]
+                            ).items()
+                        }
+                    )
                 if event.get("kind") == "TRADE":
                     symbol = str(event["symbol"])
-                    qty = int(event["quantity"])
+                    quantity = int(event["quantity"])
                     if event["side"] == "BUY":
-                        positions[symbol] = positions.get(symbol, 0) + qty
+                        positions[symbol] = (
+                            positions.get(symbol, 0) + quantity
+                        )
                     else:
-                        positions[symbol] = max(positions.get(symbol, 0) - qty, 0)
-                if stream == "VNINDEX_BENCHMARK" and flow > 0:
-                    index_open = _price("VNINDEX", day, "open")
-                    if index_open:
-                        invest = min(cash, flow)
-                        benchmark_units += invest / index_open
-                        cash -= invest
-                elif stream == "VNINDEX_BENCHMARK" and flow < 0:
-                    index_open = _price("VNINDEX", day, "open")
-                    needed = min(-flow, benchmark_units * (index_open or 0.0))
-                    if index_open and needed > 0:
-                        benchmark_units -= needed / index_open
+                        positions[symbol] = (
+                            positions.get(symbol, 0) - quantity
+                        )
             if stream == "VNINDEX_BENCHMARK":
-                price = _price("VNINDEX", day, "close") or 0.0
-                invested = benchmark_units * price
+                invested = benchmark_units * float(
+                    _price_exact("VNINDEX", day, "close") or 0.0
+                )
             else:
                 invested = sum(
-                    quantity * float(_price(symbol, day, "close") or 0.0)
+                    quantity
+                    * float(
+                        _price_on_or_before(symbol, day, "close") or 0.0
+                    )
                     for symbol, quantity in positions.items()
                     if quantity > 0
                 )
@@ -822,7 +1001,6 @@ def _calculate_nav_rows(config: Mapping[str, object]) -> list[dict[str, object]]
                 period_return = (nav - external_flow) / previous_nav - 1.0
                 cumulative *= 1.0 + period_return
                 peak = max(peak, cumulative)
-            cumulative_return = cumulative - 1.0
             drawdown = cumulative / peak - 1.0 if peak > 0 else 0.0
             rows.append(
                 {
@@ -833,11 +1011,16 @@ def _calculate_nav_rows(config: Mapping[str, object]) -> list[dict[str, object]]
                     "invested_vnd": invested,
                     "external_flow_vnd": external_flow,
                     "period_return": period_return,
-                    "cumulative_return": cumulative_return,
+                    "cumulative_return": cumulative - 1.0,
                     "drawdown": drawdown,
                     "details": {
-                        "position_count": sum(1 for quantity in positions.values() if quantity > 0),
+                        "position_count": sum(
+                            1 for quantity in positions.values() if quantity > 0
+                        ),
                         "negative_cash": cash < -1e-6,
+                        "negative_position": any(
+                            quantity < 0 for quantity in positions.values()
+                        ),
                     },
                 }
             )
@@ -845,14 +1028,16 @@ def _calculate_nav_rows(config: Mapping[str, object]) -> list[dict[str, object]]
     return rows
 
 
-def _whole_dnse_rows(config: Mapping[str, object]) -> list[dict[str, object]]:
+def _whole_dnse_rows(
+    config: Mapping[str, object]
+) -> list[dict[str, object]]:
     start_day = str(config["start_day"])
-    flows = defaultdict(float)
+    flows: dict[str, float] = defaultdict(float)
     for event in _actual_events():
         if event["event_type"] == "ACTUAL_CASHFLOW":
             flows[str(event["event_day"])] += float(event["amount_vnd"])
     with state_db() as db:
-        rows = [
+        snapshots = [
             dict(row)
             for row in db.execute(
                 """
@@ -863,17 +1048,19 @@ def _whole_dnse_rows(config: Mapping[str, object]) -> list[dict[str, object]]:
                 (start_day,),
             ).fetchall()
         ]
+    latest_by_day: dict[str, dict[str, object]] = {}
+    for snapshot in snapshots:
+        day = str(
+            snapshot.get("market_day")
+            or str(snapshot["captured_at"])[:10]
+        )
+        latest_by_day[day] = snapshot
     result: list[dict[str, object]] = []
     previous_nav: float | None = None
     cumulative = 1.0
     peak = 1.0
-    seen_day: set[str] = set()
-    for raw in rows:
-        day = str(raw.get("market_day") or raw["captured_at"][:10])
-        if day in seen_day:
-            if result:
-                result.pop()
-        seen_day.add(day)
+    for day in sorted(latest_by_day):
+        raw = latest_by_day[day]
         nav = float(raw["net_asset_value_vnd"])
         flow = flows.get(day, 0.0)
         period_return = None
@@ -905,7 +1092,11 @@ def _store_nav_rows(rows: Sequence[Mapping[str, object]]) -> None:
         db.execute("DELETE FROM performance_nav")
         db.executemany(
             """
-            INSERT INTO performance_nav VALUES(?,?,?,?,?,?,?,?,?,?)
+            INSERT INTO performance_nav(
+                stream,valuation_day,nav_vnd,cash_vnd,invested_vnd,
+                external_flow_vnd,period_return,cumulative_return,drawdown,
+                details_json
+            ) VALUES(?,?,?,?,?,?,?,?,?,?)
             """,
             [
                 (
@@ -918,7 +1109,11 @@ def _store_nav_rows(rows: Sequence[Mapping[str, object]]) -> None:
                     row["period_return"],
                     row["cumulative_return"],
                     row["drawdown"],
-                    json.dumps(row.get("details", {}), ensure_ascii=False, sort_keys=True),
+                    json.dumps(
+                        row.get("details", {}),
+                        ensure_ascii=False,
+                        sort_keys=True,
+                    ),
                 )
                 for row in rows
             ],
@@ -934,7 +1129,11 @@ def _xnpv(rate: float, flows: Sequence[tuple[date, float]]) -> float:
 
 
 def _xirr(flows: Sequence[tuple[date, float]]) -> float | None:
-    if len(flows) < 2 or not any(value < 0 for _, value in flows) or not any(value > 0 for _, value in flows):
+    if (
+        len(flows) < 2
+        or not any(value < 0 for _, value in flows)
+        or not any(value > 0 for _, value in flows)
+    ):
         return None
     low, high = -0.9999, 10.0
     low_value, high_value = _xnpv(low, flows), _xnpv(high, flows)
@@ -952,40 +1151,65 @@ def _xirr(flows: Sequence[tuple[date, float]]) -> float | None:
             return middle
         if low_value * value <= 0:
             high = middle
-            high_value = value
         else:
             low = middle
             low_value = value
     return (low + high) / 2.0
 
 
-def _summary_from_nav(rows: Sequence[Mapping[str, object]]) -> dict[str, object]:
+def _summary_from_nav(
+    rows: Sequence[Mapping[str, object]]
+) -> dict[str, object]:
     by_stream: dict[str, list[Mapping[str, object]]] = defaultdict(list)
     for row in rows:
         by_stream[str(row["stream"])].append(row)
     result: dict[str, object] = {}
     for stream, values in by_stream.items():
-        values = sorted(values, key=lambda row: str(row["valuation_day"]))
-        latest = values[-1]
-        initial_nav = float(values[0]["nav_vnd"])
-        flow_rows = [
-            (date.fromisoformat(str(values[0]["valuation_day"])), -initial_nav)
+        ordered = sorted(
+            values, key=lambda row: str(row["valuation_day"])
+        )
+        latest = ordered[-1]
+        initial_nav = float(ordered[0]["nav_vnd"])
+        cashflows: list[tuple[date, float]] = [
+            (
+                date.fromisoformat(str(ordered[0]["valuation_day"])),
+                -initial_nav,
+            )
         ]
-        for row in values[1:]:
+        for row in ordered[1:]:
             flow = float(row["external_flow_vnd"])
             if abs(flow) > 1e-9:
-                flow_rows.append((date.fromisoformat(str(row["valuation_day"])), -flow))
-        flow_rows.append((date.fromisoformat(str(latest["valuation_day"])), float(latest["nav_vnd"])))
+                cashflows.append(
+                    (
+                        date.fromisoformat(str(row["valuation_day"])),
+                        -flow,
+                    )
+                )
+        cashflows.append(
+            (
+                date.fromisoformat(str(latest["valuation_day"])),
+                float(latest["nav_vnd"]),
+            )
+        )
         result[stream] = {
-            "start_day": values[0]["valuation_day"],
+            "start_day": ordered[0]["valuation_day"],
             "latest_day": latest["valuation_day"],
             "latest_nav_vnd": latest["nav_vnd"],
             "latest_cash_vnd": latest["cash_vnd"],
             "latest_invested_vnd": latest["invested_vnd"],
             "cumulative_return": latest["cumulative_return"],
-            "max_drawdown": min(float(row["drawdown"]) for row in values),
-            "xirr": _xirr(flow_rows),
-            "negative_cash_detected": any(bool(json.loads(str(row["details_json"])).get("negative_cash")) if "details_json" in row.keys() else False for row in values),
+            "max_drawdown": min(
+                float(row["drawdown"]) for row in ordered
+            ),
+            "xirr": _xirr(cashflows),
+            "negative_cash_detected": any(
+                bool(dict(row.get("details", {})).get("negative_cash"))
+                for row in ordered
+            ),
+            "negative_position_detected": any(
+                bool(dict(row.get("details", {})).get("negative_position"))
+                for row in ordered
+            ),
         }
     return result
 
@@ -993,24 +1217,34 @@ def _summary_from_nav(rows: Sequence[Mapping[str, object]]) -> dict[str, object]
 def _rank_percentiles(values: Sequence[float]) -> list[float]:
     if not values:
         return []
-    order = sorted(range(len(values)), key=lambda i: (values[i], i))
-    result = [0.0] * len(values)
+    order = sorted(range(len(values)), key=lambda index: (values[index], index))
     denominator = max(len(values) - 1, 1)
+    result = [0.0] * len(values)
     for position, index in enumerate(order):
         result[index] = position / denominator
     return result
 
 
-def _pearson(left: Sequence[float], right: Sequence[float]) -> float | None:
+def _pearson(
+    left: Sequence[float], right: Sequence[float]
+) -> float | None:
     if len(left) != len(right) or len(left) < 3:
         return None
-    lm, rm = fmean(left), fmean(right)
-    numerator = sum((a - lm) * (b - rm) for a, b in zip(left, right))
-    denominator = math.sqrt(sum((a - lm) ** 2 for a in left) * sum((b - rm) ** 2 for b in right))
+    left_mean, right_mean = fmean(left), fmean(right)
+    numerator = sum(
+        (a - left_mean) * (b - right_mean)
+        for a, b in zip(left, right)
+    )
+    denominator = math.sqrt(
+        sum((a - left_mean) ** 2 for a in left)
+        * sum((b - right_mean) ** 2 for b in right)
+    )
     return numerator / denominator if denominator > 0 else None
 
 
-def _signal_scorecard(config: Mapping[str, object]) -> list[dict[str, object]]:
+def _signal_scorecard(
+    config: Mapping[str, object]
+) -> list[dict[str, object]]:
     start_day = str(config["start_day"])
     with state_db() as db:
         signal_days = [
@@ -1025,14 +1259,16 @@ def _signal_scorecard(config: Mapping[str, object]) -> list[dict[str, object]]:
             ).fetchall()
         ]
     market_days = _market_days()
-    position = {day: index for index, day in enumerate(market_days)}
+    day_index = {day: index for index, day in enumerate(market_days)}
     scorecard: list[dict[str, object]] = []
     for signal_day in signal_days:
         with state_db() as db:
             run = db.execute(
                 """
-                SELECT r.run_id FROM runs r JOIN rankings k ON k.run_id=r.run_id
-                WHERE r.status='SUCCESS' AND k.signal_kind='MONTHLY_CANONICAL'
+                SELECT r.run_id FROM runs r
+                JOIN rankings k ON k.run_id=r.run_id
+                WHERE r.status='SUCCESS'
+                  AND k.signal_kind='MONTHLY_CANONICAL'
                   AND k.signal_day=?
                 ORDER BY r.finished_at DESC LIMIT 1
                 """,
@@ -1043,14 +1279,18 @@ def _signal_scorecard(config: Mapping[str, object]) -> list[dict[str, object]]:
             ranking = [
                 dict(row)
                 for row in db.execute(
-                    "SELECT rank,symbol,score FROM rankings WHERE run_id=? AND signal_kind='MONTHLY_CANONICAL' ORDER BY rank",
+                    """
+                    SELECT rank,symbol,score FROM rankings
+                    WHERE run_id=? AND signal_kind='MONTHLY_CANONICAL'
+                    ORDER BY rank
+                    """,
                     (run["run_id"],),
                 ).fetchall()
             ]
-        signal_index = position.get(signal_day)
-        if signal_index is None:
+        signal_index = day_index.get(signal_day)
+        base_index = _price_exact("VNINDEX", signal_day, "close")
+        if signal_index is None or base_index is None:
             continue
-        base_index = _price("VNINDEX", signal_day, "close")
         horizons: dict[str, object] = {}
         for label, sessions in (("1W", 5), ("1M", 20), ("3M", 60)):
             target_index = signal_index + sessions
@@ -1058,63 +1298,109 @@ def _signal_scorecard(config: Mapping[str, object]) -> list[dict[str, object]]:
                 horizons[label] = {"status": "PENDING"}
                 continue
             target_day = market_days[target_index]
-            index_end = _price("VNINDEX", target_day, "close")
-            benchmark_return = (
-                index_end / base_index - 1.0 if base_index and index_end else None
-            )
+            index_end = _price_exact("VNINDEX", target_day, "close")
+            if index_end is None:
+                horizons[label] = {"status": "PENDING"}
+                continue
+            benchmark_return = index_end / base_index - 1.0
             returns: list[tuple[int, str, float]] = []
             for item in ranking:
-                start_price = _price(str(item["symbol"]), signal_day, "close")
-                end_price = _price(str(item["symbol"]), target_day, "close")
-                if start_price and end_price:
-                    returns.append((int(item["rank"]), str(item["symbol"]), end_price / start_price - 1.0))
+                symbol = str(item["symbol"])
+                start_price = _price_exact(symbol, signal_day, "close")
+                end_price = _price_exact(symbol, target_day, "close")
+                if start_price is not None and end_price is not None:
+                    returns.append(
+                        (
+                            int(item["rank"]),
+                            symbol,
+                            end_price / start_price - 1.0,
+                        )
+                    )
             top10 = [value for rank, _, value in returns if rank <= 10]
             all_returns = [value for _, _, value in returns]
-            ranks = [-float(rank) for rank, _, _ in returns]
-            ic = _pearson(_rank_percentiles(ranks), _rank_percentiles(all_returns))
+            rank_scores = [-float(rank) for rank, _, _ in returns]
+            rank_ic = _pearson(
+                _rank_percentiles(rank_scores),
+                _rank_percentiles(all_returns),
+            )
             horizons[label] = {
                 "status": "COMPLETE",
                 "target_day": target_day,
                 "top10_mean_return": fmean(top10) if top10 else None,
                 "benchmark_return": benchmark_return,
-                "top10_excess_return": fmean(top10) - benchmark_return if top10 and benchmark_return is not None else None,
-                "top10_win_ratio": sum(value > benchmark_return for value in top10) / len(top10) if top10 and benchmark_return is not None else None,
-                "rank_ic": ic,
+                "top10_excess_return": (
+                    fmean(top10) - benchmark_return if top10 else None
+                ),
+                "top10_win_ratio": (
+                    sum(value > benchmark_return for value in top10)
+                    / len(top10)
+                    if top10
+                    else None
+                ),
+                "rank_ic": rank_ic,
                 "sample_count": len(returns),
             }
-        scorecard.append({"signal_day": signal_day, "run_id": str(run["run_id"]), "horizons": horizons})
+        scorecard.append(
+            {
+                "signal_day": signal_day,
+                "run_id": str(run["run_id"]),
+                "horizons": horizons,
+            }
+        )
     return scorecard
 
 
 def _reconciliation() -> list[dict[str, object]]:
     with state_db() as db:
         _ensure_schema(db)
-        plans = [dict(row) for row in db.execute("SELECT * FROM performance_shadow_plans ORDER BY created_at").fetchall()]
-        shadow = [dict(row) for row in db.execute("SELECT * FROM performance_shadow_trades ORDER BY execution_day").fetchall()]
-        actual = [dict(row) for row in db.execute("SELECT * FROM performance_events WHERE event_type='ACTUAL_FILL' ORDER BY event_day,event_time").fetchall()]
-    actual_used: set[str] = set()
-    rows: list[dict[str, object]] = []
+        plans = [
+            dict(row)
+            for row in db.execute(
+                "SELECT * FROM performance_shadow_plans ORDER BY created_at"
+            ).fetchall()
+        ]
+        shadow = [
+            dict(row)
+            for row in db.execute(
+                """
+                SELECT * FROM performance_shadow_trades
+                ORDER BY execution_day,trade_id
+                """
+            ).fetchall()
+        ]
+        actual = [
+            dict(row)
+            for row in db.execute(
+                """
+                SELECT * FROM performance_events
+                WHERE event_type='ACTUAL_FILL'
+                ORDER BY event_day,event_time,event_id
+                """
+            ).fetchall()
+        ]
+    used: set[str] = set()
+    result: list[dict[str, object]] = []
     for plan in plans:
         plan_id = str(plan["plan_id"])
-        plan_trades = [row for row in shadow if row["plan_id"] == plan_id]
-        for proposed in plan_trades:
+        for proposed in [row for row in shadow if row["plan_id"] == plan_id]:
             candidates = [
                 row
                 for row in actual
-                if row["event_id"] not in actual_used
+                if row["event_id"] not in used
                 and str(row["symbol"]) == str(proposed["symbol"])
                 and str(row["side"]) == str(proposed["side"])
                 and (
                     str(row.get("plan_id") or "") == plan_id
                     or (
                         not row.get("plan_id")
-                        and str(row["event_day"]) >= str(plan["created_at"])[:10]
+                        and str(row["event_day"])
+                        >= str(plan["created_at"])[:10]
                     )
                 )
             ]
             matched = candidates[0] if candidates else None
             if matched:
-                actual_used.add(str(matched["event_id"]))
+                used.add(str(matched["event_id"]))
             delay = None
             slippage = None
             compliance = 0.0
@@ -1126,14 +1412,23 @@ def _reconciliation() -> list[dict[str, object]]:
                 ).days
                 shadow_price = float(proposed["price_vnd"])
                 actual_price = float(matched["price_vnd"])
-                side_sign = 1.0 if proposed["side"] == "BUY" else -1.0
-                slippage = side_sign * (actual_price / shadow_price - 1.0) if shadow_price > 0 else None
+                sign = 1.0 if proposed["side"] == "BUY" else -1.0
+                slippage = (
+                    sign * (actual_price / shadow_price - 1.0)
+                    if shadow_price > 0
+                    else None
+                )
                 compliance = min(
-                    int(matched["quantity"] or 0) / max(int(proposed["filled_quantity"]), 1),
+                    int(matched["quantity"] or 0)
+                    / max(int(proposed["filled_quantity"]), 1),
                     1.0,
                 )
-                status = "EXECUTED" if compliance >= 0.999 else "PARTIALLY_EXECUTED"
-            rows.append(
+                status = (
+                    "EXECUTED"
+                    if compliance >= 0.999
+                    else "PARTIALLY_EXECUTED"
+                )
+            result.append(
                 {
                     "plan_id": plan_id,
                     "week_key": plan["week_key"],
@@ -1142,10 +1437,14 @@ def _reconciliation() -> list[dict[str, object]]:
                     "proposed_quantity": proposed["filled_quantity"],
                     "shadow_execution_day": proposed["execution_day"],
                     "shadow_price_vnd": proposed["price_vnd"],
-                    "actual_event_id": matched["event_id"] if matched else None,
+                    "actual_event_id": (
+                        matched["event_id"] if matched else None
+                    ),
                     "actual_day": matched["event_day"] if matched else None,
                     "actual_quantity": matched["quantity"] if matched else 0,
-                    "actual_price_vnd": matched["price_vnd"] if matched else None,
+                    "actual_price_vnd": (
+                        matched["price_vnd"] if matched else None
+                    ),
                     "execution_delay_days": delay,
                     "quantity_compliance": compliance,
                     "price_slippage": slippage,
@@ -1153,27 +1452,28 @@ def _reconciliation() -> list[dict[str, object]]:
                 }
             )
     for row in actual:
-        if row["event_id"] not in actual_used:
-            rows.append(
-                {
-                    "plan_id": row.get("plan_id"),
-                    "week_key": None,
-                    "symbol": row["symbol"],
-                    "side": row["side"],
-                    "proposed_quantity": 0,
-                    "shadow_execution_day": None,
-                    "shadow_price_vnd": None,
-                    "actual_event_id": row["event_id"],
-                    "actual_day": row["event_day"],
-                    "actual_quantity": row["quantity"],
-                    "actual_price_vnd": row["price_vnd"],
-                    "execution_delay_days": None,
-                    "quantity_compliance": None,
-                    "price_slippage": None,
-                    "status": "EXTRA_OR_UNMATCHED",
-                }
-            )
-    return rows
+        if row["event_id"] in used:
+            continue
+        result.append(
+            {
+                "plan_id": row.get("plan_id"),
+                "week_key": None,
+                "symbol": row["symbol"],
+                "side": row["side"],
+                "proposed_quantity": 0,
+                "shadow_execution_day": None,
+                "shadow_price_vnd": None,
+                "actual_event_id": row["event_id"],
+                "actual_day": row["event_day"],
+                "actual_quantity": row["quantity"],
+                "actual_price_vnd": row["price_vnd"],
+                "execution_delay_days": None,
+                "quantity_compliance": None,
+                "price_slippage": None,
+                "status": "EXTRA_OR_UNMATCHED",
+            }
+        )
+    return result
 
 
 def refresh_performance() -> dict[str, object]:
@@ -1201,15 +1501,49 @@ def performance_status() -> dict[str, object]:
         }
     with state_db() as db:
         _ensure_schema(db)
-        nav_rows = [dict(row) for row in db.execute("SELECT * FROM performance_nav ORDER BY stream,valuation_day").fetchall()]
-        opening = [dict(row) for row in db.execute("SELECT * FROM performance_opening_positions ORDER BY symbol").fetchall()]
-        plans = [dict(row) for row in db.execute("SELECT * FROM performance_shadow_plans ORDER BY created_at").fetchall()]
-        events = [dict(row) for row in db.execute("SELECT * FROM performance_events ORDER BY event_day,event_time").fetchall()]
+        nav_rows = [
+            dict(row)
+            for row in db.execute(
+                """
+                SELECT * FROM performance_nav
+                ORDER BY stream,valuation_day
+                """
+            ).fetchall()
+        ]
+        opening = [
+            dict(row)
+            for row in db.execute(
+                """
+                SELECT * FROM performance_opening_positions
+                ORDER BY symbol
+                """
+            ).fetchall()
+        ]
+        plans = [
+            dict(row)
+            for row in db.execute(
+                """
+                SELECT * FROM performance_shadow_plans
+                ORDER BY created_at
+                """
+            ).fetchall()
+        ]
+        events = [
+            dict(row)
+            for row in db.execute(
+                """
+                SELECT * FROM performance_events
+                ORDER BY event_day,event_time,event_id
+                """
+            ).fetchall()
+        ]
     for row in nav_rows:
         row["details"] = json.loads(str(row.pop("details_json")))
     for row in opening:
         row["details"] = json.loads(str(row.pop("details_json")))
     for row in plans:
+        row["details"] = json.loads(str(row.pop("details_json")))
+    for row in events:
         row["details"] = json.loads(str(row.pop("details_json")))
     series: dict[str, list[dict[str, object]]] = defaultdict(list)
     for row in nav_rows:
