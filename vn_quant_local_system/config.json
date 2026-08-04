@@ -1,5 +1,5 @@
 {
-  "schema_version": "vn_quant_local_workstation_v1_3",
+  "schema_version": "vn_quant_local_workstation_v1_4",
   "paths": {
     "market_db": "data/market/dnse_ohlcv.sqlite3",
     "reference_zip": "data/reference/daily_prediction_input_v22.zip",
@@ -25,7 +25,8 @@
   },
   "weekly_policy": {
     "policy_id": "P1_TOP10_UNDERWEIGHT_BUFFER20",
-    "planner_variant": "V44_2_MULTI_BUY_WITHIN_WEEKLY_BUDGET",
+    "planner_variant": "V44_4_DNSE_CASH_PLUS_WEEKLY_CONTRIBUTION",
+    "cash_semantics": "SPENDABLE_EQUALS_BROKER_AVAILABLE_CASH_PLUS_PLANNED_WEEKLY_CONTRIBUTION",
     "default_contribution_vnd": 250000,
     "planning_cost_bps": 50.0,
     "exit_rank": 20,
