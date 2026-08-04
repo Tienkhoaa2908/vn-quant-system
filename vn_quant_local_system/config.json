@@ -56,6 +56,24 @@
     "purchase_guard": "CANONICAL_TOP10_AND_PREVIEW_TOP20_ELIGIBLE",
     "duplicate_guard_seconds": 90
   },
+  "data_integrity": {
+    "version": "V49_DNSE_SOURCE_INTEGRITY",
+    "market_working_dates_endpoint": "/market/working-dates",
+    "recent_sessions_refetched_every_run": true,
+    "stale_fetched_ranges_can_suppress_recent_refetch": false,
+    "recent_source_revision_audit_enabled": true,
+    "incomplete_session_quarantine_enabled": true,
+    "eod_ready_time_vn": "15:30:00",
+    "minimum_expected_session_stock_coverage_ratio": 0.75,
+    "broker_account_mode": "ONE_EXPLICIT_SUBACCOUNT",
+    "full_account_number_persisted": false,
+    "position_quantity_source": "OPEN_QUANTITY_PRESERVE_ZERO",
+    "sellable_quantity_source": "TRADE_QUANTITY_PRESERVE_ZERO",
+    "planner_cash_source": "AVAILABLE_CASH",
+    "broker_snapshot_valuation": "BROKER_MARKET_PRICE_FALLBACK_RESEARCH_EOD",
+    "research_valuation": "LOCAL_EOD_CLOSE",
+    "broker_and_research_nav_are_separate": true
+  },
   "performance": {
     "version": "V48_AUDITABLE_EVENT_CORRECTIONS",
     "default_legacy_classification": "LEGACY_EXCLUDED",
