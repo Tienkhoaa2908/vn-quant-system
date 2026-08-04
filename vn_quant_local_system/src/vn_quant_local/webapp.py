@@ -24,6 +24,13 @@ from .data_sources import (
     sync_incremental_market_data_local,
     test_dnse_connection,
 )
+from .performance import (
+    add_actual_cashflow,
+    add_actual_fill,
+    performance_status,
+    refresh_performance,
+    start_observatory,
+)
 from .weekly_plan import create_weekly_plan, latest_weekly_plan
 
 WEB_ROOT = SYSTEM_ROOT / "web"
@@ -63,13 +70,42 @@ def _friendly_error(exc: Exception) -> dict[str, object]:
         message = "Dữ liệu đã sang tháng canonical mới. Chạy C3 lại rồi tạo kế hoạch tuần."
     elif "MONTHLY_CANONICAL" in text:
         message = "Chưa có ranking tháng. Chạy C3 trước khi lập kế hoạch tuần."
+    elif "PERFORMANCE_ALREADY_STARTED" in text:
+        message = "Observatory đã được khởi tạo. Snapshot mở đầu là bất biến."
+    elif "PERFORMANCE_REQUIRES_BROKER_SNAPSHOT" in text:
+        message = "Cần đồng bộ danh mục DNSE trước khi bắt đầu theo dõi hiệu quả."
+    elif "PERFORMANCE_NOT_STARTED" in text:
+        message = "Chưa khởi tạo tab Hiệu quả."
+    elif "PERFORMANCE" in text:
+        message = "Dữ liệu nhập cho Observatory không hợp lệ hoặc chưa đầy đủ."
     else:
         message = text or "Thao tác thất bại."
     return {"status": "FAILED", "message": message, "error": technical}
 
 
+def _sync_broker_and_refresh() -> dict[str, object]:
+    result = sync_broker_portfolio()
+    status = performance_status()
+    if status.get("status") == "ACTIVE":
+        refresh_performance()
+    return result
+
+
+def _plan_and_refresh(
+    *, weekly_budget_vnd: float | None, maximum_buy_orders: int | None
+) -> dict[str, object]:
+    result = create_weekly_plan(
+        weekly_budget_vnd=weekly_budget_vnd,
+        maximum_buy_orders=maximum_buy_orders,
+    )
+    status = performance_status()
+    if status.get("status") == "ACTIVE":
+        refresh_performance()
+    return result
+
+
 class Handler(BaseHTTPRequestHandler):
-    server_version = "VNQuantLocal/1.5"
+    server_version = "VNQuantLocal/1.6"
 
     def _send(self, status: int, payload: bytes, content_type: str) -> None:
         self.send_response(status)
@@ -121,6 +157,10 @@ class Handler(BaseHTTPRequestHandler):
                 self._static("sell_review_v44_5.js")
             elif path == "/sell_review_v44_5.css":
                 self._static("sell_review_v44_5.css")
+            elif path == "/performance_v45.js":
+                self._static("performance_v45.js")
+            elif path == "/performance_v45.css":
+                self._static("performance_v45.css")
             elif path == "/api/status":
                 value = workstation_status()
                 value["latest_weekly_plan"] = latest_weekly_plan()
@@ -135,6 +175,8 @@ class Handler(BaseHTTPRequestHandler):
                 self._send_json(account_snapshot())
             elif path == "/api/plan/latest":
                 self._send_json(latest_weekly_plan() or {})
+            elif path == "/api/performance":
+                self._send_json(performance_status())
             elif path == "/api/docs":
                 docs = []
                 for file in sorted((SYSTEM_ROOT / "docs").glob("*.md")):
@@ -161,9 +203,9 @@ class Handler(BaseHTTPRequestHandler):
                     overwrite=bool(body.get("overwrite", False))
                 ),
                 "/api/actions/sync": sync_incremental_market_data_local,
-                "/api/actions/sync-broker": sync_broker_portfolio,
+                "/api/actions/sync-broker": _sync_broker_and_refresh,
                 "/api/actions/model": run_model,
-                "/api/actions/plan": lambda: create_weekly_plan(
+                "/api/actions/plan": lambda: _plan_and_refresh(
                     weekly_budget_vnd=(
                         float(body["weekly_budget_vnd"])
                         if body.get("weekly_budget_vnd") not in (None, "")
@@ -178,9 +220,55 @@ class Handler(BaseHTTPRequestHandler):
                 "/api/data-source/test": test_dnse_connection,
                 "/api/data-source/install-sdk": install_dnse_sdk,
                 "/api/data-source/clear": clear_credentials,
+                "/api/performance/refresh": refresh_performance,
             }
             if path in actions:
                 self._send_json(actions[path]())
+            elif path == "/api/performance/start":
+                classifications = body.get("classifications", {})
+                if not isinstance(classifications, Mapping):
+                    raise ValueError("PERFORMANCE_CLASSIFICATIONS_INVALID")
+                self._send_json(
+                    start_observatory(
+                        classifications={
+                            str(key): str(value)
+                            for key, value in classifications.items()
+                        },
+                        start_day=(
+                            str(body.get("start_day"))
+                            if body.get("start_day")
+                            else None
+                        ),
+                        opening_model_cash_vnd=(
+                            float(body["opening_model_cash_vnd"])
+                            if body.get("opening_model_cash_vnd") not in (None, "")
+                            else None
+                        ),
+                    )
+                )
+            elif path == "/api/performance/cashflow":
+                self._send_json(
+                    add_actual_cashflow(
+                        flow_type=str(body.get("flow_type") or ""),
+                        amount_vnd=float(body.get("amount_vnd") or 0.0),
+                        event_day=str(body.get("event_day") or ""),
+                        note=str(body.get("note") or "") or None,
+                    )
+                )
+            elif path == "/api/performance/fill":
+                self._send_json(
+                    add_actual_fill(
+                        side=str(body.get("side") or ""),
+                        symbol=str(body.get("symbol") or ""),
+                        quantity=int(body.get("quantity") or 0),
+                        price_vnd=float(body.get("price_vnd") or 0.0),
+                        event_day=str(body.get("event_day") or ""),
+                        fees_vnd=float(body.get("fees_vnd") or 0.0),
+                        taxes_vnd=float(body.get("taxes_vnd") or 0.0),
+                        plan_id=str(body.get("plan_id") or "") or None,
+                        note=str(body.get("note") or "") or None,
+                    )
+                )
             elif path == "/api/data-source/credentials":
                 self._send_json(
                     save_credentials(
