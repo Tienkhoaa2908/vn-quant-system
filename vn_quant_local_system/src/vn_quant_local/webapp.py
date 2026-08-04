@@ -7,7 +7,6 @@ from typing import Callable, Mapping
 from urllib.parse import parse_qs, urlparse
 
 from .broker_portfolio import latest_broker_portfolio, sync_broker_portfolio
-from .c3_model import run_model
 from .capital_plan import (
     capital_plan_history,
     create_capital_plan,
@@ -37,6 +36,11 @@ from .performance import (
     refresh_performance,
     start_observatory,
 )
+from .signal_refresh import (
+    ensure_canonical_current,
+    refresh_latest_preview,
+    signal_refresh_status,
+)
 
 WEB_ROOT = SYSTEM_ROOT / "web"
 MAX_JSON_BODY_BYTES = 20 * 1024 * 1024
@@ -65,14 +69,20 @@ def _friendly_error(exc: Exception) -> dict[str, object]:
         message = "DNSE xác thực được nhưng danh sách tiểu khoản không có mã định danh hợp lệ."
     elif "DNSE_ACCOUNT_READ_FAILED" in text:
         message = "DNSE trả danh sách tiểu khoản nhưng không đọc được số dư hoặc vị thế. Kiểm tra quyền đọc tài khoản của API Key."
-    elif "DNSE" in text and ("401" in text or "403" in text or "AUTH" in text.upper()):
+    elif "DNSE" in text and (
+        "401" in text or "403" in text or "AUTH" in text.upper()
+    ):
         message = "DNSE từ chối xác thực hoặc API key chưa có quyền đọc tài khoản/danh mục."
     elif "MANUAL_CSV" in text:
         message = "CSV thủ công không hợp lệ hoặc xung đột với dữ liệu đã có."
+    elif "CANONICAL_REFRESH_FAILED" in text:
+        message = "Không tạo được canonical của tháng hoàn tất mới nhất. Kiểm tra dữ liệu giá rồi thử lại."
+    elif "PREVIEW" in text:
+        message = "Không tính được latest preview. Kiểm tra dữ liệu phiên mới nhất và lịch sử 250 phiên."
     elif "MONTHLY_SIGNAL_MISMATCH" in text:
-        message = "Dữ liệu đã sang tháng canonical mới. Chạy C3 lại rồi tạo kế hoạch vốn."
+        message = "Canonical và lịch sử sell-review không đồng nhất. Cập nhật đánh giá thị trường rồi tạo lại kế hoạch."
     elif "MONTHLY_CANONICAL" in text:
-        message = "Chưa có ranking tháng. Chạy C3 trước khi lập kế hoạch vốn."
+        message = "Chưa có ranking canonical tháng. Cập nhật đánh giá thị trường trước."
     elif "CAPITAL_PLAN_TRIGGER_INVALID" in text:
         message = "Loại sự kiện tạo kế hoạch vốn không hợp lệ."
     elif "PERFORMANCE_ALREADY_STARTED" in text:
@@ -96,6 +106,47 @@ def _sync_broker_and_refresh() -> dict[str, object]:
     return result
 
 
+def _refresh_market_signals() -> dict[str, object]:
+    market_sync = sync_incremental_market_data_local()
+    canonical = ensure_canonical_current()
+    preview = refresh_latest_preview()
+    return {
+        "status": "SUCCESS",
+        "message": "Đã đồng bộ dữ liệu và cập nhật latest preview.",
+        "market_sync": market_sync,
+        "canonical": canonical,
+        "preview": {
+            key: preview.get(key)
+            for key in (
+                "status",
+                "snapshot_id",
+                "created_at",
+                "market_day",
+                "canonical_signal_day",
+                "market_risk_on",
+            )
+        },
+    }
+
+
+def _refresh_canonical() -> dict[str, object]:
+    market_sync = sync_incremental_market_data_local()
+    canonical = ensure_canonical_current()
+    preview = refresh_latest_preview()
+    return {
+        "status": "SUCCESS",
+        "message": (
+            "Canonical đã cập nhật và preview đã được tính lại."
+            if canonical.get("status") == "REFRESHED"
+            else "Canonical đã đúng tháng hoàn tất mới nhất; preview đã được làm mới."
+        ),
+        "market_sync": market_sync,
+        "canonical": canonical,
+        "preview_snapshot_id": preview.get("snapshot_id"),
+        "preview_market_day": preview.get("market_day"),
+    }
+
+
 def _plan_and_refresh(
     *,
     new_capital_vnd: float,
@@ -103,12 +154,22 @@ def _plan_and_refresh(
     trigger_type: str | None,
     note: str | None,
 ) -> dict[str, object]:
+    # Fail closed: kế hoạch mới phải dùng dữ liệu giá và broker snapshot vừa được
+    # đồng bộ, sau đó capital_plan tự khóa canonical + preview snapshot.
+    market_sync = sync_incremental_market_data_local()
+    broker_sync = sync_broker_portfolio()
     result = create_capital_plan(
         new_capital_vnd=new_capital_vnd,
         maximum_buy_orders=maximum_buy_orders,
         trigger_type=trigger_type,
         note=note,
     )
+    result["preflight"] = {
+        "market_sync": market_sync,
+        "broker_snapshot_id": broker_sync.get("snapshot_id"),
+        "broker_captured_at": broker_sync.get("captured_at"),
+        "signals": signal_refresh_status(),
+    }
     status = performance_status()
     if status.get("status") == "ACTIVE":
         refresh_performance()
@@ -116,7 +177,7 @@ def _plan_and_refresh(
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "VNQuantLocal/1.7"
+    server_version = "VNQuantLocal/1.8"
 
     def _send(self, status: int, payload: bytes, content_type: str) -> None:
         self.send_response(status)
@@ -171,6 +232,8 @@ class Handler(BaseHTTPRequestHandler):
                 "/performance_v45.css",
                 "/planning_v46.js",
                 "/planning_v46.css",
+                "/signal_v47.js",
+                "/signal_v47.css",
             }:
                 self._static(path.lstrip("/"))
             elif path == "/api/status":
@@ -180,6 +243,7 @@ class Handler(BaseHTTPRequestHandler):
                 value["latest_weekly_plan"] = latest
                 value["data_source"] = credential_status()
                 value["broker_portfolio"] = latest_broker_portfolio()
+                value["signal_refresh"] = signal_refresh_status()
                 self._send_json(value)
             elif path == "/api/data-source":
                 self._send_json(credential_status())
@@ -195,12 +259,19 @@ class Handler(BaseHTTPRequestHandler):
             elif path == "/api/market-overview":
                 limit = int((query.get("limit") or ["30"])[0])
                 self._send_json(market_overview(limit))
+            elif path == "/api/signal-status":
+                self._send_json(signal_refresh_status())
             elif path == "/api/performance":
                 self._send_json(performance_status())
             elif path == "/api/docs":
                 docs = []
                 for file in sorted((SYSTEM_ROOT / "docs").glob("*.md")):
-                    docs.append({"name": file.name, "content": file.read_text(encoding="utf-8")})
+                    docs.append(
+                        {
+                            "name": file.name,
+                            "content": file.read_text(encoding="utf-8"),
+                        }
+                    )
                 self._send_json({"documents": docs})
             else:
                 self._send_json({"error": "not found"}, 404)
@@ -214,10 +285,14 @@ class Handler(BaseHTTPRequestHandler):
             if not isinstance(body, Mapping):
                 body = {}
             actions: dict[str, Callable[[], object]] = {
-                "/api/actions/bootstrap": lambda: bootstrap_local_data(overwrite=bool(body.get("overwrite", False))),
+                "/api/actions/bootstrap": lambda: bootstrap_local_data(
+                    overwrite=bool(body.get("overwrite", False))
+                ),
                 "/api/actions/sync": sync_incremental_market_data_local,
                 "/api/actions/sync-broker": _sync_broker_and_refresh,
-                "/api/actions/model": run_model,
+                "/api/actions/model": _refresh_market_signals,
+                "/api/actions/market-refresh": _refresh_market_signals,
+                "/api/actions/canonical": _refresh_canonical,
                 "/api/actions/plan": lambda: _plan_and_refresh(
                     new_capital_vnd=float(
                         body.get("new_capital_vnd")
@@ -245,8 +320,15 @@ class Handler(BaseHTTPRequestHandler):
                     raise ValueError("PERFORMANCE_CLASSIFICATIONS_INVALID")
                 self._send_json(
                     start_observatory(
-                        classifications={str(key): str(value) for key, value in classifications.items()},
-                        start_day=str(body.get("start_day")) if body.get("start_day") else None,
+                        classifications={
+                            str(key): str(value)
+                            for key, value in classifications.items()
+                        },
+                        start_day=(
+                            str(body.get("start_day"))
+                            if body.get("start_day")
+                            else None
+                        ),
                         opening_model_cash_vnd=(
                             float(body["opening_model_cash_vnd"])
                             if body.get("opening_model_cash_vnd") not in (None, "")
@@ -278,13 +360,22 @@ class Handler(BaseHTTPRequestHandler):
                     )
                 )
             elif path == "/api/data-source/credentials":
-                self._send_json(save_credentials(str(body.get("api_key") or ""), str(body.get("api_secret") or "")))
+                self._send_json(
+                    save_credentials(
+                        str(body.get("api_key") or ""),
+                        str(body.get("api_secret") or ""),
+                    )
+                )
             elif path == "/api/data-source/import-csv":
                 self._send_json(
                     import_manual_csv(
                         str(body.get("content") or ""),
-                        filename=str(body.get("filename") or "manual_ohlcv.csv"),
-                        price_unit=str(body.get("price_unit") or "THOUSAND_VND"),
+                        filename=str(
+                            body.get("filename") or "manual_ohlcv.csv"
+                        ),
+                        price_unit=str(
+                            body.get("price_unit") or "THOUSAND_VND"
+                        ),
                     )
                 )
             elif path == "/api/account":
@@ -294,7 +385,11 @@ class Handler(BaseHTTPRequestHandler):
                 self._send_json(
                     replace_account(
                         cash_vnd=float(body.get("cash_vnd", 0.0)),
-                        weekly_contribution_vnd=float(body.get("weekly_contribution_vnd", 250_000.0)),
+                        weekly_contribution_vnd=float(
+                            body.get(
+                                "weekly_contribution_vnd", 250_000.0
+                            )
+                        ),
                         holdings=holdings,
                     )
                 )
