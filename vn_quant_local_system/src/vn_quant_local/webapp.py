@@ -4,10 +4,15 @@ from __future__ import annotations
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 from typing import Callable, Mapping
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 from .broker_portfolio import latest_broker_portfolio, sync_broker_portfolio
 from .c3_model import run_model
+from .capital_plan import (
+    capital_plan_history,
+    create_capital_plan,
+    latest_capital_plan,
+)
 from .core import (
     SYSTEM_ROOT,
     account_snapshot,
@@ -24,6 +29,7 @@ from .data_sources import (
     sync_incremental_market_data_local,
     test_dnse_connection,
 )
+from .market_overview import market_overview
 from .performance import (
     add_actual_cashflow,
     add_actual_fill,
@@ -31,7 +37,6 @@ from .performance import (
     refresh_performance,
     start_observatory,
 )
-from .weekly_plan import create_weekly_plan, latest_weekly_plan
 
 WEB_ROOT = SYSTEM_ROOT / "web"
 MAX_JSON_BODY_BYTES = 20 * 1024 * 1024
@@ -60,16 +65,16 @@ def _friendly_error(exc: Exception) -> dict[str, object]:
         message = "DNSE xác thực được nhưng danh sách tiểu khoản không có mã định danh hợp lệ."
     elif "DNSE_ACCOUNT_READ_FAILED" in text:
         message = "DNSE trả danh sách tiểu khoản nhưng không đọc được số dư hoặc vị thế. Kiểm tra quyền đọc tài khoản của API Key."
-    elif "DNSE" in text and (
-        "401" in text or "403" in text or "AUTH" in text.upper()
-    ):
+    elif "DNSE" in text and ("401" in text or "403" in text or "AUTH" in text.upper()):
         message = "DNSE từ chối xác thực hoặc API key chưa có quyền đọc tài khoản/danh mục."
     elif "MANUAL_CSV" in text:
         message = "CSV thủ công không hợp lệ hoặc xung đột với dữ liệu đã có."
     elif "MONTHLY_SIGNAL_MISMATCH" in text:
-        message = "Dữ liệu đã sang tháng canonical mới. Chạy C3 lại rồi tạo kế hoạch tuần."
+        message = "Dữ liệu đã sang tháng canonical mới. Chạy C3 lại rồi tạo kế hoạch vốn."
     elif "MONTHLY_CANONICAL" in text:
-        message = "Chưa có ranking tháng. Chạy C3 trước khi lập kế hoạch tuần."
+        message = "Chưa có ranking tháng. Chạy C3 trước khi lập kế hoạch vốn."
+    elif "CAPITAL_PLAN_TRIGGER_INVALID" in text:
+        message = "Loại sự kiện tạo kế hoạch vốn không hợp lệ."
     elif "PERFORMANCE_ALREADY_STARTED" in text:
         message = "Observatory đã được khởi tạo. Snapshot mở đầu là bất biến."
     elif "PERFORMANCE_REQUIRES_BROKER_SNAPSHOT" in text:
@@ -92,11 +97,17 @@ def _sync_broker_and_refresh() -> dict[str, object]:
 
 
 def _plan_and_refresh(
-    *, weekly_budget_vnd: float | None, maximum_buy_orders: int | None
+    *,
+    new_capital_vnd: float,
+    maximum_buy_orders: int | None,
+    trigger_type: str | None,
+    note: str | None,
 ) -> dict[str, object]:
-    result = create_weekly_plan(
-        weekly_budget_vnd=weekly_budget_vnd,
+    result = create_capital_plan(
+        new_capital_vnd=new_capital_vnd,
         maximum_buy_orders=maximum_buy_orders,
+        trigger_type=trigger_type,
+        note=note,
     )
     status = performance_status()
     if status.get("status") == "ACTIVE":
@@ -105,7 +116,7 @@ def _plan_and_refresh(
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "VNQuantLocal/1.6"
+    server_version = "VNQuantLocal/1.7"
 
     def _send(self, status: int, payload: bytes, content_type: str) -> None:
         self.send_response(status)
@@ -145,25 +156,28 @@ class Handler(BaseHTTPRequestHandler):
         self._send(200, target.read_bytes(), content_type)
 
     def do_GET(self) -> None:  # noqa: N802
-        path = urlparse(self.path).path
+        parsed = urlparse(self.path)
+        path = parsed.path
+        query = parse_qs(parsed.query)
         try:
             if path == "/":
                 self._static("index.html")
-            elif path == "/app.js":
-                self._static("app.js")
-            elif path == "/styles.css":
-                self._static("styles.css")
-            elif path == "/sell_review_v44_5.js":
-                self._static("sell_review_v44_5.js")
-            elif path == "/sell_review_v44_5.css":
-                self._static("sell_review_v44_5.css")
-            elif path == "/performance_v45.js":
-                self._static("performance_v45.js")
-            elif path == "/performance_v45.css":
-                self._static("performance_v45.css")
+            elif path in {
+                "/app.js",
+                "/styles.css",
+                "/sell_review_v44_5.js",
+                "/sell_review_v44_5.css",
+                "/performance_v45.js",
+                "/performance_v45.css",
+                "/planning_v46.js",
+                "/planning_v46.css",
+            }:
+                self._static(path.lstrip("/"))
             elif path == "/api/status":
                 value = workstation_status()
-                value["latest_weekly_plan"] = latest_weekly_plan()
+                latest = latest_capital_plan()
+                value["latest_capital_plan"] = latest
+                value["latest_weekly_plan"] = latest
                 value["data_source"] = credential_status()
                 value["broker_portfolio"] = latest_broker_portfolio()
                 self._send_json(value)
@@ -174,18 +188,19 @@ class Handler(BaseHTTPRequestHandler):
             elif path == "/api/account":
                 self._send_json(account_snapshot())
             elif path == "/api/plan/latest":
-                self._send_json(latest_weekly_plan() or {})
+                self._send_json(latest_capital_plan() or {})
+            elif path == "/api/plans":
+                limit = int((query.get("limit") or ["50"])[0])
+                self._send_json({"plans": capital_plan_history(limit)})
+            elif path == "/api/market-overview":
+                limit = int((query.get("limit") or ["30"])[0])
+                self._send_json(market_overview(limit))
             elif path == "/api/performance":
                 self._send_json(performance_status())
             elif path == "/api/docs":
                 docs = []
                 for file in sorted((SYSTEM_ROOT / "docs").glob("*.md")):
-                    docs.append(
-                        {
-                            "name": file.name,
-                            "content": file.read_text(encoding="utf-8"),
-                        }
-                    )
+                    docs.append({"name": file.name, "content": file.read_text(encoding="utf-8")})
                 self._send_json({"documents": docs})
             else:
                 self._send_json({"error": "not found"}, 404)
@@ -199,23 +214,23 @@ class Handler(BaseHTTPRequestHandler):
             if not isinstance(body, Mapping):
                 body = {}
             actions: dict[str, Callable[[], object]] = {
-                "/api/actions/bootstrap": lambda: bootstrap_local_data(
-                    overwrite=bool(body.get("overwrite", False))
-                ),
+                "/api/actions/bootstrap": lambda: bootstrap_local_data(overwrite=bool(body.get("overwrite", False))),
                 "/api/actions/sync": sync_incremental_market_data_local,
                 "/api/actions/sync-broker": _sync_broker_and_refresh,
                 "/api/actions/model": run_model,
                 "/api/actions/plan": lambda: _plan_and_refresh(
-                    weekly_budget_vnd=(
-                        float(body["weekly_budget_vnd"])
-                        if body.get("weekly_budget_vnd") not in (None, "")
-                        else None
+                    new_capital_vnd=float(
+                        body.get("new_capital_vnd")
+                        if body.get("new_capital_vnd") not in (None, "")
+                        else body.get("weekly_budget_vnd") or 0.0
                     ),
                     maximum_buy_orders=(
                         int(body["maximum_buy_orders"])
                         if body.get("maximum_buy_orders") not in (None, "")
                         else None
                     ),
+                    trigger_type=str(body.get("trigger_type") or "") or None,
+                    note=str(body.get("note") or "") or None,
                 ),
                 "/api/data-source/test": test_dnse_connection,
                 "/api/data-source/install-sdk": install_dnse_sdk,
@@ -230,15 +245,8 @@ class Handler(BaseHTTPRequestHandler):
                     raise ValueError("PERFORMANCE_CLASSIFICATIONS_INVALID")
                 self._send_json(
                     start_observatory(
-                        classifications={
-                            str(key): str(value)
-                            for key, value in classifications.items()
-                        },
-                        start_day=(
-                            str(body.get("start_day"))
-                            if body.get("start_day")
-                            else None
-                        ),
+                        classifications={str(key): str(value) for key, value in classifications.items()},
+                        start_day=str(body.get("start_day")) if body.get("start_day") else None,
                         opening_model_cash_vnd=(
                             float(body["opening_model_cash_vnd"])
                             if body.get("opening_model_cash_vnd") not in (None, "")
@@ -270,22 +278,13 @@ class Handler(BaseHTTPRequestHandler):
                     )
                 )
             elif path == "/api/data-source/credentials":
-                self._send_json(
-                    save_credentials(
-                        str(body.get("api_key") or ""),
-                        str(body.get("api_secret") or ""),
-                    )
-                )
+                self._send_json(save_credentials(str(body.get("api_key") or ""), str(body.get("api_secret") or "")))
             elif path == "/api/data-source/import-csv":
                 self._send_json(
                     import_manual_csv(
                         str(body.get("content") or ""),
-                        filename=str(
-                            body.get("filename") or "manual_ohlcv.csv"
-                        ),
-                        price_unit=str(
-                            body.get("price_unit") or "THOUSAND_VND"
-                        ),
+                        filename=str(body.get("filename") or "manual_ohlcv.csv"),
+                        price_unit=str(body.get("price_unit") or "THOUSAND_VND"),
                     )
                 )
             elif path == "/api/account":
@@ -295,9 +294,7 @@ class Handler(BaseHTTPRequestHandler):
                 self._send_json(
                     replace_account(
                         cash_vnd=float(body.get("cash_vnd", 0.0)),
-                        weekly_contribution_vnd=float(
-                            body.get("weekly_contribution_vnd", 250_000.0)
-                        ),
+                        weekly_contribution_vnd=float(body.get("weekly_contribution_vnd", 250_000.0)),
                         holdings=holdings,
                     )
                 )
@@ -307,7 +304,9 @@ class Handler(BaseHTTPRequestHandler):
                     replace_account(
                         cash_vnd=float(current["account"]["cash_vnd"]),
                         weekly_contribution_vnd=float(
-                            body.get("weekly_budget_vnd", 250_000.0)
+                            body.get("new_capital_vnd")
+                            if body.get("new_capital_vnd") not in (None, "")
+                            else body.get("weekly_budget_vnd", 250_000.0)
                         ),
                         holdings=current["holdings"],
                     )
