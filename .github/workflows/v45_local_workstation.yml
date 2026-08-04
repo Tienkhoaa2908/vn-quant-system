@@ -1,4 +1,4 @@
-name: v45_local_workstation
+name: v47_local_workstation
 
 on:
   push:
@@ -36,8 +36,11 @@ jobs:
           node --check vn_quant_local_system/web/app.js
           node --check vn_quant_local_system/web/sell_review_v44_5.js
           node --check vn_quant_local_system/web/performance_v45.js
-      - name: Verify V45 assets
+          node --check vn_quant_local_system/web/signal_v47.js
+      - name: Verify workstation assets
         run: |
           grep -q 'performance_v45.css' vn_quant_local_system/web/index.html
-          grep -q 'performance_v45.js' vn_quant_local_system/web/index.html
-          grep -q 'V45_LIVE_PERFORMANCE_OBSERVATORY' vn_quant_local_system/src/vn_quant_local/performance.py
+          grep -q 'signal_v47.css' vn_quant_local_system/web/index.html
+          grep -q 'signal_v47.js' vn_quant_local_system/web/index.html
+          grep -q 'LATEST_SESSION_WITH_CANONICAL_WEIGHTS' vn_quant_local_system/src/vn_quant_local/signal_refresh.py
+          grep -q 'CANONICAL_TOP10_AND_PREVIEW_TOP20_ELIGIBLE' vn_quant_local_system/src/vn_quant_local/signal_refresh.py
