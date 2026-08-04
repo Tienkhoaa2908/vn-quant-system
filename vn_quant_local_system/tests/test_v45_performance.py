@@ -8,6 +8,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
+from vn_quant_local import performance
 from vn_quant_local.performance import (
     _ensure_schema,
     _event_hash,
@@ -15,9 +16,14 @@ from vn_quant_local.performance import (
     _xirr,
     start_observatory,
 )
+from vn_quant_local.performance_safety import append_unique_event, safe_xirr
 
 
 class V45PerformanceTests(unittest.TestCase):
+    def test_safety_guards_are_active(self) -> None:
+        self.assertIs(performance._xirr, safe_xirr)
+        self.assertIs(performance._append_event, append_unique_event)
+
     def test_schema_is_additive_and_idempotent(self) -> None:
         db = sqlite3.connect(":memory:")
         try:
@@ -58,6 +64,16 @@ class V45PerformanceTests(unittest.TestCase):
         )
         self.assertIsNotNone(value)
         self.assertAlmostEqual(float(value), 1.0, places=5)
+
+    def test_xirr_is_not_reported_without_elapsed_time(self) -> None:
+        self.assertIsNone(
+            _xirr(
+                [
+                    (date(2026, 8, 4), -100.0),
+                    (date(2026, 8, 4), 100.0),
+                ]
+            )
+        )
 
     def test_start_writes_full_config_transaction(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
