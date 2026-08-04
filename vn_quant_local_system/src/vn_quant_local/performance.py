@@ -317,9 +317,12 @@ def start_observatory(
     broker = latest_broker_portfolio()
     if not broker:
         raise ValueError("PERFORMANCE_REQUIRES_BROKER_SNAPSHOT")
-    day = _iso_day(
-        start_day or broker.get("market_day") or _latest_market_day()
+    broker_day = _iso_day(
+        broker.get("market_day") or _latest_market_day()
     )
+    day = _iso_day(start_day or broker_day)
+    if day != broker_day:
+        raise ValueError("PERFORMANCE_START_DAY_MUST_MATCH_BROKER_SNAPSHOT")
     if day not in set(_market_days()):
         raise ValueError("PERFORMANCE_START_DAY_MUST_BE_MARKET_SESSION")
     classification_map = {
@@ -359,8 +362,8 @@ def start_observatory(
         if opening_model_cash_vnd is None
         else float(opening_model_cash_vnd)
     )
-    if model_cash < 0:
-        raise ValueError("PERFORMANCE_OPENING_CASH_NEGATIVE")
+    if model_cash < 0 or model_cash > broker_cash + 1e-6:
+        raise ValueError("PERFORMANCE_OPENING_CASH_OUTSIDE_BROKER_BALANCE")
     performance_cfg = load_config().get("performance", {})
     if not isinstance(performance_cfg, Mapping):
         performance_cfg = {}
@@ -457,6 +460,14 @@ def _actual_events() -> list[dict[str, object]]:
     return [dict(row) for row in rows]
 
 
+def _assert_event_day(day: str) -> None:
+    config = _config()
+    if config is None:
+        raise ValueError("PERFORMANCE_NOT_STARTED")
+    if day < str(config["start_day"]):
+        raise ValueError("PERFORMANCE_EVENT_BEFORE_START")
+
+
 def _actual_state_until(event_day: str) -> tuple[float, dict[str, int]]:
     config = _config()
     if config is None:
@@ -494,8 +505,8 @@ def add_actual_cashflow(
     event_day: str,
     note: str | None = None,
 ) -> dict[str, object]:
-    if _config() is None:
-        raise ValueError("PERFORMANCE_NOT_STARTED")
+    day = _iso_day(event_day)
+    _assert_event_day(day)
     kind = str(flow_type).upper()
     amount = float(amount_vnd)
     if kind not in VALID_CASHFLOW_TYPES or amount <= 0:
@@ -504,7 +515,7 @@ def add_actual_cashflow(
         event_type="ACTUAL_CASHFLOW",
         stream="ACTUAL_MODEL_SLEEVE",
         source="USER_CONFIRMED",
-        event_day=event_day,
+        event_day=day,
         amount_vnd=amount if kind == "DEPOSIT" else -amount,
         note=note,
         details={"flow_type": kind},
@@ -525,15 +536,14 @@ def add_actual_fill(
     plan_id: str | None = None,
     note: str | None = None,
 ) -> dict[str, object]:
-    if _config() is None:
-        raise ValueError("PERFORMANCE_NOT_STARTED")
+    day = _iso_day(event_day)
+    _assert_event_day(day)
     normalized_side = str(side).upper()
     ticker = str(symbol).strip().upper()
     qty = int(quantity)
     price = float(price_vnd)
     fees = float(fees_vnd)
     taxes = float(taxes_vnd)
-    day = _iso_day(event_day)
     if (
         normalized_side not in VALID_SIDES
         or not ticker
@@ -639,17 +649,28 @@ def _sync_shadow_plan_selection(config: Mapping[str, object]) -> None:
             existing.add(week)
 
 
-def _rebuild_shadow(config: Mapping[str, object]) -> None:
-    latest_day = _latest_market_day()
-    cost_rate = float(config["shadow_cost_bps"]) / 10_000.0
-    tax_rate = float(config["sell_tax_bps"]) / 10_000.0
-    adopted_value = sum(
+def _adopted_opening_positions() -> dict[str, int]:
+    return {
+        str(row["symbol"]): int(row["quantity"])
+        for row in _opening_positions()
+        if row["classification"] == ADOPTED_AT_START
+    }
+
+
+def _adopted_opening_value() -> float:
+    return sum(
         float(row["opening_value_vnd"])
         for row in _opening_positions()
         if row["classification"] == ADOPTED_AT_START
     )
-    cash = float(config["opening_model_cash_vnd"]) + adopted_value
-    positions: dict[str, int] = {}
+
+
+def _rebuild_shadow(config: Mapping[str, object]) -> None:
+    latest_day = _latest_market_day()
+    cost_rate = float(config["shadow_cost_bps"]) / 10_000.0
+    tax_rate = float(config["sell_tax_bps"]) / 10_000.0
+    cash = float(config["opening_model_cash_vnd"])
+    positions = _adopted_opening_positions()
     trades: list[dict[str, object]] = []
     with state_db() as db:
         _ensure_schema(db)
@@ -794,33 +815,27 @@ def _stream_events() -> dict[str, list[dict[str, object]]]:
     events: dict[str, list[dict[str, object]]] = defaultdict(list)
     start_day = str(config["start_day"])
     opening_cash = float(config["opening_model_cash_vnd"])
-    adopted = [
-        row
-        for row in _opening_positions()
-        if row["classification"] == ADOPTED_AT_START
-    ]
-    adopted_value = sum(float(row["opening_value_vnd"]) for row in adopted)
-    events["ACTUAL_MODEL_SLEEVE"].append(
-        {
-            "day": start_day,
-            "kind": "OPENING",
-            "cash_flow": opening_cash,
-            "cash_delta": opening_cash,
-            "positions": {
-                str(row["symbol"]): int(row["quantity"])
-                for row in adopted
-            },
-        }
-    )
-    for stream in ("PLAN_SHADOW", "VNINDEX_BENCHMARK"):
+    adopted_positions = _adopted_opening_positions()
+    adopted_value = _adopted_opening_value()
+    opening_total = opening_cash + adopted_value
+    for stream in ("ACTUAL_MODEL_SLEEVE", "PLAN_SHADOW"):
         events[stream].append(
             {
                 "day": start_day,
                 "kind": "OPENING",
-                "cash_flow": opening_cash + adopted_value,
-                "cash_delta": opening_cash + adopted_value,
+                "cash_flow": opening_total,
+                "cash_delta": opening_cash,
+                "positions": dict(adopted_positions),
             }
         )
+    events["VNINDEX_BENCHMARK"].append(
+        {
+            "day": start_day,
+            "kind": "OPENING",
+            "cash_flow": opening_total,
+            "cash_delta": opening_total,
+        }
+    )
     for row in _actual_events():
         day = str(row["event_day"])
         if row["event_type"] == "ACTUAL_CASHFLOW":
@@ -1032,6 +1047,7 @@ def _whole_dnse_rows(
     config: Mapping[str, object]
 ) -> list[dict[str, object]]:
     start_day = str(config["start_day"])
+    opening_snapshot_id = str(config["opening_broker_snapshot_id"])
     flows: dict[str, float] = defaultdict(float)
     for event in _actual_events():
         if event["event_type"] == "ACTUAL_CASHFLOW":
@@ -1054,6 +1070,10 @@ def _whole_dnse_rows(
             snapshot.get("market_day")
             or str(snapshot["captured_at"])[:10]
         )
+        if day == start_day:
+            if str(snapshot["snapshot_id"]) == opening_snapshot_id:
+                latest_by_day[day] = snapshot
+            continue
         latest_by_day[day] = snapshot
     result: list[dict[str, object]] = []
     previous_nav: float | None = None
@@ -1247,21 +1267,30 @@ def _signal_scorecard(
 ) -> list[dict[str, object]]:
     start_day = str(config["start_day"])
     with state_db() as db:
-        signal_days = [
+        prior = db.execute(
+            """
+            SELECT MAX(signal_day) FROM rankings
+            WHERE signal_kind='MONTHLY_CANONICAL' AND signal_day<=?
+            """,
+            (start_day,),
+        ).fetchone()[0]
+        future = [
             str(row[0])
             for row in db.execute(
                 """
                 SELECT DISTINCT signal_day FROM rankings
-                WHERE signal_kind='MONTHLY_CANONICAL' AND signal_day>=?
+                WHERE signal_kind='MONTHLY_CANONICAL' AND signal_day>?
                 ORDER BY signal_day
                 """,
                 (start_day,),
             ).fetchall()
         ]
+    signal_days = ([str(prior)] if prior else []) + future
     market_days = _market_days()
     day_index = {day: index for index, day in enumerate(market_days)}
     scorecard: list[dict[str, object]] = []
     for signal_day in signal_days:
+        evaluation_start = max(signal_day, start_day)
         with state_db() as db:
             run = db.execute(
                 """
@@ -1287,13 +1316,15 @@ def _signal_scorecard(
                     (run["run_id"],),
                 ).fetchall()
             ]
-        signal_index = day_index.get(signal_day)
-        base_index = _price_exact("VNINDEX", signal_day, "close")
-        if signal_index is None or base_index is None:
+        start_index = day_index.get(evaluation_start)
+        base_index = _price_exact(
+            "VNINDEX", evaluation_start, "close"
+        )
+        if start_index is None or base_index is None:
             continue
         horizons: dict[str, object] = {}
         for label, sessions in (("1W", 5), ("1M", 20), ("3M", 60)):
-            target_index = signal_index + sessions
+            target_index = start_index + sessions
             if target_index >= len(market_days):
                 horizons[label] = {"status": "PENDING"}
                 continue
@@ -1306,7 +1337,9 @@ def _signal_scorecard(
             returns: list[tuple[int, str, float]] = []
             for item in ranking:
                 symbol = str(item["symbol"])
-                start_price = _price_exact(symbol, signal_day, "close")
+                start_price = _price_exact(
+                    symbol, evaluation_start, "close"
+                )
                 end_price = _price_exact(symbol, target_day, "close")
                 if start_price is not None and end_price is not None:
                     returns.append(
@@ -1343,6 +1376,8 @@ def _signal_scorecard(
         scorecard.append(
             {
                 "signal_day": signal_day,
+                "evaluation_start_day": evaluation_start,
+                "active_at_observatory_start": signal_day < start_day,
                 "run_id": str(run["run_id"]),
                 "horizons": horizons,
             }
