@@ -1,5 +1,5 @@
 {
-  "schema_version": "vn_quant_local_workstation_v1_5",
+  "schema_version": "vn_quant_local_workstation_v1_6",
   "paths": {
     "market_db": "data/market/dnse_ohlcv.sqlite3",
     "reference_zip": "data/reference/daily_prediction_input_v22.zip",
@@ -39,6 +39,19 @@
     "maximum_buy_orders_per_week": 3,
     "odd_lot_share_unit": 1,
     "sell_proceeds_reused_only_after_broker_resync": true
+  },
+  "performance": {
+    "version": "V45_LIVE_PERFORMANCE_OBSERVATORY",
+    "default_legacy_classification": "LEGACY_EXCLUDED",
+    "shadow_plan_selection": "FIRST_PLAN_PER_ISO_WEEK",
+    "shadow_execution": "NEXT_SESSION_OPEN",
+    "shadow_cost_bps": 50.0,
+    "sell_tax_bps": 10.0,
+    "actual_fill_price_source": "USER_CONFIRMED_ONLY",
+    "whole_dnse_source": "BROKER_SNAPSHOTS",
+    "benchmark": "VNINDEX_SAME_SHADOW_CASH_FLOWS",
+    "signal_horizons_sessions": [5, 20, 60],
+    "automatic_live_orders_allowed": false
   },
   "validation_archive": {
     "source_files": [
