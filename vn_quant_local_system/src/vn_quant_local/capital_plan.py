@@ -1,9 +1,9 @@
-"""V46 event-driven capital planning.
+"""V47 event-driven capital planning with canonical + preview guard.
 
 Mỗi lần người dùng có vốn hoặc muốn rà soát danh mục có thể tạo một planning
-cycle ngay tại thời điểm đó. Chu kỳ không phụ thuộc tuần. Hàm này tái sử dụng
-planner P1 đã kiểm định để giữ nguyên logic ranking, sizing và sell review,
-nhưng ghi thêm event metadata riêng cho performance shadow và audit.
+cycle ngay tại thời điểm đó. Canonical tháng quyết định universe/policy; preview
+phiên mới nhất chỉ chặn mua thêm khi mã đã mất eligibility hoặc rơi khỏi Top-20.
+Sell gate hai tháng canonical không thay đổi.
 """
 from __future__ import annotations
 
@@ -13,6 +13,11 @@ from typing import Mapping
 
 from .broker_portfolio import latest_broker_portfolio
 from .core import paths, state_db
+from .signal_refresh import (
+    apply_preview_purchase_guard,
+    ensure_canonical_current,
+    refresh_latest_preview,
+)
 from .weekly_plan import create_weekly_plan
 
 PLANNING_MODE = "EVENT_DRIVEN_CAPITAL_CYCLE"
@@ -51,6 +56,7 @@ def _recent_duplicate(
     amount: float,
     trigger: str,
     broker_snapshot_id: str | None,
+    preview_snapshot_id: str | None,
     maximum_buy_orders: int | None,
 ) -> dict[str, object] | None:
     with state_db() as db:
@@ -81,6 +87,8 @@ def _recent_duplicate(
     if (row["broker_snapshot_id"] or None) != broker_snapshot_id:
         return None
     existing = json.loads(str(row["details_json"]))
+    if existing.get("preview_snapshot_id") != preview_snapshot_id:
+        return None
     existing_max = int(
         (existing.get("rationale") or {}).get("maximum_buy_orders") or 0
     )
@@ -91,6 +99,41 @@ def _recent_duplicate(
     result["duplicate_prevented"] = True
     result["duplicate_guard_seconds"] = DUPLICATE_GUARD_SECONDS
     return result
+
+
+def _persist_guarded_base_plan(plan: Mapping[str, object]) -> None:
+    """Đồng bộ legacy weekly_plans row với plan đã qua preview guard.
+
+    Bảng weekly_plans được giữ để migration/backward compatibility. Capital cycle
+    và file audit không được phép chứa bản unguarded khác với UI/shadow.
+    """
+
+    rationale = dict(plan.get("rationale") or {})
+    exit_candidates = list(plan.get("exit_candidates") or [])
+    with state_db() as db:
+        db.execute(
+            """
+            UPDATE weekly_plans
+            SET buy_symbol=?,buy_quantity=?,estimated_buy_value_vnd=?,
+                sell_symbols_json=?,rationale_json=?
+            WHERE plan_id=?
+            """,
+            (
+                plan.get("buy_symbol"),
+                int(plan.get("buy_quantity") or 0),
+                float(plan.get("estimated_buy_value_vnd") or 0.0),
+                json.dumps(
+                    [str(row.get("symbol")) for row in exit_candidates]
+                ),
+                json.dumps(rationale, ensure_ascii=False, sort_keys=True),
+                str(plan["plan_id"]),
+            ),
+        )
+    output = paths().outputs / f"{plan['plan_id']}.json"
+    output.write_text(
+        json.dumps(plan, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
 
 
 def create_capital_plan(
@@ -110,14 +153,20 @@ def create_capital_plan(
     if trigger not in VALID_TRIGGERS:
         raise ValueError("CAPITAL_PLAN_TRIGGER_INVALID")
 
+    canonical_refresh = ensure_canonical_current()
+    preview = refresh_latest_preview()
     broker = latest_broker_portfolio()
     broker_snapshot_id = (
-        str(broker.get("snapshot_id")) if broker and broker.get("snapshot_id") else None
+        str(broker.get("snapshot_id"))
+        if broker and broker.get("snapshot_id")
+        else None
     )
+    preview_snapshot_id = str(preview.get("snapshot_id") or "") or None
     duplicate = _recent_duplicate(
         amount=amount,
         trigger=trigger,
         broker_snapshot_id=broker_snapshot_id,
+        preview_snapshot_id=preview_snapshot_id,
         maximum_buy_orders=maximum_buy_orders,
     )
     if duplicate is not None:
@@ -127,21 +176,31 @@ def create_capital_plan(
         weekly_budget_vnd=amount,
         maximum_buy_orders=maximum_buy_orders,
     )
+    guarded = apply_preview_purchase_guard(base, preview)
+    _persist_guarded_base_plan(guarded)
+
     cycle_id = "cycle-" + datetime.now().strftime("%Y%m%d-%H%M%S-%f")
-    rationale = dict(base.get("rationale") or {})
+    rationale = dict(guarded.get("rationale") or {})
     rationale.update(
         {
             "planning_mode": PLANNING_MODE,
             "cycle_id": cycle_id,
             "trigger_type": trigger,
             "planned_new_capital_vnd": amount,
-            "canonical_shadow_rule": "EVERY_CAPITAL_CYCLE_AFTER_OBSERVATORY_START",
+            "canonical_shadow_rule": (
+                "EVERY_CAPITAL_CYCLE_AFTER_OBSERVATORY_START"
+            ),
             "not_limited_to_calendar_week": True,
             "cycle_note": note,
             "duplicate_guard_seconds": DUPLICATE_GUARD_SECONDS,
+            "canonical_refresh": canonical_refresh,
+            "preview_snapshot_id": preview_snapshot_id,
+            "preview_market_day": preview.get("market_day"),
+            "preview_guard_is_buy_only": True,
+            "sell_gate_uses_canonical_months_only": True,
         }
     )
-    result = dict(base)
+    result = dict(guarded)
     result.update(
         {
             "cycle_id": cycle_id,
@@ -149,12 +208,15 @@ def create_capital_plan(
             "trigger_type": trigger,
             "planned_new_capital_vnd": amount,
             "capital_available_before_plan_vnd": float(
-                base.get("dnse_available_cash_vnd") or 0.0
+                guarded.get("dnse_available_cash_vnd") or 0.0
             ),
             "total_planning_buying_power_vnd": float(
-                base.get("spendable_budget_vnd") or 0.0
+                guarded.get("spendable_budget_vnd") or 0.0
             ),
             "cycle_note": note,
+            "preview_snapshot_id": preview_snapshot_id,
+            "preview_signal_day": preview.get("market_day"),
+            "canonical_signal_day": preview.get("canonical_signal_day"),
             "rationale": rationale,
         }
     )
@@ -169,13 +231,13 @@ def create_capital_plan(
             """,
             (
                 cycle_id,
-                str(base["plan_id"]),
-                str(base["created_at"]),
+                str(guarded["plan_id"]),
+                str(guarded["created_at"]),
                 trigger,
                 amount,
-                rationale.get("broker_snapshot_id"),
-                str(base.get("market_day") or ""),
-                str(base.get("ranking_run_id") or ""),
+                broker_snapshot_id,
+                str(guarded.get("market_day") or ""),
+                str(guarded.get("ranking_run_id") or ""),
                 note,
                 json.dumps(result, ensure_ascii=False, sort_keys=True),
             ),
