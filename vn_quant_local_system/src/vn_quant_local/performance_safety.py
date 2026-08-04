@@ -1,10 +1,12 @@
-"""Runtime safety fixes cho V45.
+"""Runtime safety và event-cycle selection cho V45/V46.
 
-Module này được package init áp dụng ngay khi import và khóa ba edge case:
+Module được package init áp dụng ngay khi import và khóa bốn nguyên tắc:
 
-* XIRR không được công bố khi chưa có thời gian trôi qua;
-* hai fill/dòng tiền có cùng nội dung vẫn là hai event độc lập;
-* shadow chỉ nhận plan được phát hành sau thời điểm chốt snapshot mở đầu.
+* XIRR không công bố khi chưa có thời gian trôi qua;
+* hai fill/dòng tiền giống nhau vẫn là hai event độc lập;
+* shadow chỉ nhận plan phát hành sau snapshot mở đầu;
+* từ V46, mọi capital planning cycle hợp lệ là một shadow cycle độc lập,
+  không còn giới hạn một plan mỗi tuần.
 """
 from __future__ import annotations
 
@@ -78,9 +80,7 @@ def append_unique_event(
         "symbol": symbol.upper() if symbol else None,
         "side": side,
         "quantity": int(quantity) if quantity is not None else None,
-        "price_vnd": (
-            round(float(price_vnd), 4) if price_vnd is not None else None
-        ),
+        "price_vnd": round(float(price_vnd), 4) if price_vnd is not None else None,
         "fees_vnd": round(float(fees_vnd), 4),
         "taxes_vnd": round(float(taxes_vnd), 4),
         "plan_id": plan_id,
@@ -116,23 +116,30 @@ def append_unique_event(
                 plan_id,
                 note,
                 digest,
-                json.dumps(
-                    payload["details"], ensure_ascii=False, sort_keys=True
-                ),
+                json.dumps(payload["details"], ensure_ascii=False, sort_keys=True),
             ),
         )
     return {"status": "SUCCESS", "event_id": event_id, **payload}
 
 
 def select_plans_after_opening(config: Mapping[str, object]) -> None:
+    """Đưa mọi capital cycle sau opening snapshot vào shadow.
+
+    ``performance_shadow_plans.week_key`` được giữ để migration không phá schema,
+    nhưng từ V46 giá trị là ``CYCLE:<cycle_id>`` chứ không phải tuần ISO.
+    """
+
+    from .capital_plan import _ensure_schema as ensure_capital_schema
+
     started_at = str(config["started_at"])
     with state_db() as db:
         performance._ensure_schema(db)
+        ensure_capital_schema(db)
         plans = db.execute(
             """
-            SELECT * FROM weekly_plans
+            SELECT * FROM capital_plans
             WHERE created_at>=?
-            ORDER BY created_at,plan_id
+            ORDER BY created_at,cycle_id
             """,
             (started_at,),
         ).fetchall()
@@ -143,19 +150,16 @@ def select_plans_after_opening(config: Mapping[str, object]) -> None:
             ).fetchall()
         }
         for row in plans:
-            week = performance._week_key(str(row["created_at"]))
-            if week in existing:
+            cycle_key = "CYCLE:" + str(row["cycle_id"])
+            if cycle_key in existing:
                 continue
-            rationale = json.loads(str(row["rationale_json"]))
-            reviews = list(rationale.get("position_reviews", []))
-            exits = list(rationale.get("exit_candidates", [])) or [
-                item
-                for item in reviews
-                if item.get("action") == "EXIT_CANDIDATE"
+            plan = json.loads(str(row["details_json"]))
+            rationale = dict(plan.get("rationale") or {})
+            reviews = list(plan.get("position_reviews") or rationale.get("position_reviews", []))
+            exits = list(plan.get("exit_candidates") or rationale.get("exit_candidates", [])) or [
+                item for item in reviews if item.get("action") == "EXIT_CANDIDATE"
             ]
-            execution_day = performance._next_session(
-                str(row["created_at"])[:10]
-            )
+            execution_day = performance._next_session(str(row["created_at"])[:10])
             db.execute(
                 """
                 INSERT INTO performance_shadow_plans(
@@ -164,34 +168,30 @@ def select_plans_after_opening(config: Mapping[str, object]) -> None:
                 ) VALUES(?,?,?,?,?,?,?)
                 """,
                 (
-                    week,
+                    cycle_key,
                     str(row["plan_id"]),
                     str(row["created_at"]),
                     execution_day,
-                    (
-                        "PENDING_MARKET_DATA"
-                        if execution_day is None
-                        else "SELECTED"
-                    ),
-                    float(row["contribution_vnd"]),
+                    "PENDING_MARKET_DATA" if execution_day is None else "SELECTED",
+                    float(row["new_capital_vnd"]),
                     json.dumps(
                         {
-                            "selection_rule": (
-                                "FIRST_PLAN_PER_ISO_WEEK_AFTER_OPENING_SNAPSHOT"
-                            ),
-                            "buy_orders": rationale.get("buy_orders", []),
+                            "selection_rule": "EVERY_EVENT_DRIVEN_CAPITAL_CYCLE_AFTER_OPENING",
+                            "cycle_id": str(row["cycle_id"]),
+                            "trigger_type": str(row["trigger_type"]),
+                            "new_capital_vnd": float(row["new_capital_vnd"]),
+                            "buy_orders": plan.get("buy_orders", []),
                             "exit_candidates": exits,
                             "position_reviews": reviews,
-                            "maximum_buy_orders": rationale.get(
-                                "maximum_buy_orders"
-                            ),
+                            "maximum_buy_orders": rationale.get("maximum_buy_orders"),
+                            "not_limited_to_calendar_week": True,
                         },
                         ensure_ascii=False,
                         sort_keys=True,
                     ),
                 ),
             )
-            existing.add(week)
+            existing.add(cycle_key)
 
 
 def apply() -> None:
