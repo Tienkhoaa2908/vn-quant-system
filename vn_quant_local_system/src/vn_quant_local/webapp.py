@@ -31,7 +31,9 @@ MAX_JSON_BODY_BYTES = 20 * 1024 * 1024
 
 
 def _json_bytes(value: object) -> bytes:
-    return (json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode("utf-8")
+    return (
+        json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+    ).encode("utf-8")
 
 
 def _friendly_error(exc: Exception) -> dict[str, object]:
@@ -51,10 +53,14 @@ def _friendly_error(exc: Exception) -> dict[str, object]:
         message = "DNSE xác thực được nhưng danh sách tiểu khoản không có mã định danh hợp lệ."
     elif "DNSE_ACCOUNT_READ_FAILED" in text:
         message = "DNSE trả danh sách tiểu khoản nhưng không đọc được số dư hoặc vị thế. Kiểm tra quyền đọc tài khoản của API Key."
-    elif "DNSE" in text and ("401" in text or "403" in text or "AUTH" in text.upper()):
+    elif "DNSE" in text and (
+        "401" in text or "403" in text or "AUTH" in text.upper()
+    ):
         message = "DNSE từ chối xác thực hoặc API key chưa có quyền đọc tài khoản/danh mục."
     elif "MANUAL_CSV" in text:
         message = "CSV thủ công không hợp lệ hoặc xung đột với dữ liệu đã có."
+    elif "MONTHLY_SIGNAL_MISMATCH" in text:
+        message = "Dữ liệu đã sang tháng canonical mới. Chạy C3 lại rồi tạo kế hoạch tuần."
     elif "MONTHLY_CANONICAL" in text:
         message = "Chưa có ranking tháng. Chạy C3 trước khi lập kế hoạch tuần."
     else:
@@ -63,7 +69,7 @@ def _friendly_error(exc: Exception) -> dict[str, object]:
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "VNQuantLocal/1.3"
+    server_version = "VNQuantLocal/1.5"
 
     def _send(self, status: int, payload: bytes, content_type: str) -> None:
         self.send_response(status)
@@ -111,6 +117,10 @@ class Handler(BaseHTTPRequestHandler):
                 self._static("app.js")
             elif path == "/styles.css":
                 self._static("styles.css")
+            elif path == "/sell_review_v44_5.js":
+                self._static("sell_review_v44_5.js")
+            elif path == "/sell_review_v44_5.css":
+                self._static("sell_review_v44_5.css")
             elif path == "/api/status":
                 value = workstation_status()
                 value["latest_weekly_plan"] = latest_weekly_plan()
@@ -128,7 +138,12 @@ class Handler(BaseHTTPRequestHandler):
             elif path == "/api/docs":
                 docs = []
                 for file in sorted((SYSTEM_ROOT / "docs").glob("*.md")):
-                    docs.append({"name": file.name, "content": file.read_text(encoding="utf-8")})
+                    docs.append(
+                        {
+                            "name": file.name,
+                            "content": file.read_text(encoding="utf-8"),
+                        }
+                    )
                 self._send_json({"documents": docs})
             else:
                 self._send_json({"error": "not found"}, 404)
@@ -142,7 +157,9 @@ class Handler(BaseHTTPRequestHandler):
             if not isinstance(body, Mapping):
                 body = {}
             actions: dict[str, Callable[[], object]] = {
-                "/api/actions/bootstrap": lambda: bootstrap_local_data(overwrite=bool(body.get("overwrite", False))),
+                "/api/actions/bootstrap": lambda: bootstrap_local_data(
+                    overwrite=bool(body.get("overwrite", False))
+                ),
                 "/api/actions/sync": sync_incremental_market_data_local,
                 "/api/actions/sync-broker": sync_broker_portfolio,
                 "/api/actions/model": run_model,
@@ -165,13 +182,22 @@ class Handler(BaseHTTPRequestHandler):
             if path in actions:
                 self._send_json(actions[path]())
             elif path == "/api/data-source/credentials":
-                self._send_json(save_credentials(str(body.get("api_key") or ""), str(body.get("api_secret") or "")))
+                self._send_json(
+                    save_credentials(
+                        str(body.get("api_key") or ""),
+                        str(body.get("api_secret") or ""),
+                    )
+                )
             elif path == "/api/data-source/import-csv":
                 self._send_json(
                     import_manual_csv(
                         str(body.get("content") or ""),
-                        filename=str(body.get("filename") or "manual_ohlcv.csv"),
-                        price_unit=str(body.get("price_unit") or "THOUSAND_VND"),
+                        filename=str(
+                            body.get("filename") or "manual_ohlcv.csv"
+                        ),
+                        price_unit=str(
+                            body.get("price_unit") or "THOUSAND_VND"
+                        ),
                     )
                 )
             elif path == "/api/account":
@@ -181,7 +207,9 @@ class Handler(BaseHTTPRequestHandler):
                 self._send_json(
                     replace_account(
                         cash_vnd=float(body.get("cash_vnd", 0.0)),
-                        weekly_contribution_vnd=float(body.get("weekly_contribution_vnd", 250_000.0)),
+                        weekly_contribution_vnd=float(
+                            body.get("weekly_contribution_vnd", 250_000.0)
+                        ),
                         holdings=holdings,
                     )
                 )
@@ -190,7 +218,9 @@ class Handler(BaseHTTPRequestHandler):
                 self._send_json(
                     replace_account(
                         cash_vnd=float(current["account"]["cash_vnd"]),
-                        weekly_contribution_vnd=float(body.get("weekly_budget_vnd", 250_000.0)),
+                        weekly_contribution_vnd=float(
+                            body.get("weekly_budget_vnd", 250_000.0)
+                        ),
                         holdings=current["holdings"],
                     )
                 )
