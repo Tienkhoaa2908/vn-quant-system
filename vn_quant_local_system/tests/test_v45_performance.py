@@ -8,20 +8,16 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from vn_quant_local import performance
 from vn_quant_local.performance import (
     _ensure_schema,
     _event_hash,
     _week_key,
     _xirr,
+    start_observatory,
 )
-from vn_quant_local.performance_start import start_observatory
 
 
 class V45PerformanceTests(unittest.TestCase):
-    def test_package_binds_validated_start_entrypoint(self) -> None:
-        self.assertIs(performance.start_observatory, start_observatory)
-
     def test_schema_is_additive_and_idempotent(self) -> None:
         db = sqlite3.connect(":memory:")
         try:
@@ -48,7 +44,10 @@ class V45PerformanceTests(unittest.TestCase):
         self.assertNotEqual(left, changed)
 
     def test_first_plan_week_key(self) -> None:
-        self.assertEqual(_week_key("2026-08-04T09:00:00+07:00"), "2026-W32")
+        self.assertEqual(
+            _week_key("2026-08-04T09:00:00+07:00"),
+            "2026-W32",
+        )
 
     def test_xirr_for_one_year_double(self) -> None:
         value = _xirr(
@@ -60,7 +59,7 @@ class V45PerformanceTests(unittest.TestCase):
         self.assertIsNotNone(value)
         self.assertAlmostEqual(float(value), 1.0, places=5)
 
-    def test_validated_start_writes_full_config_transaction(self) -> None:
+    def test_start_writes_full_config_transaction(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             db_path = Path(directory) / "state.sqlite3"
 
@@ -90,15 +89,19 @@ class V45PerformanceTests(unittest.TestCase):
             }
             with (
                 patch(
-                    "vn_quant_local.performance_start.state_db",
+                    "vn_quant_local.performance.state_db",
                     temporary_state_db,
                 ),
                 patch(
-                    "vn_quant_local.performance_start.latest_broker_portfolio",
+                    "vn_quant_local.performance.latest_broker_portfolio",
                     return_value=broker,
                 ),
                 patch(
-                    "vn_quant_local.performance_start.load_config",
+                    "vn_quant_local.performance._market_days",
+                    return_value=["2026-08-04"],
+                ),
+                patch(
+                    "vn_quant_local.performance.load_config",
                     return_value={
                         "performance": {
                             "shadow_cost_bps": 50.0,
@@ -107,11 +110,11 @@ class V45PerformanceTests(unittest.TestCase):
                     },
                 ),
                 patch(
-                    "vn_quant_local.performance_start.refresh_performance",
+                    "vn_quant_local.performance.refresh_performance",
                     return_value={"status": "ACTIVE"},
                 ),
                 patch(
-                    "vn_quant_local.performance_start.performance_status",
+                    "vn_quant_local.performance.performance_status",
                     return_value={"status": "ACTIVE"},
                 ),
             ):
@@ -126,7 +129,10 @@ class V45PerformanceTests(unittest.TestCase):
                     "SELECT * FROM performance_config"
                 ).fetchone()
                 opening = db.execute(
-                    "SELECT symbol,classification FROM performance_opening_positions"
+                    """
+                    SELECT symbol,classification
+                    FROM performance_opening_positions
+                    """
                 ).fetchone()
             finally:
                 db.close()
