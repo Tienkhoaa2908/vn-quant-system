@@ -1,5 +1,5 @@
 {
-  "schema_version": "vn_quant_local_workstation_v1_4",
+  "schema_version": "vn_quant_local_workstation_v1_5",
   "paths": {
     "market_db": "data/market/dnse_ohlcv.sqlite3",
     "reference_zip": "data/reference/daily_prediction_input_v22.zip",
@@ -25,12 +25,17 @@
   },
   "weekly_policy": {
     "policy_id": "P1_TOP10_UNDERWEIGHT_BUFFER20",
-    "planner_variant": "V44_4_DNSE_CASH_PLUS_WEEKLY_CONTRIBUTION",
+    "planner_variant": "V44_5_HISTORICAL_TWO_MONTH_SELL_REVIEW",
     "cash_semantics": "SPENDABLE_EQUALS_BROKER_AVAILABLE_CASH_PLUS_PLANNED_WEEKLY_CONTRIBUTION",
     "default_contribution_vnd": 250000,
+    "weekly_contribution_is_new_cash": true,
     "planning_cost_bps": 50.0,
     "exit_rank": 20,
     "exit_months": 2,
+    "sell_review_history_months": 3,
+    "sell_gate_uses_latest_completed_months": 2,
+    "sell_history_source": "RECOMPUTED_FROM_LOCAL_MARKET_AND_REFERENCE_HISTORY",
+    "missing_history_cannot_trigger_exit": true,
     "maximum_buy_orders_per_week": 3,
     "odd_lot_share_unit": 1,
     "sell_proceeds_reused_only_after_broker_resync": true
