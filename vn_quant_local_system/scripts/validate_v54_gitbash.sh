@@ -31,6 +31,7 @@ import vn_quant_local
 from vn_quant_local import performance
 from vn_quant_local import v51_integrity as v51
 from vn_quant_local import v52_cycle_management as v52
+from vn_quant_local import v52_status_safety
 from vn_quant_local import v54_research_scope as v54
 from vn_quant_local import v54_safety
 from vn_quant_local import webapp
@@ -42,6 +43,7 @@ assert performance.add_actual_cashflow is v54.add_actual_cashflow_v54
 assert performance.mark_research_only is v54.mark_research_only
 assert performance.restore_operational is v54.restore_operational
 assert v52.discarded_plan_ids is v54.operationally_excluded_plan_ids
+assert v52_status_safety.discarded_plan_ids is v54.operationally_excluded_plan_ids
 assert v52._active_shadow_plans is v54._active_shadow_plans_v54
 assert v51.extract_plan_intents is v54.extract_plan_intents_v54
 assert v54._snapshot_sellable_map is v54_safety.snapshot_sellable_map_safe
@@ -123,6 +125,7 @@ json.dumps(status, ensure_ascii=False)
 print("V54_EXPLICIT_ZERO_SELLABLE=PASS")
 print("V54_WAIT_SELLABLE_COMPLIANCE=PASS")
 print("V54_RETROACTIVE_RESEARCH_SCOPE=PASS")
+print("V54_STATUS_SCOPE_FILTER=PASS")
 print("V54_RUNTIME_BINDINGS=PASS")
 PY
 
