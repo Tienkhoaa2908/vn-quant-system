@@ -1,5 +1,6 @@
 (() => {
   const VERSION = 'V51_INTENT_RECONCILIATION_CASH_INTEGRITY';
+  const CYCLE_VERSION = 'V52_AUDITABLE_CYCLE_DISCARD';
   const esc = value => String(value ?? '')
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
@@ -14,12 +15,27 @@
   let latest = null;
   let observer = null;
   let refreshTimer = null;
+  let commandBusy = false;
 
-  async function request(path) {
-    const response = await fetch(path, {headers: {'Content-Type': 'application/json'}});
+  async function request(path, options = {}) {
+    const response = await fetch(path, {
+      headers: {'Content-Type': 'application/json'},
+      ...options,
+    });
     const data = await response.json();
     if (!response.ok) throw new Error(data.message || data.error || 'Yêu cầu thất bại');
     return data;
+  }
+
+  function vnDay() {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Ho_Chi_Minh',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(new Date());
+    const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+    return `${values.year}-${values.month}-${values.day}`;
   }
 
   function humanStatus(status) {
@@ -50,12 +66,19 @@
   }
 
   function cyclePanel(cycles) {
-    if (!cycles?.length) return '<div class="empty">Chưa có capital cycle sau ngày bắt đầu Observatory.</div>';
-    return `<div class="v51-cycle-grid">${cycles.map(cycle => `
+    if (!cycles?.length) return '<div class="empty">Không còn capital cycle đang hoạt động.</div>';
+    return `<div class="v51-cycle-grid">${cycles.map(cycle => {
+      const canDiscard = Number(cycle.actual_quantity || 0) === 0;
+      return `
       <article class="v51-cycle-card ${cycle.newest ? 'newest' : ''}">
         <div class="v51-cycle-head">
           <div><strong>${cycle.newest ? 'MỚI NHẤT' : 'CŨ'} · ${esc(cycle.created_at_vn)}</strong><small>${esc(cycle.cycle_id || cycle.week_key || '')}</small></div>
-          <span class="v51-pill ${cycle.status === 'ACTUAL_COMPLETE' ? 'good' : cycle.status === 'IN_PROGRESS' ? 'warn' : ''}">${esc(cycleStatusLabel(cycle.status))}</span>
+          <div class="v52-cycle-actions">
+            <span class="v51-pill ${cycle.status === 'ACTUAL_COMPLETE' ? 'good' : cycle.status === 'IN_PROGRESS' ? 'warn' : ''}">${esc(cycleStatusLabel(cycle.status))}</span>
+            ${canDiscard
+              ? `<button type="button" class="danger v52-cycle-button" data-v52-discard="${esc(cycle.plan_id)}">Bỏ cycle</button>`
+              : '<span class="v52-lock-note">Có actual fill · không thể bỏ</span>'}
+          </div>
         </div>
         <div class="v51-cycle-symbols">${esc((cycle.symbols || []).join(', ') || 'Không có mã mua/bán')}</div>
         <div class="v51-cycle-metrics">
@@ -66,7 +89,24 @@
           <span>Vốn cycle <b>${money(cycle.new_capital_vnd)}</b></span>
           <span>Shadow <b>${esc(cycle.shadow_status || '—')}</b></span>
         </div>
-      </article>`).join('')}</div>`;
+      </article>`;
+    }).join('')}</div>`;
+  }
+
+  function discardedPanel(rows) {
+    if (!rows?.length) return '';
+    return `<details class="v52-discarded-panel">
+      <summary>Cycle đã bỏ (${rows.length}) · mở để xem audit hoặc khôi phục</summary>
+      <div class="v52-discarded-list">${rows.map(row => `
+        <article class="v52-discarded-card">
+          <div>
+            <strong>${esc(row.created_at_vn)} · plan …${esc(String(row.plan_id || '').slice(-6))}</strong>
+            <small>${esc((row.symbols || []).join(', ') || 'Không có mã')} · ${num(row.planned_quantity)} cp</small>
+            <small>Bỏ lúc ${esc(row.discarded_at_vn || row.discarded_at || '—')} · ${esc(row.reason || '')}</small>
+          </div>
+          <button type="button" class="secondary v52-cycle-button" data-v52-restore="${esc(row.plan_id)}">Khôi phục</button>
+        </article>`).join('')}</div>
+    </details>`;
   }
 
   function reconciliationCards(rows) {
@@ -107,8 +147,10 @@
       reconciliation.parentNode.insertBefore(section, reconciliation);
     }
     section.innerHTML = `
-      <div class="section-head"><div><h3>Capital cycle và plan intent</h3><p>Mới/cũ, giờ tạo, danh sách mã và số lượng còn thiếu. Mỗi lần bấm tạo kế hoạch vẫn là một cycle độc lập.</p></div><span class="badge good">${VERSION}</span></div>
-      ${cyclePanel(data.cycle_catalog || [])}`;
+      <div class="section-head"><div><h3>Capital cycle và plan intent</h3><p>Cycle không thực hiện có thể bỏ khỏi vận hành. Cycle có actual fill được khóa để bảo vệ lịch sử.</p></div><span class="badge good">${CYCLE_VERSION}</span></div>
+      <div id="v52-cycle-command-notice" class="notice compact-notice">Bỏ cycle chỉ loại khỏi đối soát và shadow; lịch sử gốc vẫn giữ audit.</div>
+      ${cyclePanel(data.cycle_catalog || [])}
+      ${discardedPanel(data.discarded_cycle_catalog || [])}`;
   }
 
   function renderReconciliation(data) {
@@ -120,7 +162,7 @@
     if (oldGrid) oldGrid.replaceWith(wrapper.firstElementChild);
     else section.appendChild(wrapper.firstElementChild);
     const paragraph = section.querySelector('.section-head p');
-    if (paragraph) paragraph.textContent = 'Ghép actual với plan intent ngay khi plan được tạo; shadow T+1 chỉ bổ sung giá và slippage sau.';
+    if (paragraph) paragraph.textContent = 'Ghép actual với plan intent ngay khi plan được tạo; cycle đã bỏ không còn sinh intent hoặc shadow chờ.';
   }
 
   function relevantCycles(symbol, side) {
@@ -160,7 +202,7 @@
       select.closest('label')?.appendChild(help);
     }
     if (!symbol) {
-      help.textContent = 'Nhập mã trước; hệ thống sẽ lọc cycle có đúng mã và chiều giao dịch.';
+      help.textContent = 'Nhập mã trước; hệ thống sẽ lọc cycle đang hoạt động có đúng mã và chiều giao dịch.';
       help.className = 'v51-cycle-help';
     } else if (matching.length === 1) {
       help.textContent = `Tự chọn: ${matching[0].display_label}`;
@@ -169,7 +211,7 @@
       help.textContent = `Có ${matching.length} cycle còn thiếu ${symbol}. Chọn theo giờ tạo và số lượng còn thiếu.`;
       help.className = 'v51-cycle-help warn';
     } else {
-      help.textContent = `Không có cycle còn thiếu ${side} ${symbol}. Fill sẽ được đánh dấu ngoài kế hoạch nếu vẫn ghi.`;
+      help.textContent = `Không có cycle đang hoạt động còn thiếu ${side} ${symbol}. Fill sẽ được đánh dấu ngoài kế hoạch nếu vẫn ghi.`;
       help.className = 'v51-cycle-help bad';
     }
   }
@@ -237,6 +279,51 @@
     }
   }
 
+  function commandNotice(text, cls = '') {
+    const notice = document.querySelector('#v52-cycle-command-notice');
+    if (!notice) return;
+    notice.textContent = text;
+    notice.className = `notice compact-notice ${cls}`;
+  }
+
+  async function runCycleCommand(kind, planId) {
+    if (commandBusy) return;
+    const isDiscard = kind === 'DISCARD_CYCLE';
+    const defaultReason = isDiscard
+      ? 'Chỉ xem tổng quan, không thực hiện kế hoạch'
+      : 'Khôi phục cycle để tiếp tục theo dõi';
+    const reason = window.prompt(
+      isDiscard ? 'Lý do bỏ cycle:' : 'Lý do khôi phục cycle:',
+      defaultReason,
+    );
+    if (reason === null) return;
+    if (!String(reason).trim()) {
+      window.alert('Phải nhập lý do để lưu audit.');
+      return;
+    }
+    if (isDiscard && !window.confirm('Cycle sẽ biến khỏi danh sách hoạt động và toàn bộ shadow/intent chờ tương ứng sẽ được rebuild bỏ đi. Tiếp tục?')) return;
+    commandBusy = true;
+    commandNotice(isDiscard ? 'Đang bỏ cycle và rebuild shadow...' : 'Đang khôi phục cycle và rebuild shadow...', 'warn');
+    try {
+      const result = await request('/api/performance/cashflow', {
+        method: 'POST',
+        body: JSON.stringify({
+          flow_type: kind,
+          amount_vnd: 0,
+          event_day: vnDay(),
+          note: JSON.stringify({plan_id: planId, reason: String(reason).trim()}),
+        }),
+      });
+      await refreshV51();
+      commandNotice(result.message || 'Hoàn tất.', 'good');
+    } catch (error) {
+      commandNotice(error.message, 'bad');
+      window.alert(error.message);
+    } finally {
+      commandBusy = false;
+    }
+  }
+
   function scheduleRefresh(delay = 250) {
     clearTimeout(refreshTimer);
     refreshTimer = setTimeout(refreshV51, delay);
@@ -254,6 +341,18 @@
       if (event.target?.matches?.('#performance-fill-symbol, #performance-fill-side')) fillCycleOptions();
     });
     document.addEventListener('click', event => {
+      const discard = event.target?.closest?.('[data-v52-discard]');
+      if (discard) {
+        event.preventDefault();
+        runCycleCommand('DISCARD_CYCLE', discard.dataset.v52Discard);
+        return;
+      }
+      const restore = event.target?.closest?.('[data-v52-restore]');
+      if (restore) {
+        event.preventDefault();
+        runCycleCommand('RESTORE_CYCLE', restore.dataset.v52Restore);
+        return;
+      }
       if (event.target?.closest?.('[data-v45-performance-tab], #performance-refresh, #performance-add-fill, [data-action="plan"], [data-action="sync-broker"]')) {
         scheduleRefresh(700);
       }
