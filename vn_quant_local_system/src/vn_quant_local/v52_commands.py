@@ -5,7 +5,7 @@ import json
 from typing import Mapping
 
 from . import performance
-from .v52_cycle_management import discard_cycle, restore_cycle
+from . import v52_cycle_management as cycle_management
 
 _ORIGINAL_ADD_ACTUAL_CASHFLOW = None
 
@@ -35,8 +35,14 @@ def add_actual_cashflow_v52(
     plan_id = str(command.get("plan_id") or "")
     reason = str(command.get("reason") or "")
     if kind == "DISCARD_CYCLE":
-        return discard_cycle(plan_id=plan_id, reason=reason)
-    return restore_cycle(plan_id=plan_id, reason=reason)
+        return cycle_management.discard_cycle(
+            plan_id=plan_id,
+            reason=reason,
+        )
+    return cycle_management.restore_cycle(
+        plan_id=plan_id,
+        reason=reason,
+    )
 
 
 def apply() -> None:
