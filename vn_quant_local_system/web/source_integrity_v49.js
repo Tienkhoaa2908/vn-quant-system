@@ -1,5 +1,6 @@
 (() => {
   const VERSION = 'V49_DNSE_SOURCE_INTEGRITY';
+  const BUYING_POWER_VERSION = 'V50_DNSE_AUTHORITATIVE_BUYING_POWER';
   const oldRenderPortfolio = renderPortfolio;
   const oldRenderStatus = renderStatus;
   const esc = value => escapeHtml(value ?? '');
@@ -177,7 +178,7 @@
   }
 
   async function selectAccount(token) {
-    if (!token || !confirm('Chọn tiểu khoản này làm nguồn danh mục và tiền khả dụng cho planner?')) return;
+    if (!token || !confirm('Chọn tiểu khoản này làm nguồn danh mục và sức mua cho planner?')) return;
     const target = document.querySelector('#v49-account-picker');
     try {
       if (target) target.insertAdjacentHTML('afterbegin', '<div class="notice warn">Đang chọn và đồng bộ lại danh mục...</div>');
@@ -190,6 +191,33 @@
       setNotice('Đã chọn tiểu khoản và đồng bộ lại danh mục DNSE.', 'good');
     } catch (error) {
       if (target) target.insertAdjacentHTML('afterbegin', `<div class="notice bad">${esc(error.message)}</div>`);
+    }
+  }
+
+  function renderDashboardBuyingPower(broker) {
+    const cards = document.querySelector('#cards');
+    if (!cards) return;
+    cards.querySelectorAll('[data-v50-buying-power]').forEach(node => node.remove());
+    if (!broker || broker.status !== 'SUCCESS') return;
+    const buyingPower = broker.buying_power || {};
+    const value = Number(
+      broker.planning_buying_power_vnd
+      ?? buyingPower.conservative_buying_power_vnd
+      ?? broker.available_cash_vnd
+      ?? 0
+    );
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = card(
+      'Sức mua DNSE',
+      money(value),
+      buyingPower.status === 'SUCCESS'
+        ? 'PPSE không margin'
+        : 'Fallback về tiền khả dụng'
+    );
+    const node = wrapper.firstElementChild;
+    if (node) {
+      node.dataset.v50BuyingPower = '1';
+      cards.appendChild(node);
     }
   }
 
@@ -207,16 +235,36 @@
       return;
     }
     const details = broker.details || {};
+    const buyingPower = broker.buying_power || {};
+    const ppseReady = buyingPower.status === 'SUCCESS';
+    const plannerCash = Number(
+      broker.planning_buying_power_vnd
+      ?? buyingPower.conservative_buying_power_vnd
+      ?? broker.planner_cash_vnd
+      ?? broker.available_cash_vnd
+      ?? 0
+    );
+    const reusable = Number(
+      broker.reusable_unsettled_vnd
+      ?? buyingPower.reusable_unsettled_vnd
+      ?? Math.max(plannerCash - Number(broker.available_cash_vnd || 0), 0)
+    );
     const selected = details.selected_masked_account || broker.masked_accounts?.[0] || '—';
     target.innerHTML = `
       <div class="v49-integrity-banner current">
         <div><div class="v49-state">Snapshot broker: ${esc(selected)}</div><div class="v49-source-note">Gọi API lúc ${esc(broker.captured_at || '—')} · ${esc(broker.source_freshness || 'BROKER_SNAPSHOT')}</div></div>
         <div class="v49-freshness-technical">${esc(version)}</div>
       </div>
+      <div class="notice ${ppseReady ? 'good' : 'warn'}">
+        <strong>${ppseReady ? 'Sức mua DNSE đã được xác nhận' : 'Chưa đọc được sức mua DNSE'}</strong>
+        <div>${ppseReady ? 'Planner dùng PPSE gói không margin và khóa từng mã bằng qmax.' : 'Planner đang fallback về availableCash; tiền bán chờ về chưa được tính.'}</div>
+        <div class="technical">${esc(buyingPower.source || 'AVAILABLE_CASH_FALLBACK')} · ${esc(buyingPower.snapshot_id || 'NO_PPSE_SNAPSHOT')}</div>
+      </div>
       <div class="v49-integrity-grid">
-        <article class="v49-integrity-card"><span>Tiền khả dụng DNSE</span><strong>${money(broker.available_cash_vnd)}</strong><small>Planner dùng số này</small></article>
+        <article class="v49-integrity-card"><span>Tiền khả dụng DNSE</span><strong>${money(broker.available_cash_vnd)}</strong><small>Tiền mặt đã khả dụng; không gồm toàn bộ tiền bán chờ về</small></article>
         <article class="v49-integrity-card"><span>Tiền có thể rút</span><strong>${money(broker.withdrawable_cash_vnd)}</strong><small>Chỉ để đối chiếu</small></article>
-        <article class="v49-integrity-card"><span>Planner cash</span><strong>${money(broker.planner_cash_vnd)}</strong><small>${esc(details.planner_cash_source || 'LEGACY')}</small></article>
+        <article class="v49-integrity-card"><span>Sức mua planner</span><strong>${money(plannerCash)}</strong><small>${esc(details.planner_cash_source || 'AVAILABLE_CASH_FALLBACK')}</small></article>
+        <article class="v49-integrity-card"><span>Tiền bán chờ về tái sử dụng</span><strong>${money(reusable)}</strong><small>Chênh lệch giữa PPSE và availableCash</small></article>
         <article class="v49-integrity-card"><span>Broker NAV</span><strong>${money(broker.broker_nav_vnd || broker.net_asset_value_vnd)}</strong><small>Giá broker tại lúc gọi API</small></article>
         <article class="v49-integrity-card"><span>Research EOD NAV</span><strong>${money(broker.research_eod_nav_vnd)}</strong><small>Close local ngày ${esc(broker.market_day || '—')}</small></article>
         <article class="v49-integrity-card"><span>Vị thế mở</span><strong>${fmtNum(broker.position_count || 0,0)} mã</strong><small>Không dùng accumulateQuantity khi openQuantity = 0</small></article>
@@ -239,7 +287,13 @@
     }
     const summary = document.querySelector('#broker-summary-text');
     if (summary) {
-      summary.textContent = `${broker.position_count || 0} mã · ${broker.details?.selected_masked_account || 'tiểu khoản đã chọn'} · tiền khả dụng ${money(broker.available_cash_vnd)}`;
+      const plannerCash = Number(
+        broker.planning_buying_power_vnd
+        ?? broker.buying_power?.conservative_buying_power_vnd
+        ?? broker.available_cash_vnd
+        ?? 0
+      );
+      summary.textContent = `${broker.position_count || 0} mã · ${broker.details?.selected_masked_account || 'tiểu khoản đã chọn'} · tiền mặt ${money(broker.available_cash_vnd)} · sức mua ${money(plannerCash)}`;
     }
     renderBrokerSummary(broker);
     if (!grid) return;
@@ -276,7 +330,9 @@
     oldRenderStatus(data);
     ensureIntegrityPanels();
     renderIntegrity(data?.data_source?.source_integrity || {});
+    renderDashboardBuyingPower(data?.broker_portfolio);
   };
 
+  window.V50_BUYING_POWER_VERSION = BUYING_POWER_VERSION;
   ensureIntegrityPanels();
 })();
