@@ -16,6 +16,7 @@ from .v52_commands import apply as _apply_v52_commands
 from .v53_cycle_cleanup import apply as _apply_v53_cycle_cleanup
 from .v53_safety import apply as _apply_v53_safety
 from .v54_research_scope import apply as _apply_v54_research_scope
+from .v54_safety import apply as _apply_v54_safety
 
 _apply_model_safety()
 _apply_performance_safety()
@@ -31,3 +32,4 @@ _apply_v52_commands()
 _apply_v53_cycle_cleanup()
 _apply_v53_safety()
 _apply_v54_research_scope()
+_apply_v54_safety()
