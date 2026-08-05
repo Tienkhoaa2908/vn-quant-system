@@ -11,7 +11,7 @@ class V54SellabilityTests(unittest.TestCase):
     def test_explicit_zero_sellable_is_not_executable(self) -> None:
         requested, executable, source = v54._sellability(
             {"quantity": 15, "sellable_quantity": 0},
-            snapshot_sellable=None,
+            snapshot_sellable=15,
         )
         self.assertEqual(requested, 15)
         self.assertEqual(executable, 0)
@@ -30,9 +30,9 @@ class V54SellabilityTests(unittest.TestCase):
         self.assertEqual(executable, 0)
         self.assertEqual(source, "PLAN_CLASSIFIED_WAIT_SELLABLE")
 
-    def test_plan_snapshot_limits_partial_sell(self) -> None:
+    def test_plan_snapshot_limits_sell_when_plan_has_no_sellable_field(self) -> None:
         requested, executable, source = v54._sellability(
-            {"quantity": 15, "sellable_quantity": 15},
+            {"quantity": 15},
             snapshot_sellable=4,
         )
         self.assertEqual(requested, 15)
