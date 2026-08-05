@@ -9,10 +9,11 @@ from __future__ import annotations
 
 from typing import Mapping, Sequence
 
-from . import source_integrity_v49
+from . import core, source_integrity_v49
 from . import v51_integrity as v51
 
 _ORIGINAL_ANNOTATE = None
+_ORIGINAL_WORKSTATION_STATUS = None
 
 
 def _top_level_number(payload: object, names: Sequence[str]) -> float | None:
@@ -109,11 +110,27 @@ def annotate_preserve_v49_version(
     return value
 
 
+def workstation_status_zero_new_capital() -> dict[str, object]:
+    """Present zero as the safe default for each event-driven planning cycle."""
+
+    assert _ORIGINAL_WORKSTATION_STATUS is not None
+    result = dict(_ORIGINAL_WORKSTATION_STATUS())
+    account = dict(result.get("account") or {})
+    account_row = dict(account.get("account") or {})
+    account_row["weekly_contribution_vnd"] = 0.0
+    account["account"] = account_row
+    result["account"] = account
+    result["v51_new_capital_default_vnd"] = 0.0
+    return result
+
+
 def apply() -> None:
     if getattr(v51, "_v51_final_safety_applied", False):
         return
-    global _ORIGINAL_ANNOTATE
+    global _ORIGINAL_ANNOTATE, _ORIGINAL_WORKSTATION_STATUS
     _ORIGINAL_ANNOTATE = v51._annotate_latest_cash
+    _ORIGINAL_WORKSTATION_STATUS = core.workstation_status
     source_integrity_v49._probe_accounts = probe_accounts_safe
     v51._annotate_latest_cash = annotate_preserve_v49_version
+    core.workstation_status = workstation_status_zero_new_capital
     v51._v51_final_safety_applied = True
