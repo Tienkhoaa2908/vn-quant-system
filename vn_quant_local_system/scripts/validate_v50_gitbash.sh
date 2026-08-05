@@ -24,13 +24,14 @@ echo "===== V50 BUYING POWER ENGINE ====="
 "$PYTHON_EXE" - <<'PY'
 import sqlite3
 
-from vn_quant_local import broker_portfolio, capital_plan, weekly_plan
+from vn_quant_local import broker_portfolio, capital_plan, performance, weekly_plan
 from vn_quant_local import buying_power_v50 as v50
 
 assert v50.V50_VERSION == "V50_DNSE_AUTHORITATIVE_BUYING_POWER"
 assert broker_portfolio.latest_broker_portfolio is v50.latest_broker_portfolio_v50
 assert weekly_plan.latest_broker_portfolio is v50.latest_broker_portfolio_v50
 assert capital_plan.latest_broker_portfolio is v50.latest_broker_portfolio_v50
+assert performance.latest_broker_portfolio is v50.latest_broker_portfolio_v50
 assert weekly_plan.planned_buying_power is v50.planned_buying_power_v50
 assert weekly_plan.allocate_buy_orders is v50.allocate_buy_orders_v50
 assert capital_plan.create_weekly_plan is v50.create_weekly_plan_v50
@@ -109,6 +110,7 @@ print("V50_PPSE_NORMALIZATION=PASS")
 print("V50_UNSETTLED_PROCEEDS_BUDGET=PASS")
 print("V50_QMAX_GUARD=PASS")
 print("V50_RUNTIME_BINDINGS=PASS")
+print("V50_PERFORMANCE_BINDING=PASS")
 print("V50_SCHEMA=PASS")
 PY
 
