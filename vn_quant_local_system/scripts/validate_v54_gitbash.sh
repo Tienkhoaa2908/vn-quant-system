@@ -45,12 +45,13 @@ assert v52.discarded_plan_ids is v54.operationally_excluded_plan_ids
 assert v52._active_shadow_plans is v54._active_shadow_plans_v54
 assert v51.extract_plan_intents is v54.extract_plan_intents_v54
 assert v54._snapshot_sellable_map is v54_safety.snapshot_sellable_map_safe
+assert v54._sellability is v54_safety.sellability_zero_first
 assert webapp.performance_status is v54.performance_status_v54
 assert webapp.add_actual_cashflow is v54.add_actual_cashflow_v54
 
 requested, executable, source = v54._sellability(
     {"quantity": 15, "sellable_quantity": 0},
-    snapshot_sellable=None,
+    snapshot_sellable=15,
 )
 assert requested == 15
 assert executable == 0
@@ -139,7 +140,7 @@ grep -q 'v54-wait-sellable' web/performance_v51.css || fail "thieu wait-sellable
 grep -q 'V54_RESEARCH_SCOPE_SELLABILITY' src/vn_quant_local/v54_research_scope.py || fail "thieu V54 engine"
 grep -q 'retroactive_after_shadow_observation' src/vn_quant_local/v54_research_scope.py || fail "thieu hindsight audit"
 grep -q 'explicit_zero_is_preserved' src/vn_quant_local/v54_research_scope.py || fail "thieu zero sellable contract"
-grep -q 'snapshot_sellable_map_safe' src/vn_quant_local/v54_safety.py || fail "thieu legacy snapshot safety"
+grep -q 'sellability_zero_first' src/vn_quant_local/v54_safety.py || fail "thieu zero-first safety"
 
 if grep -q 'buying_power_v50' src/vn_quant_local/__init__.py; then
   fail "V50 PPSE dang duoc kich hoat tren branch V54"
