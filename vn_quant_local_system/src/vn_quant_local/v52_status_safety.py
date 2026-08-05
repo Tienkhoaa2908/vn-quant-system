@@ -48,8 +48,33 @@ def performance_status_active_cycles_only():
             execution_day=plan.get("execution_day"),
             latest_market_day=latest_market_day,
         )
+        row["restore_lock_reason"] = (
+            None
+            if row["restorable"]
+            else "SHADOW_EXECUTION_ALREADY_OBSERVED"
+        )
         discarded_catalog.append(row)
 
+    active_cycle_catalog = []
+    for raw in status.get("cycle_catalog", []):
+        row = dict(raw)
+        plan = plan_by_id.get(str(row.get("plan_id") or ""), {})
+        no_actual_fill = int(row.get("actual_quantity") or 0) == 0
+        pre_execution = _pre_execution(
+            status=plan.get("status") or row.get("shadow_status"),
+            execution_day=plan.get("execution_day") or row.get("execution_day"),
+            latest_market_day=latest_market_day,
+        )
+        row["discardable"] = bool(no_actual_fill and pre_execution)
+        if not no_actual_fill:
+            row["discard_lock_reason"] = "ACTUAL_FILL_EXISTS"
+        elif not pre_execution:
+            row["discard_lock_reason"] = "SHADOW_EXECUTION_ALREADY_OBSERVED"
+        else:
+            row["discard_lock_reason"] = None
+        active_cycle_catalog.append(row)
+
+    status["cycle_catalog"] = active_cycle_catalog
     status["discarded_cycle_catalog"] = discarded_catalog
     status["shadow_plans"] = [
         row
