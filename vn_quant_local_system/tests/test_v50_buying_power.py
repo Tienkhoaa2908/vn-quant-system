@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from vn_quant_local import broker_portfolio, capital_plan, weekly_plan
+from vn_quant_local import broker_portfolio, capital_plan, performance, weekly_plan
 from vn_quant_local import buying_power_v50 as v50
 
 
@@ -112,6 +112,7 @@ class V50BuyingPowerTests(unittest.TestCase):
         self.assertIs(broker_portfolio.latest_broker_portfolio, v50.latest_broker_portfolio_v50)
         self.assertIs(weekly_plan.latest_broker_portfolio, v50.latest_broker_portfolio_v50)
         self.assertIs(capital_plan.latest_broker_portfolio, v50.latest_broker_portfolio_v50)
+        self.assertIs(performance.latest_broker_portfolio, v50.latest_broker_portfolio_v50)
         self.assertIs(weekly_plan.planned_buying_power, v50.planned_buying_power_v50)
         self.assertIs(weekly_plan.allocate_buy_orders, v50.allocate_buy_orders_v50)
         self.assertIs(capital_plan.create_weekly_plan, v50.create_weekly_plan_v50)
