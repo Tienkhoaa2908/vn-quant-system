@@ -1,6 +1,6 @@
 (() => {
-  const VERSION = 'V51_INTENT_RECONCILIATION_CASH_INTEGRITY';
-  const CYCLE_VERSION = 'V52_AUDITABLE_CYCLE_DISCARD';
+  const VERSION = 'V53_BULK_CYCLE_CLEANUP';
+  const CYCLE_VERSION = 'V53_BULK_CYCLE_CLEANUP';
   const esc = value => String(value ?? '')
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
@@ -13,7 +13,6 @@
     : (Number(value) * 100).toFixed(2) + '%';
 
   let latest = null;
-  let observer = null;
   let refreshTimer = null;
   let commandBusy = false;
 
@@ -23,7 +22,9 @@
       ...options,
     });
     const data = await response.json();
-    if (!response.ok) throw new Error(data.message || data.error || 'Yêu cầu thất bại');
+    if (!response.ok || data?.status === 'FAILED') {
+      throw new Error(data.message || data.error || 'Yêu cầu thất bại');
+    }
     return data;
   }
 
@@ -65,19 +66,50 @@
     })[status] || status || 'Chưa rõ';
   }
 
+  function lockLabel(reason) {
+    return ({
+      ACTUAL_COMPLETE: 'Đã mua đủ · giữ cycle',
+      EXPLICIT_PLAN_BINDING: 'Fill đã chọn đích danh cycle',
+      UNCLASSIFIED_ACTUAL_MATCH: 'Có fill chưa xác định cách ghép',
+      SHADOW_EXECUTION_ALREADY_OBSERVED: 'Shadow đã được quan sát',
+    })[reason] || 'Cycle đang bị khóa';
+  }
+
+  function matchLabel(method) {
+    if (!method) return 'Chưa ghép';
+    if (method === 'AUTO_NEWEST_OPEN_INTENT') return 'Tự ghép';
+    if (method === 'EXPLICIT_PLAN_ID') return 'Chọn đích danh';
+    return method.replaceAll(',', ' + ');
+  }
+
+  function cycleIntentRows(cycle) {
+    const intents = cycle.intents || [];
+    if (!intents.length) return '<div class="v53-cycle-empty-intent">Cycle không có lệnh mua/bán.</div>';
+    return `<div class="v53-cycle-intents">${intents.map(intent => `
+      <div class="v53-cycle-intent-row">
+        <div class="v53-intent-symbol"><strong>${esc(intent.side)} ${esc(intent.symbol)}</strong><small>${esc(humanStatus(intent.status))}</small></div>
+        <div><span>Đề xuất</span><b>${num(intent.planned_quantity)} cp</b></div>
+        <div><span>Đã nhập</span><b>${num(intent.actual_quantity)} cp</b></div>
+        <div><span>Còn</span><b>${num(intent.remaining_quantity)} cp</b></div>
+        <div><span>Cách ghép</span><b>${esc(matchLabel(intent.match_method))}</b></div>
+        <div><span>Giá actual</span><b>${intent.actual_vwap_vnd ? money(intent.actual_vwap_vnd) : '—'}</b></div>
+      </div>`).join('')}</div>`;
+  }
+
   function cyclePanel(cycles) {
     if (!cycles?.length) return '<div class="empty">Không còn capital cycle đang hoạt động.</div>';
-    return `<div class="v51-cycle-grid">${cycles.map(cycle => {
-      const canDiscard = Number(cycle.actual_quantity || 0) === 0;
-      return `
-      <article class="v51-cycle-card ${cycle.newest ? 'newest' : ''}">
+    return `<div class="v51-cycle-grid">${cycles.map(cycle => `
+      <article class="v51-cycle-card ${cycle.newest ? 'newest' : ''}" data-v53-cycle-card="${esc(cycle.plan_id)}">
         <div class="v51-cycle-head">
-          <div><strong>${cycle.newest ? 'MỚI NHẤT' : 'CŨ'} · ${esc(cycle.created_at_vn)}</strong><small>${esc(cycle.cycle_id || cycle.week_key || '')}</small></div>
+          <div class="v53-cycle-title">
+            ${cycle.discardable ? `<label class="v53-cycle-select"><input type="checkbox" data-v53-cycle-select value="${esc(cycle.plan_id)}"><span>Chọn</span></label>` : ''}
+            <div><strong>${cycle.newest ? 'MỚI NHẤT' : 'CŨ'} · ${esc(cycle.created_at_vn)}</strong><small>${esc(cycle.cycle_id || cycle.week_key || '')}</small></div>
+          </div>
           <div class="v52-cycle-actions">
             <span class="v51-pill ${cycle.status === 'ACTUAL_COMPLETE' ? 'good' : cycle.status === 'IN_PROGRESS' ? 'warn' : ''}">${esc(cycleStatusLabel(cycle.status))}</span>
-            ${canDiscard
-              ? `<button type="button" class="danger v52-cycle-button" data-v52-discard="${esc(cycle.plan_id)}">Bỏ cycle</button>`
-              : '<span class="v52-lock-note">Có actual fill · không thể bỏ</span>'}
+            ${cycle.discardable
+              ? `<button type="button" class="danger v52-cycle-button" data-v53-discard="${esc(cycle.plan_id)}">Bỏ cycle</button>`
+              : `<span class="v52-lock-note">${esc(lockLabel(cycle.discard_lock_reason))}</span>`}
           </div>
         </div>
         <div class="v51-cycle-symbols">${esc((cycle.symbols || []).join(', ') || 'Không có mã mua/bán')}</div>
@@ -86,11 +118,13 @@
           <span>Đề xuất <b>${num(cycle.planned_quantity)} cp</b></span>
           <span>Đã nhập <b>${num(cycle.actual_quantity)} cp</b></span>
           <span>Còn <b>${num(cycle.remaining_quantity)} cp</b></span>
+          <span>Hoàn thành <b>${pct(cycle.completion_ratio)}</b></span>
           <span>Vốn cycle <b>${money(cycle.new_capital_vnd)}</b></span>
           <span>Shadow <b>${esc(cycle.shadow_status || '—')}</b></span>
         </div>
-      </article>`;
-    }).join('')}</div>`;
+        ${cycle.discard_reassigns_auto_fills ? '<div class="notice warn compact-notice">Cycle này có fill do tự ghép. Khi bỏ, fill thật không bị xóa; hệ thống sẽ ghép lại sang cycle còn hoạt động hoặc đánh dấu ngoài kế hoạch.</div>' : ''}
+        ${cycleIntentRows(cycle)}
+      </article>`).join('')}</div>`;
   }
 
   function discardedPanel(rows) {
@@ -104,9 +138,24 @@
             <small>${esc((row.symbols || []).join(', ') || 'Không có mã')} · ${num(row.planned_quantity)} cp</small>
             <small>Bỏ lúc ${esc(row.discarded_at_vn || row.discarded_at || '—')} · ${esc(row.reason || '')}</small>
           </div>
-          <button type="button" class="secondary v52-cycle-button" data-v52-restore="${esc(row.plan_id)}">Khôi phục</button>
+          ${row.restorable
+            ? `<button type="button" class="secondary v52-cycle-button" data-v53-restore="${esc(row.plan_id)}">Khôi phục</button>`
+            : '<span class="v52-lock-note">Shadow đã được quan sát · không khôi phục</span>'}
         </article>`).join('')}</div>
     </details>`;
+  }
+
+  function bulkToolbar(data) {
+    const count = Number(data.bulk_discardable_count || 0);
+    if (!count) return '<div class="notice compact-notice">Không có cycle nào đủ điều kiện bỏ.</div>';
+    return `<div class="v53-bulk-toolbar">
+      <div><strong>Dọn nhiều cycle</strong><small>${count} cycle có thể bỏ. Cycle đã đủ, fill chọn đích danh hoặc shadow đã chạy được khóa.</small></div>
+      <div class="inline-actions">
+        <button type="button" class="secondary" data-v53-select-all>Chọn tất cả có thể bỏ</button>
+        <button type="button" class="secondary" data-v53-clear-selection>Bỏ chọn</button>
+        <button type="button" class="danger" data-v53-bulk-discard disabled>Bỏ cycle đã chọn (<span data-v53-selected-count>0</span>)</button>
+      </div>
+    </div>`;
   }
 
   function reconciliationCards(rows) {
@@ -121,7 +170,7 @@
           <div><span>Đề xuất / thực tế</span><strong>${num(row.planned_quantity)} / ${num(row.actual_quantity)} cp</strong></div>
           <div><span>Còn thiếu</span><strong>${num(row.remaining_quantity)} cp</strong></div>
           <div><span>Tuân thủ số lượng</span><strong>${row.quantity_compliance === null || row.quantity_compliance === undefined ? '—' : pct(row.quantity_compliance)}</strong></div>
-          <div><span>Cách ghép</span><strong>${esc(row.match_method || 'Không ghép')}</strong></div>
+          <div><span>Cách ghép</span><strong>${esc(matchLabel(row.match_method))}</strong></div>
           <div><span>Giá actual VWAP</span><strong>${row.actual_vwap_vnd ? money(row.actual_vwap_vnd) : 'Chưa có'}</strong></div>
           <div><span>Shadow</span><strong>${row.shadow_pending ? `Chờ ${esc(row.shadow_execution_day || 'T+1')}` : `${num(row.shadow_quantity)} cp @ ${money(row.shadow_price_vnd)}`}</strong></div>
           <div><span>Độ trễ actual</span><strong>${row.execution_delay_days === null || row.execution_delay_days === undefined ? '—' : `${num(row.execution_delay_days)} ngày`}</strong></div>
@@ -147,10 +196,12 @@
       reconciliation.parentNode.insertBefore(section, reconciliation);
     }
     section.innerHTML = `
-      <div class="section-head"><div><h3>Capital cycle và plan intent</h3><p>Cycle không thực hiện có thể bỏ khỏi vận hành. Cycle có actual fill được khóa để bảo vệ lịch sử.</p></div><span class="badge good">${CYCLE_VERSION}</span></div>
-      <div id="v52-cycle-command-notice" class="notice compact-notice">Bỏ cycle chỉ loại khỏi đối soát và shadow; lịch sử gốc vẫn giữ audit.</div>
+      <div class="section-head"><div><h3>Capital cycle và plan intent</h3><p>Xem trực tiếp từng mã, số lượng đề xuất, đã nhập, còn thiếu và cách ghép. Cycle chưa đủ chỉ được bỏ khi không có fill chọn đích danh và shadow chưa chạy.</p></div><span class="badge good">${CYCLE_VERSION}</span></div>
+      <div id="v52-cycle-command-notice" class="notice compact-notice">Bỏ cycle không xóa actual fill. Fill tự ghép sẽ được đối soát lại trên các cycle còn giữ.</div>
+      ${bulkToolbar(data)}
       ${cyclePanel(data.cycle_catalog || [])}
       ${discardedPanel(data.discarded_cycle_catalog || [])}`;
+    updateSelectionState();
   }
 
   function renderReconciliation(data) {
@@ -162,7 +213,7 @@
     if (oldGrid) oldGrid.replaceWith(wrapper.firstElementChild);
     else section.appendChild(wrapper.firstElementChild);
     const paragraph = section.querySelector('.section-head p');
-    if (paragraph) paragraph.textContent = 'Ghép actual với plan intent ngay khi plan được tạo; cycle đã bỏ không còn sinh intent hoặc shadow chờ.';
+    if (paragraph) paragraph.textContent = 'Actual fill được ghép lại sau mỗi lần dọn cycle; fill thật không bị xóa.';
   }
 
   function relevantCycles(symbol, side) {
@@ -245,7 +296,7 @@
 
   const previousRenderPortfolio = window.renderPortfolio;
   if (typeof previousRenderPortfolio === 'function') {
-    window.renderPortfolio = function renderPortfolioV51(broker, account) {
+    window.renderPortfolio = function renderPortfolioV53(broker, account) {
       previousRenderPortfolio(broker, account);
       renderCashIntegrity(broker);
     };
@@ -253,30 +304,17 @@
 
   function render(data) {
     latest = data;
-    if (observer) observer.disconnect();
-    try {
-      renderCycleSection(data);
-      renderReconciliation(data);
-      fillCycleOptions();
-      clarifyCapitalInput();
-      renderCashIntegrity(data.latest_broker);
-    } finally {
-      const content = document.querySelector('#performance-content');
-      if (content && observer) observer.observe(content, {childList: true, subtree: true});
-    }
+    renderCycleSection(data);
+    renderReconciliation(data);
+    fillCycleOptions();
+    clarifyCapitalInput();
+    renderCashIntegrity(data.latest_broker);
   }
 
-  async function refreshV51() {
-    try {
-      const data = await request('/api/performance');
-      render(data);
-    } catch (error) {
-      const notice = document.querySelector('#performance-notice');
-      if (notice) {
-        notice.textContent = error.message;
-        notice.className = 'notice bad';
-      }
-    }
+  async function refreshV53() {
+    const data = await request('/api/performance');
+    render(data);
+    return data;
   }
 
   function commandNotice(text, cls = '') {
@@ -286,71 +324,149 @@
     notice.className = `notice compact-notice ${cls}`;
   }
 
-  async function runCycleCommand(kind, planId) {
-    if (commandBusy) return;
-    const isDiscard = kind === 'DISCARD_CYCLE';
-    const defaultReason = isDiscard
-      ? 'Chỉ xem tổng quan, không thực hiện kế hoạch'
-      : 'Khôi phục cycle để tiếp tục theo dõi';
+  function selectedPlanIds() {
+    return [...document.querySelectorAll('[data-v53-cycle-select]:checked')]
+      .map(input => input.value)
+      .filter(Boolean);
+  }
+
+  function updateSelectionState() {
+    const selected = selectedPlanIds();
+    const count = document.querySelector('[data-v53-selected-count]');
+    const button = document.querySelector('[data-v53-bulk-discard]');
+    if (count) count.textContent = String(selected.length);
+    if (button) button.disabled = commandBusy || selected.length === 0;
+  }
+
+  function setCommandBusy(value) {
+    commandBusy = value;
+    document.querySelectorAll('[data-v53-discard], [data-v53-restore], [data-v53-bulk-discard]')
+      .forEach(button => { button.disabled = value; });
+    updateSelectionState();
+  }
+
+  async function runDiscard(planIds) {
+    if (commandBusy || !planIds.length) return;
     const reason = window.prompt(
-      isDiscard ? 'Lý do bỏ cycle:' : 'Lý do khôi phục cycle:',
-      defaultReason,
+      planIds.length > 1 ? `Lý do bỏ ${planIds.length} cycle:` : 'Lý do bỏ cycle:',
+      'Chỉ xem tổng quan, không thực hiện kế hoạch',
     );
     if (reason === null) return;
     if (!String(reason).trim()) {
       window.alert('Phải nhập lý do để lưu audit.');
       return;
     }
-    if (isDiscard && !window.confirm('Cycle sẽ biến khỏi danh sách hoạt động và toàn bộ shadow/intent chờ tương ứng sẽ được rebuild bỏ đi. Tiếp tục?')) return;
-    commandBusy = true;
-    commandNotice(isDiscard ? 'Đang bỏ cycle và rebuild shadow...' : 'Đang khôi phục cycle và rebuild shadow...', 'warn');
+    const confirmation = planIds.length > 1
+      ? `Bỏ ${planIds.length} cycle đã chọn? Actual fill không bị xóa; fill tự ghép sẽ được đối soát lại.`
+      : 'Bỏ cycle này? Actual fill không bị xóa; fill tự ghép sẽ được đối soát lại.';
+    if (!window.confirm(confirmation)) return;
+
+    setCommandBusy(true);
+    commandNotice(`Đang bỏ ${planIds.length} cycle và đối soát lại...`, 'warn');
     try {
       const result = await request('/api/performance/cashflow', {
         method: 'POST',
         body: JSON.stringify({
-          flow_type: kind,
+          flow_type: planIds.length > 1 ? 'DISCARD_CYCLES' : 'DISCARD_CYCLE',
+          amount_vnd: 0,
+          event_day: vnDay(),
+          note: JSON.stringify({
+            plan_id: planIds[0],
+            plan_ids: planIds,
+            reason: String(reason).trim(),
+          }),
+        }),
+      });
+      setCommandBusy(false);
+      await refreshV53();
+      commandNotice(result.message || 'Hoàn tất.', 'good');
+    } catch (error) {
+      setCommandBusy(false);
+      commandNotice(error.message, 'bad');
+      window.alert(error.message);
+    }
+  }
+
+  async function runRestore(planId) {
+    if (commandBusy || !planId) return;
+    const reason = window.prompt('Lý do khôi phục cycle:', 'Khôi phục cycle để tiếp tục theo dõi');
+    if (reason === null) return;
+    if (!String(reason).trim()) {
+      window.alert('Phải nhập lý do để lưu audit.');
+      return;
+    }
+    setCommandBusy(true);
+    commandNotice('Đang khôi phục cycle và rebuild shadow...', 'warn');
+    try {
+      const result = await request('/api/performance/cashflow', {
+        method: 'POST',
+        body: JSON.stringify({
+          flow_type: 'RESTORE_CYCLE',
           amount_vnd: 0,
           event_day: vnDay(),
           note: JSON.stringify({plan_id: planId, reason: String(reason).trim()}),
         }),
       });
-      await refreshV51();
+      setCommandBusy(false);
+      await refreshV53();
       commandNotice(result.message || 'Hoàn tất.', 'good');
     } catch (error) {
+      setCommandBusy(false);
       commandNotice(error.message, 'bad');
       window.alert(error.message);
-    } finally {
-      commandBusy = false;
     }
   }
 
   function scheduleRefresh(delay = 250) {
     clearTimeout(refreshTimer);
-    refreshTimer = setTimeout(refreshV51, delay);
+    refreshTimer = setTimeout(() => {
+      refreshV53().catch(error => {
+        const notice = document.querySelector('#performance-notice');
+        if (notice) {
+          notice.textContent = error.message;
+          notice.className = 'notice bad';
+        }
+      });
+    }, delay);
   }
 
   function init() {
     clarifyCapitalInput();
-    const content = document.querySelector('#performance-content');
-    observer = new MutationObserver(() => scheduleRefresh(120));
-    if (content) observer.observe(content, {childList: true, subtree: true});
     document.addEventListener('input', event => {
       if (event.target?.matches?.('#performance-fill-symbol, #performance-fill-side')) fillCycleOptions();
     });
     document.addEventListener('change', event => {
       if (event.target?.matches?.('#performance-fill-symbol, #performance-fill-side')) fillCycleOptions();
+      if (event.target?.matches?.('[data-v53-cycle-select]')) updateSelectionState();
     });
     document.addEventListener('click', event => {
-      const discard = event.target?.closest?.('[data-v52-discard]');
+      const discard = event.target?.closest?.('[data-v53-discard]');
       if (discard) {
         event.preventDefault();
-        runCycleCommand('DISCARD_CYCLE', discard.dataset.v52Discard);
+        runDiscard([discard.dataset.v53Discard]);
         return;
       }
-      const restore = event.target?.closest?.('[data-v52-restore]');
+      const restore = event.target?.closest?.('[data-v53-restore]');
       if (restore) {
         event.preventDefault();
-        runCycleCommand('RESTORE_CYCLE', restore.dataset.v52Restore);
+        runRestore(restore.dataset.v53Restore);
+        return;
+      }
+      if (event.target?.closest?.('[data-v53-select-all]')) {
+        event.preventDefault();
+        document.querySelectorAll('[data-v53-cycle-select]').forEach(input => { input.checked = true; });
+        updateSelectionState();
+        return;
+      }
+      if (event.target?.closest?.('[data-v53-clear-selection]')) {
+        event.preventDefault();
+        document.querySelectorAll('[data-v53-cycle-select]').forEach(input => { input.checked = false; });
+        updateSelectionState();
+        return;
+      }
+      if (event.target?.closest?.('[data-v53-bulk-discard]')) {
+        event.preventDefault();
+        runDiscard(selectedPlanIds());
         return;
       }
       if (event.target?.closest?.('[data-v45-performance-tab], #performance-refresh, #performance-add-fill, [data-action="plan"], [data-action="sync-broker"]')) {
