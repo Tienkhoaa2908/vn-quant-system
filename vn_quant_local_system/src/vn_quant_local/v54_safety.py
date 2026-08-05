@@ -1,9 +1,11 @@
 """Runtime safety guards for V54 research scope."""
 from __future__ import annotations
 
+from . import v52_status_safety
 from . import v54_research_scope as v54
 
 _ORIGINAL_SNAPSHOT_SELLABLE_MAP = None
+_ORIGINAL_STATUS_DISCARDED_PLAN_IDS = None
 
 
 def snapshot_sellable_map_safe(details):
@@ -53,7 +55,10 @@ def apply() -> None:
     if getattr(v54, "_v54_safety_applied", False):
         return
     global _ORIGINAL_SNAPSHOT_SELLABLE_MAP
+    global _ORIGINAL_STATUS_DISCARDED_PLAN_IDS
     _ORIGINAL_SNAPSHOT_SELLABLE_MAP = v54._snapshot_sellable_map
+    _ORIGINAL_STATUS_DISCARDED_PLAN_IDS = v52_status_safety.discarded_plan_ids
     v54._snapshot_sellable_map = snapshot_sellable_map_safe
     v54._sellability = sellability_zero_first
+    v52_status_safety.discarded_plan_ids = v54.operationally_excluded_plan_ids
     v54._v54_safety_applied = True
