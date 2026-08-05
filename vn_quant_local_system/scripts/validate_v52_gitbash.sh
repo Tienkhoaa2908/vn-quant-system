@@ -33,6 +33,7 @@ from vn_quant_local import v51_integrity as v51
 from vn_quant_local import v52_commands
 from vn_quant_local import v52_cycle_management as v52
 from vn_quant_local import v52_discard_safety
+from vn_quant_local import v52_status_safety
 from vn_quant_local import webapp
 
 assert v52.V52_VERSION == "V52_AUDITABLE_CYCLE_DISCARD"
@@ -93,16 +94,18 @@ finally:
 assert performance._rebuild_shadow is v52.rebuild_shadow_v52
 assert performance._reconciliation is v52.reconciliation_v52
 assert v51._load_reconciliation_inputs is v52._load_reconciliation_inputs_v52
-assert performance.performance_status is v52.performance_status_v52
+assert performance.performance_status is v52_status_safety.performance_status_active_cycles_only
 assert performance.add_actual_fill is v52.add_actual_fill_v52
 assert performance.add_actual_cashflow is v52_commands.add_actual_cashflow_v52
 assert performance.discard_cycle is v52_discard_safety.discard_cycle_safe
+assert webapp.performance_status is v52_status_safety.performance_status_active_cycles_only
 assert webapp.add_actual_cashflow is v52_commands.add_actual_cashflow_v52
 assert webapp.add_actual_fill is v52.add_actual_fill_v52
 assert webapp.Handler.server_version == "VNQuantLocal/2.0"
 
 print("V52_APPEND_ONLY_ACTIONS=PASS")
 print("V52_ACTIVE_CYCLE_FILTER=PASS")
+print("V52_LEGACY_SELECTOR_FILTER=PASS")
 print("V52_ACTUAL_FILL_LOCK=PASS")
 print("V52_PRE_EXECUTION_ONLY=PASS")
 print("V52_SHADOW_REBUILD_BINDING=PASS")
@@ -118,6 +121,7 @@ grep -q 'Cycle đã bỏ' web/performance_v51.js || fail "thieu audit cycle da b
 grep -q 'V52_AUDITABLE_CYCLE_DISCARD' src/vn_quant_local/v52_cycle_management.py || fail "thieu V52 engine"
 grep -q 'PERFORMANCE_CYCLE_SHADOW_ALREADY_EXECUTED' src/vn_quant_local/v52_discard_safety.py || fail "thieu anti-hindsight gate"
 grep -q 'performance_cycle_actions_v52' src/vn_quant_local/v52_cycle_management.py || fail "thieu cycle action ledger"
+grep -q 'active_shadow_plan_count' src/vn_quant_local/v52_status_safety.py || fail "thieu active selector filter"
 
 if grep -q 'buying_power_v50' src/vn_quant_local/__init__.py; then
   fail "V50 PPSE dang duoc kich hoat tren branch V52"
