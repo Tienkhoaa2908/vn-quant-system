@@ -1,9 +1,9 @@
-name: v49_local_workstation
+name: v51_local_workstation
 
 on:
   push:
     branches:
-      - agent/v44-local-quant-workstation
+      - agent/v51-intent-reconciliation-cash-integrity
   workflow_dispatch:
 
 jobs:
@@ -38,6 +38,7 @@ jobs:
           node --check vn_quant_local_system/web/performance_v45.js
           node --check vn_quant_local_system/web/signal_v47.js
           node --check vn_quant_local_system/web/source_integrity_v49.js
+          node --check vn_quant_local_system/web/performance_v51.js
       - name: Verify workstation assets
         run: |
           grep -q 'performance_v45.css' vn_quant_local_system/web/index.html
@@ -45,9 +46,12 @@ jobs:
           grep -q 'signal_v47.js' vn_quant_local_system/web/index.html
           grep -q 'source_integrity_v49.css' vn_quant_local_system/web/index.html
           grep -q 'source_integrity_v49.js' vn_quant_local_system/web/index.html
+          grep -q 'performance_v51.css' vn_quant_local_system/web/index.html
+          grep -q 'performance_v51.js' vn_quant_local_system/web/index.html
           grep -q 'LATEST_SESSION_WITH_CANONICAL_WEIGHTS' vn_quant_local_system/src/vn_quant_local/signal_refresh.py
           grep -q 'CANONICAL_TOP10_AND_PREVIEW_TOP20_ELIGIBLE' vn_quant_local_system/src/vn_quant_local/signal_refresh.py
           grep -q 'V48_AUDITABLE_EVENT_CORRECTIONS' vn_quant_local_system/src/vn_quant_local/performance_corrections.py
           grep -q 'V49_DNSE_SOURCE_INTEGRITY' vn_quant_local_system/src/vn_quant_local/source_integrity_v49.py
+          grep -q 'V51_INTENT_RECONCILIATION_CASH_INTEGRITY' vn_quant_local_system/src/vn_quant_local/v51_integrity.py
           grep -q 'OPEN_QUANTITY_PRESERVE_ZERO' vn_quant_local_system/config.json
           grep -q 'Sửa có audit' vn_quant_local_system/web/signal_v47.js
