@@ -98,6 +98,7 @@ assert performance.performance_status is v52_status_safety.performance_status_ac
 assert performance.add_actual_fill is v52.add_actual_fill_v52
 assert performance.add_actual_cashflow is v52_commands.add_actual_cashflow_v52
 assert performance.discard_cycle is v52_discard_safety.discard_cycle_safe
+assert performance.restore_cycle is v52_discard_safety.restore_cycle_safe
 assert webapp.performance_status is v52_status_safety.performance_status_active_cycles_only
 assert webapp.add_actual_cashflow is v52_commands.add_actual_cashflow_v52
 assert webapp.add_actual_fill is v52.add_actual_fill_v52
@@ -108,6 +109,7 @@ print("V52_ACTIVE_CYCLE_FILTER=PASS")
 print("V52_LEGACY_SELECTOR_FILTER=PASS")
 print("V52_ACTUAL_FILL_LOCK=PASS")
 print("V52_PRE_EXECUTION_ONLY=PASS")
+print("V52_RESTORE_PRE_EXECUTION_ONLY=PASS")
 print("V52_SHADOW_REBUILD_BINDING=PASS")
 print("V52_EXISTING_API_COMMAND_ROUTE=PASS")
 print("V52_RUNTIME_BINDINGS=PASS")
