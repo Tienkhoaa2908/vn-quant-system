@@ -1,9 +1,9 @@
-name: v52_local_workstation
+name: v53_local_workstation
 
 on:
   push:
     branches:
-      - agent/v52-cycle-discard-audit
+      - agent/v53-bulk-cycle-cleanup
   workflow_dispatch:
 
 jobs:
@@ -54,8 +54,10 @@ jobs:
           grep -q 'V49_DNSE_SOURCE_INTEGRITY' vn_quant_local_system/src/vn_quant_local/source_integrity_v49.py
           grep -q 'V51_INTENT_RECONCILIATION_CASH_INTEGRITY' vn_quant_local_system/src/vn_quant_local/v51_integrity.py
           grep -q 'V52_AUDITABLE_CYCLE_DISCARD' vn_quant_local_system/src/vn_quant_local/v52_cycle_management.py
-          grep -q 'PERFORMANCE_CYCLE_SHADOW_ALREADY_EXECUTED' vn_quant_local_system/src/vn_quant_local/v52_discard_safety.py
-          grep -q 'data-v52-discard' vn_quant_local_system/web/performance_v51.js
-          grep -q 'data-v52-restore' vn_quant_local_system/web/performance_v51.js
+          grep -q 'V53_BULK_CYCLE_CLEANUP' vn_quant_local_system/src/vn_quant_local/v53_cycle_cleanup.py
+          grep -q 'data-v53-cycle-select' vn_quant_local_system/web/performance_v51.js
+          grep -q 'data-v53-bulk-discard' vn_quant_local_system/web/performance_v51.js
+          grep -q 'cycleIntentRows' vn_quant_local_system/web/performance_v51.js
           grep -q 'OPEN_QUANTITY_PRESERVE_ZERO' vn_quant_local_system/config.json
           grep -q 'Sửa có audit' vn_quant_local_system/web/signal_v47.js
+          if grep -q 'MutationObserver' vn_quant_local_system/web/performance_v51.js; then exit 2; fi
