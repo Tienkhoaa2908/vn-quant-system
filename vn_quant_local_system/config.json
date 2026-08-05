@@ -1,5 +1,5 @@
 {
-  "schema_version": "vn_quant_local_workstation_v1_9",
+  "schema_version": "vn_quant_local_workstation_v2_0",
   "paths": {
     "market_db": "data/market/dnse_ohlcv.sqlite3",
     "reference_zip": "data/reference/daily_prediction_input_v22.zip",
@@ -30,9 +30,9 @@
   },
   "weekly_policy": {
     "policy_id": "P1_TOP10_UNDERWEIGHT_BUFFER20",
-    "planner_variant": "V47_EVENT_DRIVEN_CANONICAL_PREVIEW_GUARD",
+    "planner_variant": "V50_EVENT_DRIVEN_CANONICAL_PREVIEW_PPSE",
     "planning_frequency": "ON_DEMAND_WHEN_CAPITAL_IS_AVAILABLE",
-    "cash_semantics": "SPENDABLE_EQUALS_BROKER_AVAILABLE_CASH_PLUS_NEW_CAPITAL_FOR_THIS_CYCLE",
+    "cash_semantics": "SPENDABLE_EQUALS_DNSE_NON_MARGIN_PPSE_PLUS_NEW_CAPITAL_FOR_THIS_CYCLE",
     "default_contribution_vnd": 250000,
     "weekly_contribution_is_new_cash": true,
     "planning_cost_bps": 50.0,
@@ -44,13 +44,14 @@
     "missing_history_cannot_trigger_exit": true,
     "maximum_buy_orders_per_week": 3,
     "odd_lot_share_unit": 1,
-    "sell_proceeds_reused_only_after_broker_resync": true
+    "sell_proceeds_reuse_source": "AUTHORITATIVE_DNSE_PPSE_AFTER_BROKER_RESYNC"
   },
   "event_planning": {
     "mode": "EVENT_DRIVEN_CAPITAL_CYCLE",
     "not_limited_to_calendar_week": true,
     "refresh_market_before_plan": true,
     "refresh_broker_before_plan": true,
+    "refresh_buying_power_before_plan": true,
     "ensure_canonical_before_plan": true,
     "refresh_preview_before_plan": true,
     "purchase_guard": "CANONICAL_TOP10_AND_PREVIEW_TOP20_ELIGIBLE",
@@ -69,10 +70,26 @@
     "full_account_number_persisted": false,
     "position_quantity_source": "OPEN_QUANTITY_PRESERVE_ZERO",
     "sellable_quantity_source": "TRADE_QUANTITY_PRESERVE_ZERO",
-    "planner_cash_source": "AVAILABLE_CASH",
+    "planner_cash_source": "DNSE_NON_MARGIN_PPSE_FALLBACK_AVAILABLE_CASH",
     "broker_snapshot_valuation": "BROKER_MARKET_PRICE_FALLBACK_RESEARCH_EOD",
     "research_valuation": "LOCAL_EOD_CLOSE",
     "broker_and_research_nav_are_separate": true
+  },
+  "buying_power": {
+    "version": "V50_DNSE_AUTHORITATIVE_BUYING_POWER",
+    "loan_packages_endpoint": "/order-service/v2/accounts/{accountNo}/loan-packages",
+    "ppse_endpoint": "/order-service/accounts/{accountNo}/ppse",
+    "read_only_get_only": true,
+    "trading_token_used": false,
+    "write_endpoint_called": false,
+    "margin_allowed": false,
+    "loan_package_type": "N",
+    "candidate_scope": "CANONICAL_TOP10",
+    "shared_budget_rule": "MIN_POSITIVE_PPSE_ACROSS_SUCCESSFUL_TOP10_PROBES",
+    "candidate_quantity_cap": "DNSE_QMAX_AT_PLAN_PRICE",
+    "fallback_rule": "AVAILABLE_CASH_ONLY_WHEN_PPSE_UNAVAILABLE",
+    "position_delta_estimation_allowed": false,
+    "unsettled_sell_proceeds_source": "DNSE_PPSE"
   },
   "performance": {
     "version": "V48_AUDITABLE_EVENT_CORRECTIONS",
