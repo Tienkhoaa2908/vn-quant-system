@@ -195,7 +195,7 @@ def _plan_and_refresh(
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "VNQuantLocal/1.9"
+    server_version = "VNQuantLocal/2.0"
 
     def _send(self, status: int, payload: bytes, content_type: str) -> None:
         self.send_response(status)
@@ -254,6 +254,8 @@ class Handler(BaseHTTPRequestHandler):
                 "/signal_v47.css",
                 "/source_integrity_v49.js",
                 "/source_integrity_v49.css",
+                "/performance_v51.js",
+                "/performance_v51.css",
             }:
                 self._static(path.lstrip("/"))
             elif path == "/api/status":
