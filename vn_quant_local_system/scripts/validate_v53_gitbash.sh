@@ -26,13 +26,16 @@ echo "===== V53 FULL UNIT TESTS ====="
 
 echo "===== V53 RUNTIME CONTRACT ====="
 "$PYTHON_EXE" - <<'PY'
+import json
 import vn_quant_local
 from vn_quant_local import performance
 from vn_quant_local import v53_cycle_cleanup as v53
+from vn_quant_local import v53_safety
 from vn_quant_local import webapp
 
 assert vn_quant_local.__version__ == "0.5.3"
 assert v53.V53_VERSION == "V53_BULK_CYCLE_CLEANUP"
+assert v53._cycle_policy_rows is v53_safety.cycle_policy_rows_json_safe
 assert performance.performance_status is v53.performance_status_v53
 assert performance.add_actual_cashflow is v53.add_actual_cashflow_v53
 assert performance.discard_cycles is v53.discard_cycles
@@ -85,9 +88,18 @@ row = v53._cycle_policy_rows(partial_auto)[0]
 assert row["discardable"] is False
 assert row["discard_lock_reason"] == "ACTUAL_COMPLETE"
 
+partial_auto["reconciliation"][0]["actual_quantity"] = 1
+partial_auto["reconciliation"][0]["remaining_quantity"] = 3
+partial_auto["reconciliation"][0]["match_method"] = None
+row = v53._cycle_policy_rows(partial_auto)[0]
+assert row["auto_match_only"] is False
+assert row["discard_lock_reason"] == "UNCLASSIFIED_ACTUAL_MATCH"
+json.dumps(row, ensure_ascii=False)
+
 print("V53_PARTIAL_AUTO_MATCH_DISCARD=PASS")
 print("V53_EXPLICIT_BINDING_LOCK=PASS")
 print("V53_COMPLETE_CYCLE_LOCK=PASS")
+print("V53_JSON_SAFE_POLICY=PASS")
 print("V53_INLINE_INTENT_DETAILS=PASS")
 print("V53_RUNTIME_BINDINGS=PASS")
 PY
@@ -106,6 +118,7 @@ fi
 grep -q 'v53-cycle-intent-row' web/performance_v51.css || fail "thieu CSS intent details"
 grep -q 'V53_BULK_CYCLE_CLEANUP' src/vn_quant_local/v53_cycle_cleanup.py || fail "thieu V53 engine"
 grep -q 'bulk_cycle_discard_is_atomic' src/vn_quant_local/v53_cycle_cleanup.py || fail "thieu atomic contract"
+grep -q 'cycle_policy_rows_json_safe' src/vn_quant_local/v53_safety.py || fail "thieu JSON safety"
 
 if grep -q 'buying_power_v50' src/vn_quant_local/__init__.py; then
   fail "V50 PPSE dang duoc kich hoat tren branch V53"
