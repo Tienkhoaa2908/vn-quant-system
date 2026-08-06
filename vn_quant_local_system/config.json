@@ -1,5 +1,5 @@
 {
-  "schema_version": "vn_quant_local_workstation_v1_9",
+  "schema_version": "vn_quant_local_workstation_v1_10",
   "paths": {
     "market_db": "data/market/dnse_ohlcv.sqlite3",
     "reference_zip": "data/reference/daily_prediction_input_v22.zip",
@@ -57,7 +57,7 @@
     "duplicate_guard_seconds": 90
   },
   "data_integrity": {
-    "version": "V49_DNSE_SOURCE_INTEGRITY",
+    "version": "V55_FINAL_EOD_ONLY_VALUATION",
     "market_working_dates_endpoint": "/market/working-dates",
     "recent_sessions_refetched_every_run": true,
     "stale_fetched_ranges_can_suppress_recent_refetch": false,
@@ -69,10 +69,11 @@
     "full_account_number_persisted": false,
     "position_quantity_source": "OPEN_QUANTITY_PRESERVE_ZERO",
     "sellable_quantity_source": "TRADE_QUANTITY_PRESERVE_ZERO",
-    "planner_cash_source": "AVAILABLE_CASH",
-    "broker_snapshot_valuation": "BROKER_MARKET_PRICE_FALLBACK_RESEARCH_EOD",
-    "research_valuation": "LOCAL_EOD_CLOSE",
-    "broker_and_research_nav_are_separate": true
+    "planner_cash_source": "V51_VALIDATED_DNSE_CASH_CONTRACT",
+    "operational_valuation": "LOCAL_FINAL_EOD_CLOSE_ONLY",
+    "broker_market_price_used_for_valuation": false,
+    "broker_reference_price_exposed_to_ui": false,
+    "nav_formula": "VALIDATED_DNSE_TOTAL_CASH_PLUS_LOCAL_FINAL_EOD_POSITION_VALUE"
   },
   "performance": {
     "version": "V48_AUDITABLE_EVENT_CORRECTIONS",
@@ -82,7 +83,7 @@
     "shadow_cost_bps": 50.0,
     "sell_tax_bps": 10.0,
     "actual_fill_price_source": "USER_CONFIRMED_ONLY",
-    "whole_dnse_source": "BROKER_SNAPSHOTS",
+    "whole_dnse_source": "DNSE_CASH_AND_QUANTITY_WITH_LOCAL_FINAL_EOD_VALUATION",
     "benchmark": "VNINDEX_SAME_SHADOW_CASH_FLOWS",
     "signal_horizons_sessions": [5, 20, 60],
     "event_ledger": "APPEND_ONLY_WITH_VOID_AND_REPLACEMENT",
