@@ -56,12 +56,24 @@ run_study() {
     "$PYTHON_EXE" -m py_compile \
         src/he_thong_dinh_luong/capital_deployment_v58.py \
         src/he_thong_dinh_luong/tail_noadd_v58.py \
+        src/he_thong_dinh_luong/v58_baseline_parity.py \
         tests/test_capital_deployment_v58.py \
         tests/test_tail_noadd_v58.py
     "$PYTHON_EXE" -m unittest \
         tests.test_capital_deployment_v58 \
         tests.test_tail_noadd_v58 \
         -v
+
+    echo
+    echo "===== V58 BASELINE PARITY GUARD ====="
+    "$PYTHON_EXE" -m he_thong_dinh_luong.v58_baseline_parity \
+        --input-zip "$(cygpath -w "$INPUT_ZIP")" \
+        --store "$(cygpath -w "$STORE")" \
+        --contribution 200000 \
+        --contribution 250000 \
+        --contribution 300000 \
+        --analysis-end 2026-07-31 \
+        --price-multiplier 1000
 
     echo
     echo "===== STUDY A: TARGET-GAP 3/4/5 ====="
