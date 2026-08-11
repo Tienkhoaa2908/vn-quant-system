@@ -21,15 +21,20 @@ jobs:
           PYTHONPATH: src:vn_quant_local_system/src
         run: |
           python -m py_compile src/he_thong_dinh_luong/tail_risk_overlay_v56.py
+          python -m py_compile src/he_thong_dinh_luong/tail_risk_overlay_v56_1.py
           python -m py_compile tests/test_tail_risk_overlay_v56.py
+          python -m py_compile tests/test_tail_risk_overlay_v56_1.py
       - name: Run V56 pure tests
         env:
           PYTHONPATH: src:vn_quant_local_system/src
-        run: python -m unittest tests.test_tail_risk_overlay_v56 -v
+        run: |
+          python -m unittest tests.test_tail_risk_overlay_v56 -v
+          python -m unittest tests.test_tail_risk_overlay_v56_1 -v
       - name: Verify research-only contract
         run: |
           grep -q 'BASE_POLICY = "P1_TOP10_UNDERWEIGHT_BUFFER20"' src/he_thong_dinh_luong/tail_risk_overlay_v56.py
           grep -q 'motivating_august_2026_episode_excluded_from_selection' src/he_thong_dinh_luong/tail_risk_overlay_v56.py
           grep -q 'live_model_change_authorized' src/he_thong_dinh_luong/tail_risk_overlay_v56.py
-          grep -q 'V56 TAIL-RISK OVERLAY STUDY' scripts/run_v56_tail_risk_overlay_gitbash.sh
+          grep -q 'SAME_FINAL_WEEKLY_TRADING_DAY' src/he_thong_dinh_luong/tail_risk_overlay_v56_1.py
+          grep -q 'tail_risk_overlay_v56_1' scripts/run_v56_tail_risk_overlay_gitbash.sh
           if grep -q 'tail_risk_overlay_v56' vn_quant_local_system/src/vn_quant_local/__init__.py; then exit 2; fi
