@@ -46,17 +46,17 @@ class TailRiskOverlayV56Tests(unittest.TestCase):
         self.assertIsNone(
             risk_trigger(
                 spec,
-                close_price=90.0,
+                close_price=89.0,
                 average_cost=100.0,
                 position_quantity=1,
                 portfolio_nav=1000.0,
-                moving_average=89.0,
+                moving_average=88.0,
             )
         )
         self.assertIsNotNone(
             risk_trigger(
                 spec,
-                close_price=90.0,
+                close_price=89.0,
                 average_cost=100.0,
                 position_quantity=1,
                 portfolio_nav=1000.0,
