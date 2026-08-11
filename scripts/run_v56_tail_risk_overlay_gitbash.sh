@@ -46,6 +46,7 @@ echo "CONTRIBUTIONS=200000,250000,300000"
 echo "SLIPPAGE_SCENARIOS=BASE,STRESS,SEVERE"
 echo "RISK_EXECUTION=SIGNAL_AT_CLOSE_NEXT_SESSION_OPEN"
 echo "REBUY_COOLDOWN=UNTIL_NEXT_CANONICAL_MONTH"
+echo "BASELINE_PARITY=SAME_FINAL_WEEKLY_TRADING_DAY"
 echo "LIVE_MODEL_CHANGE=false"
 echo
 
@@ -59,13 +60,18 @@ echo
 echo "===== COMPILE + PURE TESTS ====="
 "$PYTHON_EXE" -m py_compile \
     src/he_thong_dinh_luong/tail_risk_overlay_v56.py \
-    tests/test_tail_risk_overlay_v56.py
-"$PYTHON_EXE" -m unittest tests.test_tail_risk_overlay_v56 -v
+    src/he_thong_dinh_luong/tail_risk_overlay_v56_1.py \
+    tests/test_tail_risk_overlay_v56.py \
+    tests/test_tail_risk_overlay_v56_1.py
+"$PYTHON_EXE" -m unittest \
+    tests.test_tail_risk_overlay_v56 \
+    tests.test_tail_risk_overlay_v56_1 \
+    -v
 
 echo
 echo "===== RUN 11-YEAR HISTORY / WALK-FORWARD STUDY ====="
 set +e
-"$PYTHON_EXE" -m he_thong_dinh_luong.tail_risk_overlay_v56 \
+"$PYTHON_EXE" -m he_thong_dinh_luong.tail_risk_overlay_v56_1 \
     --input-zip "$(cygpath -w "$INPUT_ZIP")" \
     --store "$(cygpath -w "$STORE")" \
     --output-dir "$(cygpath -w "$OUT_DIR")" \
