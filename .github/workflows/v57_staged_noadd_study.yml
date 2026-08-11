@@ -1,0 +1,38 @@
+name: v57_staged_noadd_study
+
+on:
+  push:
+    branches:
+      - agent/v57-staged-deployment-noadd-study
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile V57 research modules
+        env:
+          PYTHONPATH: src:vn_quant_local_system/src
+        run: |
+          python -m py_compile src/he_thong_dinh_luong/capital_deployment_v57.py
+          python -m py_compile src/he_thong_dinh_luong/tail_noadd_v57.py
+          python -m py_compile tests/test_capital_deployment_v57.py
+          python -m py_compile tests/test_tail_noadd_v57.py
+      - name: Run V57 pure tests
+        env:
+          PYTHONPATH: src:vn_quant_local_system/src
+        run: |
+          python -m unittest tests.test_capital_deployment_v57 tests.test_tail_noadd_v57 -v
+      - name: Verify research-only contract
+        run: |
+          grep -q 'live_model_change_authorized' src/he_thong_dinh_luong/capital_deployment_v57.py
+          grep -q 'live_model_change_authorized' src/he_thong_dinh_luong/tail_noadd_v57.py
+          grep -q 'STAGED_FULL_5' src/he_thong_dinh_luong/capital_deployment_v57.py
+          grep -q 'NOADD_100' src/he_thong_dinh_luong/tail_noadd_v57.py
+          grep -q 'V57 STAGED DEPLOYMENT + NO-ADD STUDY' scripts/run_v57_staged_noadd_research_gitbash.sh
