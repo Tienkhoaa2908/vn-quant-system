@@ -1,0 +1,41 @@
+name: v58_causal_noadd_targetgap_study
+
+on:
+  push:
+    branches:
+      - agent/v58-causal-noadd-targetgap5-study
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile V58 research modules
+        env:
+          PYTHONPATH: src:vn_quant_local_system/src
+        run: |
+          python -m py_compile src/he_thong_dinh_luong/capital_deployment_v58.py
+          python -m py_compile src/he_thong_dinh_luong/tail_noadd_v58.py
+          python -m py_compile tests/test_capital_deployment_v58.py
+          python -m py_compile tests/test_tail_noadd_v58.py
+      - name: Run V58 pure tests
+        env:
+          PYTHONPATH: src:vn_quant_local_system/src
+        run: |
+          python -m unittest tests.test_capital_deployment_v58 tests.test_tail_noadd_v58 -v
+      - name: Verify causal and research-only contracts
+        run: |
+          grep -q 'TARGET_GAP_4' src/he_thong_dinh_luong/capital_deployment_v58.py
+          grep -q 'TARGET_GAP_5' src/he_thong_dinh_luong/capital_deployment_v58.py
+          grep -q 'PREVIOUS_SESSION_CLOSE_TO_CURRENT_OPEN' src/he_thong_dinh_luong/tail_noadd_v58.py
+          grep -q 'v57_tail_results_superseded' src/he_thong_dinh_luong/tail_noadd_v58.py
+          grep -q 'live_model_change_authorized' src/he_thong_dinh_luong/capital_deployment_v58.py
+          grep -q 'live_model_change_authorized' src/he_thong_dinh_luong/tail_noadd_v58.py
+          grep -q 'V58 CAUSAL NO-ADD + TARGET-GAP 4/5 STUDY' scripts/run_v58_causal_noadd_targetgap_gitbash.sh
+          if grep -q 'capital_deployment_v58\|tail_noadd_v58' vn_quant_local_system/src/vn_quant_local/__init__.py; then exit 2; fi
