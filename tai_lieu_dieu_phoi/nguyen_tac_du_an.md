@@ -39,6 +39,7 @@ dữ liệu → kiểm tra chất lượng → tập cổ phiếu theo từng th
 26. `tai_lieu_dieu_phoi/ban_dieu_phoi_hien_hanh.md` là snapshot current-state; Git history và `DECISIONS.md` giữ lịch sử.
 27. Trước khi push phải tự kiểm scope, contract, negative tests, boundary dates, look-ahead, survivorship, stable ordering, finite values, hash/manifest, cross-platform và backward compatibility.
 28. Mọi claim phải phân biệt rõ `implemented`, `locally_verified`, `ci_verified`, `observed_external`, `reported_not_verified` và `blocked`.
+29. Khi work package có code cần chạy trên workstation, trợ lý phải hoàn tất code trên nhánh GitHub trước; người vận hành chỉ nhận lệnh Git Bash để `fetch/switch/pull` nhánh rồi chạy runner trong repo. Không dùng ZIP/patch thủ công hoặc yêu cầu giải nén code nếu GitHub vẫn ghi được. Nếu connector GitHub bị chặn, phải nói rõ blocker và chỉ dùng action kit như fallback cuối cùng.
 
 Chi tiết thực thi nằm tại:
 
