@@ -25,10 +25,10 @@ jobs:
           python -m py_compile vn_quant_local_system/src/vn_quant_local/v59_lag_diagnostics.py
           python -m py_compile vn_quant_local_system/src/vn_quant_local/webapp_v59.py
           python -m py_compile vn_quant_local_system/tests/test_v59_fast_realtime.py
-      - name: Pure V59 tests
+      - name: Full workstation unit suite
         env:
           PYTHONPATH: vn_quant_local_system/src:src
-        run: python -m unittest vn_quant_local_system.tests.test_v59_fast_realtime -v
+        run: python -m unittest discover -s vn_quant_local_system/tests -p 'test_*.py' -v
       - name: Contract checks
         run: |
           bash -n vn_quant_local_system/scripts/validate_v59_gitbash.sh
