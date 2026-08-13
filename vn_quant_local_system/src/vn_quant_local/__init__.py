@@ -21,6 +21,7 @@ from .v55_eod_only import apply as _apply_v55_eod_only
 from .v59_fast_realtime import apply as _apply_v59_fast_realtime
 from .v59_model_cache import apply as _apply_v59_model_cache
 from .v59_stream_safety import apply as _apply_v59_stream_safety
+from .v59_lag_diagnostics import apply as _apply_v59_lag_diagnostics
 
 _apply_model_safety()
 _apply_performance_safety()
@@ -41,3 +42,4 @@ _apply_v55_eod_only()
 _apply_v59_fast_realtime()
 _apply_v59_model_cache()
 _apply_v59_stream_safety()
+_apply_v59_lag_diagnostics()
