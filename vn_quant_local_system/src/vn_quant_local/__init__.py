@@ -1,6 +1,6 @@
 """VN Quant Local Workstation package."""
 
-__version__ = "0.5.5"
+__version__ = "0.5.9"
 
 from .model_safety import apply as _apply_model_safety
 from .performance_safety import apply as _apply_performance_safety
@@ -18,6 +18,7 @@ from .v53_safety import apply as _apply_v53_safety
 from .v54_research_scope import apply as _apply_v54_research_scope
 from .v54_safety import apply as _apply_v54_safety
 from .v55_eod_only import apply as _apply_v55_eod_only
+from .v59_fast_realtime import apply as _apply_v59_fast_realtime
 
 _apply_model_safety()
 _apply_performance_safety()
@@ -35,3 +36,4 @@ _apply_v53_safety()
 _apply_v54_research_scope()
 _apply_v54_safety()
 _apply_v55_eod_only()
+_apply_v59_fast_realtime()
