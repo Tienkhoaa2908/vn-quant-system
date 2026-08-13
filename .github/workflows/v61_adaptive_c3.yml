@@ -1,0 +1,36 @@
+name: v61_adaptive_c3
+
+on:
+  push:
+    branches:
+      - agent/v61-adaptive-c3-portfolio-policy-study
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile V61
+        env:
+          PYTHONPATH: src:vn_quant_local_system/src
+        run: |
+          python -m py_compile src/he_thong_dinh_luong/c3_adaptive_portfolio_v61.py
+          python -m py_compile tests/test_c3_adaptive_portfolio_v61.py
+      - name: Pure V61 tests
+        env:
+          PYTHONPATH: src:vn_quant_local_system/src
+        run: python -m unittest tests.test_c3_adaptive_portfolio_v61 -v
+      - name: Contract checks
+        run: |
+          bash -n scripts/run_v61_adaptive_c3_gitbash.sh
+          grep -q 'PREVIOUS_COMPLETED_WEEKLY_CLOSE_TO_LATER_WEEKLY_OPEN' src/he_thong_dinh_luong/c3_adaptive_portfolio_v61.py
+          grep -q 'live_model_change_authorized.*False' src/he_thong_dinh_luong/c3_adaptive_portfolio_v61.py
+          grep -q 'V61_BASELINE_PARITY_FAILED' src/he_thong_dinh_luong/c3_adaptive_portfolio_v61.py
+          grep -q 'FORMER_V60_HOLDOUT_ALREADY_CONSUMED=true' scripts/run_v61_adaptive_c3_gitbash.sh
+          grep -q 'ADAPTIVE_ROTATE25_TACT5' src/he_thong_dinh_luong/c3_adaptive_portfolio_v61.py
+          grep -q 'TACT_COMBO5_F05_H10' src/he_thong_dinh_luong/c3_adaptive_portfolio_v61.py
+          if grep -REn 'place_order|cancel_order|update_order|orders\.(place|cancel|update)' src/he_thong_dinh_luong/c3_adaptive_portfolio_v61.py; then exit 2; fi
