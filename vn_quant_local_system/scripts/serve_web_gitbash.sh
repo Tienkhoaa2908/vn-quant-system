@@ -42,6 +42,7 @@ open_browser() {
 
 if check_web >/dev/null 2>&1; then
   echo "WEB_ALREADY_RUNNING=$URL"
+  echo "Neu vua cap nhat V59, hay Ctrl+C web cu truoc khi chay lai."
   if ! open_browser; then
     echo "Không tự mở được trình duyệt. Mở thủ công: $URL"
   fi
@@ -50,8 +51,11 @@ fi
 
 cd "$SYSTEM_DIR"
 
-echo "===== KHỞI ĐỘNG WEB SERVER ====="
-"$PY" -m vn_quant_local.webapp &
+echo "===== KHỞI ĐỘNG WEB SERVER V59 ====="
+echo "FAST_STATUS=true"
+echo "DNSE_REALTIME_READ_ONLY=true"
+echo "OFFICIAL_VALUATION=FINAL_EOD_ONLY"
+"$PY" -m vn_quant_local.webapp_v59 &
 SERVER_PID=$!
 
 cleanup() {
@@ -62,7 +66,7 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 READY=0
-for _ in $(seq 1 60); do
+for _ in $(seq 1 80); do
   if check_web >/dev/null 2>&1; then
     READY=1
     break
@@ -78,7 +82,7 @@ done
 [[ "$READY" -eq 1 ]] || fail "web server không phản hồi tại $URL"
 
 echo "WEB_READY=$URL"
-echo "Terminal này giữ web server hoạt động. Dừng bằng Ctrl+C."
+echo "Terminal này giữ web server + DNSE streams hoạt động. Dừng bằng Ctrl+C."
 
 if ! open_browser; then
   echo "Không tự mở được trình duyệt. Mở thủ công: $URL"
