@@ -19,6 +19,7 @@ from .v54_research_scope import apply as _apply_v54_research_scope
 from .v54_safety import apply as _apply_v54_safety
 from .v55_eod_only import apply as _apply_v55_eod_only
 from .v59_fast_realtime import apply as _apply_v59_fast_realtime
+from .v59_model_cache import apply as _apply_v59_model_cache
 
 _apply_model_safety()
 _apply_performance_safety()
@@ -37,3 +38,4 @@ _apply_v54_research_scope()
 _apply_v54_safety()
 _apply_v55_eod_only()
 _apply_v59_fast_realtime()
+_apply_v59_model_cache()
