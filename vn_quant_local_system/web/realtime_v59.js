@@ -82,6 +82,8 @@
     const priv = payload?.private || {};
     const market = payload?.market || {};
     const portfolio = payload?.portfolio || {};
+    const lag = priv.rest_ws_position_comparison || {};
+    const differences = Array.isArray(lag.differences) ? lag.differences : [];
     const quotes = new Map((market.quotes || []).map(row => [String(row.symbol || '').toUpperCase(), row]));
     const positions = portfolio.positions || [];
 
@@ -91,13 +93,15 @@
     const lastMarket = market.last_event
       ? `${esc(market.last_event.event_type || '-')} ${esc(market.last_event.symbol || '')} · ${esc(market.last_event.received_at || '')}`
       : 'chưa có event';
+    const lagText = differences.slice(0, 5).map(row => `${esc(row.symbol)} REST ${Number(row.rest_quantity || 0)} → WS ${Number(row.ws_quantity || 0)}`).join(' · ');
 
     statusEl.innerHTML = `
       <div><span class="badge ${statusClass(priv.status)}">Trading WS ${esc(priv.status || 'UNKNOWN')}</span>
       <span class="badge ${statusClass(market.status)}">Market WS ${esc(market.status || 'UNKNOWN')}</span></div>
       <div class="v59-status-detail">Trading: ${lastPrivate}</div>
       <div class="v59-status-detail">Market: ${lastMarket} · theo dõi ${Number(market.subscribed_symbol_count || 0)} mã</div>
-      ${priv.ws_newer_than_rest_modified ? '<div class="v59-lag-alert">Trading WebSocket đang có modified timestamp mới hơn REST snapshot — đã bắt được bằng chứng REST/local snapshot bị trễ so với stream.</div>' : ''}
+      ${priv.rest_checkpoint_lag_evidence ? `<div class="v59-lag-alert">Đã bắt được trạng thái vị thế WebSocket mới hơn và khác REST checkpoint${lagText ? `: ${lagText}` : ''}. Đây là bằng chứng trực tiếp REST/local snapshot đang trễ so với stream.</div>` : ''}
+      ${!priv.single_account_position_scope_safe && Number(priv.api_account_count || 0) > 1 ? '<div class="v59-lag-alert">API key có nhiều tiểu khoản; Position WebSocket 0.5.0 không mang account number nên V59 chỉ ghi audit, không overlay vị thế vào tiểu khoản đã chọn.</div>' : ''}
       ${priv.last_error ? `<div class="v59-error">Trading WS: ${esc(priv.last_error)}</div>` : ''}
       ${market.last_error ? `<div class="v59-error">Market WS: ${esc(market.last_error)}</div>` : ''}
     `;
