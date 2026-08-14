@@ -1,0 +1,11 @@
+.signal-v47-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.signal-v47-status-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:18px 0}
+.signal-v47-status{padding:16px;border:1px solid var(--line);border-radius:16px;background:rgba(17,29,54,.72);display:flex;flex-direction:column;gap:6px}
+.signal-v47-status span{color:var(--muted);font-size:.78rem}.signal-v47-status strong{font-size:1.05rem}.signal-v47-status small{color:var(--muted);line-height:1.4}
+.signal-v47-split{display:grid;grid-template-columns:1fr 1fr;gap:18px}.signal-v47-panel{border:1px solid var(--line);border-radius:18px;padding:18px;background:rgba(12,22,42,.72)}
+.signal-v47-panel .security-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.signal-v47-section-title{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:14px}.signal-v47-section-title p{margin:5px 0 0;color:var(--muted)}
+.preview-guard-line{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px}.preview-guard-pill{display:inline-flex;padding:5px 9px;border-radius:999px;border:1px solid var(--line);font-size:.72rem;font-weight:800}.preview-guard-pill.allow{color:#6bf0a4;border-color:rgba(107,240,164,.35);background:rgba(107,240,164,.08)}.preview-guard-pill.block{color:#ff8b9b;border-color:rgba(255,139,155,.35);background:rgba(255,139,155,.08)}
+.preview-blocked-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}.preview-blocked-card{padding:12px;border-radius:14px;border:1px solid rgba(255,139,155,.28);background:rgba(255,139,155,.06)}.preview-blocked-card strong{display:block;margin-bottom:6px}.preview-blocked-card span{display:block;color:var(--muted);font-size:.75rem;line-height:1.4}
+.signal-v47-note{margin-top:14px;padding:12px 14px;border-radius:14px;border:1px solid rgba(98,215,255,.24);background:rgba(98,215,255,.06);color:var(--muted);line-height:1.5}
+@media(max-width:1100px){.signal-v47-split{grid-template-columns:1fr}.signal-v47-status-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.signal-v47-status-grid,.signal-v47-panel .security-grid,.preview-blocked-grid{grid-template-columns:1fr}}

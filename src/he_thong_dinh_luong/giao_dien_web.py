@@ -1,10 +1,21 @@
-"""Stable cross-platform entrypoint for VN Quant Local Terminal v8."""
+"""Stable cross-platform entrypoint for VN Quant Local Terminal v10."""
 from __future__ import annotations
 
 from datetime import timedelta, timezone
 import zoneinfo
 
 FIXED_VN_TZ = timezone(timedelta(hours=7))
+
+
+def _patch_dnse_contract() -> None:
+    from he_thong_dinh_luong import web_console_app_v5 as terminal_base
+    from he_thong_dinh_luong.dnse_portfolio_v3 import (
+        list_masked_accounts,
+        sync_portfolio,
+    )
+
+    terminal_base.list_masked_accounts = list_masked_accounts
+    terminal_base.sync_portfolio = sync_portfolio
 
 
 def _load_app():
@@ -14,11 +25,13 @@ def _load_app():
         original = zoneinfo.ZoneInfo
         zoneinfo.ZoneInfo = lambda _key: FIXED_VN_TZ  # type: ignore[assignment]
         try:
-            from he_thong_dinh_luong import web_console_app_v8 as application
+            _patch_dnse_contract()
+            from he_thong_dinh_luong import web_console_app_v10 as application
         finally:
             zoneinfo.ZoneInfo = original  # type: ignore[assignment]
         return application
-    from he_thong_dinh_luong import web_console_app_v8 as application
+    _patch_dnse_contract()
+    from he_thong_dinh_luong import web_console_app_v10 as application
     return application
 
 
