@@ -52,6 +52,7 @@ run_all() (
   echo "BOOTSTRAP_CLUSTER_UNIT=WEEK"
   echo "BOOTSTRAP_SAMPLES=2000"
   echo "NETWORK_SCOPE=BEST_EFFORT_HOSE_PUBLIC_METADATA_ONLY"
+  echo "SQLITE_RESOURCE_ENTRYPOINT=c3_hose_consolidated_v68_safe"
   echo "LIVE_MODEL_CHANGE=false"
   echo
 
@@ -71,6 +72,7 @@ PY
     src/he_thong_dinh_luong/hose_lineage_price_probe_v67.py \
     src/he_thong_dinh_luong/market_store_basis_audit_v67.py \
     src/he_thong_dinh_luong/c3_hose_consolidated_v68.py \
+    src/he_thong_dinh_luong/c3_hose_consolidated_v68_safe.py \
     tests/test_c3_hose_native_v67.py \
     tests/test_hose_data_readiness_v67.py \
     tests/test_hose_lineage_price_probe_v67.py \
@@ -93,7 +95,7 @@ PY
   )
   [[ -d "$VALIDATION_ROOT" ]] && ARGS+=(--search-root "$(cygpath -w "$VALIDATION_ROOT")")
   [[ -d "$OUTPUTS_ROOT" ]] && ARGS+=(--search-root "$(cygpath -w "$OUTPUTS_ROOT")")
-  "$PY" -m he_thong_dinh_luong.c3_hose_consolidated_v68 "${ARGS[@]}"
+  "$PY" -m he_thong_dinh_luong.c3_hose_consolidated_v68_safe "${ARGS[@]}"
   echo
 
   echo "===== REPORT GATE SUMMARY ====="
