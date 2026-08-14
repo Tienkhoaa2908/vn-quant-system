@@ -45,6 +45,7 @@ dữ liệu → kiểm tra chất lượng → tập cổ phiếu theo từng th
 32. Canonical workstation environment hiện hành là `vn_quant_local_system/.venv`. Thay đổi dependency/environment và thay đổi model architecture là hai việc độc lập; không được đổi model nền chỉ vì thiếu package trong môi trường chạy.
 33. CI xanh chỉ chứng minh code/contract đã qua kiểm tra tự động; không được coi CI là kết quả nghiên cứu. Kết luận research bắt buộc dựa trên artifact chạy thật trên workstation data và audit provenance/output.
 34. Trước mọi research architecture mới liên quan C3/HOSE, phải đọc `tai_lieu_dieu_phoi/anti_regression_c3_hose.md`; các lỗi và guardrail trong tài liệu đó là ràng buộc bắt buộc, không phải ghi chú tham khảo.
+35. Phải giữ nguyên semantics của nhãn học trọng số C3: relative return từ `close(T)` đến `close(T+20)` trên lịch benchmark. Đây là training label của C3, khác với tradable execution/outcome được đánh giá từ `open(T+1)`; không được trộn hai contract này.
 
 Chi tiết thực thi nằm tại:
 
