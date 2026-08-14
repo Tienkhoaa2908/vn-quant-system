@@ -1,0 +1,1 @@
+V75 consolidated optimization starts after V74 workstation artifact and accelerated batching policy. This marker exists to make the handoff commit explicit before branching.
