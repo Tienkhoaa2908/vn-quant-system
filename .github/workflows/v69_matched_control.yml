@@ -20,12 +20,18 @@ jobs:
       - name: Compile V69
         run: |
           python -m py_compile \
+            src/he_thong_dinh_luong/c3_hose_consolidated_v68_safe.py \
             src/he_thong_dinh_luong/c3_matched_control_v69.py \
-            tests/test_c3_matched_control_v69.py
-      - name: Run V69 tests
+            tests/test_c3_matched_control_v69.py \
+            tests/test_c3_matched_control_v69_integration.py
+      - name: Run V69 pure tests
         env:
           PYTHONPATH: src
         run: python -m unittest tests.test_c3_matched_control_v69 -v
+      - name: Run V68-to-V69 integration regression
+        env:
+          PYTHONPATH: src
+        run: python -m unittest tests.test_c3_matched_control_v69_integration -v
       - name: Validate runner syntax
         run: bash -n scripts/run_v69_matched_control_gitbash.sh
       - name: Validate statistical and C3 contracts
@@ -54,8 +60,12 @@ jobs:
         with:
           python-version: '3.12'
       - name: Compile V69 on Windows
-        run: python -m py_compile src/he_thong_dinh_luong/c3_matched_control_v69.py tests/test_c3_matched_control_v69.py
+        run: python -m py_compile src/he_thong_dinh_luong/c3_hose_consolidated_v68_safe.py src/he_thong_dinh_luong/c3_matched_control_v69.py tests/test_c3_matched_control_v69.py tests/test_c3_matched_control_v69_integration.py
       - name: Run V69 pure tests on Windows
         env:
           PYTHONPATH: src
         run: python -m unittest tests.test_c3_matched_control_v69 -v
+      - name: Run V68-to-V69 integration on Windows
+        env:
+          PYTHONPATH: src
+        run: python -m unittest tests.test_c3_matched_control_v69_integration -v
