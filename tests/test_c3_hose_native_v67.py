@@ -118,12 +118,13 @@ class TestC3HoseNativeV67(unittest.TestCase):
     def test_synthetic_end_to_end_rebuilds_c3_and_excludes_hnx(self) -> None:
         days = _weekdays(date(2017, 1, 2), 760)
         hose_symbols = [f"S{i:02d}" for i in range(12)]
-        with tempfile.TemporaryDirectory() as tmp:
+        # The production research store is persistent.  On Windows SQLite may
+        # retain a read-only statement handle until interpreter teardown, so
+        # temp cleanup is best-effort while all research assertions stay strict.
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
             root = Path(tmp)
             store = root / "market.sqlite3"
             output = root / "out"
-            # sqlite3.Connection context manager commits/rolls back but does not
-            # close the handle.  closing() is required for Windows temp cleanup.
             with closing(sqlite3.connect(store)) as db:
                 db.execute("CREATE TABLE bars(symbol TEXT, day TEXT, open REAL, close REAL, volume INTEGER, asset_type TEXT, exchange TEXT)")
                 rows: list[tuple[object, ...]] = []
