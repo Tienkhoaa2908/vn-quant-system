@@ -12,6 +12,9 @@ git diff --cached --quiet || fail "staging area co thay doi"
 
 PY="$PWD/vn_quant_local_system/.venv/Scripts/python.exe"
 STORE="$PWD/vn_quant_local_system/data/market/dnse_ohlcv.sqlite3"
+DATA_ROOT="$PWD/vn_quant_local_system/data"
+VALIDATION_ROOT="$PWD/vn_quant_local_system/validation"
+OUTPUTS_ROOT="$PWD/vn_quant_local_system/outputs"
 [[ -f "$PY" ]] || fail "khong tim thay canonical workstation Python: vn_quant_local_system/.venv"
 [[ -f "$STORE" ]] || fail "khong tim thay market DB"
 
@@ -26,21 +29,31 @@ BUNDLE_DIR="$ART/v67-c3-hose-native-bundle-$RUN_ID"
 BUNDLE="$ART/UPLOAD_THIS_v67_C3_HOSE_NATIVE-$RUN_ID.zip"
 FAIL_BUNDLE="$ART/UPLOAD_THIS_v67_C3_HOSE_NATIVE_FAILURE-$RUN_ID.zip"
 LOG="$ART/v67-c3-hose-native-$RUN_ID.log"
+READINESS="$BUNDLE_DIR/data_readiness.json"
 mkdir -p "$ART" "$OUT" "$BUNDLE_DIR"
 
-# Always capture schema before research so a fail-closed HOSE-lineage blocker is diagnosable.
+# Minimal schema is captured outside the research pipeline so even an early
+# Python/test failure leaves enough evidence for diagnosis.
 "$PY" - "$(cygpath -w "$STORE")" "$(cygpath -w "$BUNDLE_DIR/store_schema.json")" <<'PY'
 import json, sqlite3, sys
 from pathlib import Path
 store = Path(sys.argv[1])
 out = Path(sys.argv[2])
-with sqlite3.connect(store) as db:
+db = sqlite3.connect(store)
+try:
     tables = [r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name") if not str(r[0]).startswith('sqlite_')]
     schema = {str(t): [str(r[1]) for r in db.execute('PRAGMA table_info("' + str(t).replace('"','""') + '")')] for t in tables}
+finally:
+    db.close()
 out.write_text(json.dumps(schema, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 PY
 
-run_all(){
+# Run in a subshell with errexit enabled.  The outer shell temporarily disables
+# errexit only so PIPESTATUS can be captured through tee.  This prevents a later
+# successful command from masking an earlier failed test.
+run_all() (
+  set -euo pipefail
+
   echo "===== V67 C3-NATIVE HOSE RESEARCH ====="
   echo "BRANCH=$BRANCH"
   echo "HEAD=$(git rev-parse HEAD)"
@@ -72,8 +85,47 @@ PY
   "$PY" -m py_compile \
     src/he_thong_dinh_luong/c3_hose_native_v67.py \
     src/he_thong_dinh_luong/c3_hose_native_driver_v67.py \
-    tests/test_c3_hose_native_v67.py
-  "$PY" -m unittest tests.test_c3_hose_native_v67 -v
+    src/he_thong_dinh_luong/hose_data_readiness_v67.py \
+    tests/test_c3_hose_native_v67.py \
+    tests/test_hose_data_readiness_v67.py
+  "$PY" -m unittest \
+    tests.test_c3_hose_native_v67 \
+    tests.test_hose_data_readiness_v67 -v
+  echo
+
+  echo "===== LOCAL DATA READINESS CENSUS ====="
+  CENSUS_ARGS=(
+    --store "$(cygpath -w "$STORE")"
+    --search-root "$(cygpath -w "$DATA_ROOT")"
+    --output "$(cygpath -w "$READINESS")"
+  )
+  [[ -d "$VALIDATION_ROOT" ]] && CENSUS_ARGS+=(--search-root "$(cygpath -w "$VALIDATION_ROOT")")
+  [[ -d "$OUTPUTS_ROOT" ]] && CENSUS_ARGS+=(--search-root "$(cygpath -w "$OUTPUTS_ROOT")")
+  "$PY" -m he_thong_dinh_luong.hose_data_readiness_v67 "${CENSUS_ARGS[@]}"
+  echo
+
+  echo "===== DATA GATE CHECK ====="
+  "$PY" - "$(cygpath -w "$READINESS")" <<'PY'
+import json, sys
+from pathlib import Path
+report = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+store = report.get("store", {})
+scan = report.get("local_lineage_scan", {})
+print("bars_first_day=" + str(store.get("bars_first_day")))
+print("bars_last_day=" + str(store.get("bars_last_day")))
+print("bars_unique_symbol_count=" + str(store.get("bars_unique_symbol_count")))
+print("price_basis=" + json.dumps(store.get("bars_price_basis_distribution", []), ensure_ascii=False))
+print("strict_local_lineage_shape_candidates=" + str(scan.get("strict_shape_candidate_count", 0)))
+# The current V67 research engine can consume PIT venue metadata from the market
+# DB itself.  If it is absent, stop here rather than silently using a current
+# mapping; the readiness artifact tells the next repair whether a local sidecar
+# source can be integrated.
+tables = store.get("tables", {}) if isinstance(store.get("tables"), dict) else {}
+venue_names = {"exchange","market","floor","venue","board","trading_place","stock_exchange","exchange_code","market_code","san","so_giao_dich"}
+has_venue = any(any(str(col).lower() in venue_names for col in cols) for cols in tables.values())
+if not has_venue:
+    raise SystemExit("V67_DATA_GATE_BLOCKED:NO_POINT_IN_TIME_HOSE_VENUE_IN_MARKET_DB; inspect data_readiness.json for local sidecar candidates")
+PY
   echo
 
   echo "===== REBUILD C3 ON POINT-IN-TIME HOSE HISTORY ====="
@@ -83,7 +135,7 @@ PY
     --historical-end 2026-07-31 \
     --analysis-end 2026-08-13 \
     --price-multiplier 1000
-}
+)
 
 set +e
 run_all 2>&1 | tee "$LOG"
@@ -115,10 +167,10 @@ if [[ "$RC" -eq 0 ]]; then
   echo "NEXT=upload bundle for deep analysis before any challenger model"
 else
   echo
-  echo "===== V67 FAILED ====="
+  echo "===== V67 FAILED / DATA GATE BLOCKED ====="
   echo "RUN_EXIT=$RC"
   echo "UPLOAD_ZIP=$FAIL_BUNDLE"
-  echo "NOTE=gui failure bundle; neu exchange lineage thieu thi fail-closed, khong duoc dung static HOSE mapping"
+  echo "NOTE=gui failure bundle; data_readiness.json contains 11y coverage, price basis, metadata and local lineage candidates"
 fi
 
 explorer.exe "$(cygpath -w "$ART")" >/dev/null 2>&1 || true
