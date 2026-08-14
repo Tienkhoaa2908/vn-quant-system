@@ -11,6 +11,7 @@ from datetime import datetime
 from hashlib import sha256
 import json
 from pathlib import Path
+import re
 import shutil
 
 KNOWN_INDEX_SHA = "c4b26ce2d59cd92c1f2c2d1985eab34e7f9bf260f4562eed9de94476a461b1f5"
@@ -30,6 +31,18 @@ def replace_once(text: str, old: str, new: str, label: str) -> str:
     if count != 1:
         raise ValueError(f"V78_INSTALL_ANCHOR_{label}_COUNT={count}")
     return text.replace(old, new, 1)
+
+
+def insert_after_statement(text: str, statement: str, new_statement: str, label: str) -> str:
+    if new_statement.strip() in text:
+        return text
+    pattern = re.compile(rf"^(?P<indent>[ \t]*){re.escape(statement)}[ \t]*$", re.MULTILINE)
+    matches = list(pattern.finditer(text))
+    if len(matches) != 1:
+        raise ValueError(f"V78_INSTALL_ANCHOR_{label}_COUNT={len(matches)}")
+    match = matches[0]
+    insertion = match.group(0) + "\n" + match.group("indent") + new_statement.strip()
+    return text[:match.start()] + insertion + text[match.end():]
 
 
 def patch_index(text: str) -> str:
@@ -104,13 +117,10 @@ def _refresh_market_signals() -> dict[str, object]:
             "WEBAPP_STATIC",
         )
     if 'value["tactical_v78"] = read_v78_tactical_snapshot(SYSTEM_ROOT)' not in text:
-        text = replace_once(
+        text = insert_after_statement(
             text,
-            '                value["signal_refresh"] = signal_refresh_status()\n'
-            '                self._send_json(value)\n',
-            '                value["signal_refresh"] = signal_refresh_status()\n'
-            '                value["tactical_v78"] = read_v78_tactical_snapshot(SYSTEM_ROOT)\n'
-            '                self._send_json(value)\n',
+            'value["signal_refresh"] = signal_refresh_status()',
+            'value["tactical_v78"] = read_v78_tactical_snapshot(SYSTEM_ROOT)',
             "WEBAPP_STATUS",
         )
     if 'elif path == "/api/tactical-v78":' not in text:
