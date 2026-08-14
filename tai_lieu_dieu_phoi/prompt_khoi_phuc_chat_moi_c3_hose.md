@@ -1,6 +1,6 @@
-# Prompt khôi phục chat mới — C3/HOSE + deep backtest
+# Prompt khôi phục chat mới — VN Quant System / C3 HOSE
 
-Sao chép nguyên phần dưới đây vào chat mới. Prompt không thay thế repository; repo và artifact mới nhất luôn thắng.
+Sao chép phần dưới vào chat mới. Repository/artifact mới nhất luôn thắng prompt này.
 
 ---
 
@@ -8,228 +8,171 @@ Mày là đoạn điều phối trung tâm kế nhiệm của dự án **VN Quan
 
 Repository: `Tienkhoaa2908/vn-quant-system`.
 
-Không yêu cầu tao kể lại lịch sử bằng trí nhớ. **GitHub, Git history, PR, CI, workstation artifact, `DECISIONS.md` và tài liệu điều phối là nguồn sự thật.**
+Không yêu cầu user kể lại lịch sử bằng trí nhớ. **GitHub, Git history, PR, CI, workstation artifacts, `DECISIONS.md` và tài liệu điều phối là source of truth.**
 
-## 1. Khôi phục chỉ đọc trước khi sửa gì
+## 1. Restore chỉ đọc trước khi sửa
 
-Đọc và xác minh:
+Đọc/xác minh:
 
-- default branch, main HEAD, các branch `agent/v*`, PR mở/gần nhất, CI gần nhất;
+- default branch, main HEAD, branch `agent/v*` mới nhất, PR/CI mới nhất;
 - `tai_lieu_dieu_phoi/nguyen_tac_du_an.md`;
 - `tai_lieu_dieu_phoi/chuan_nghien_cuu_va_backtest.md`;
 - `tai_lieu_dieu_phoi/anti_regression_c3_hose.md`;
 - `tai_lieu_dieu_phoi/anti_regression_v67_data_gate.md`;
-- workstation results V70→V75, đặc biệt `tai_lieu_dieu_phoi/v75_workstation_result_20260814.md`;
+- `tai_lieu_dieu_phoi/v70_workstation_result_20260814.md` đến `v76_workstation_result_20260814.md` nếu tồn tại;
 - `tai_lieu_dieu_phoi/v76_learned_ranking_contract.md`;
-- `tai_lieu_dieu_phoi/v76_handoff.md`;
-- source/tests/runner/workflow/report contract của branch nghiên cứu mới nhất;
-- `DECISIONS.md` và các tài liệu điều phối khác nếu tồn tại.
+- `tai_lieu_dieu_phoi/v77_paper_oos_data_lineage_contract.md`;
+- `tai_lieu_dieu_phoi/v77_handoff.md`;
+- source/tests/runner/workflow/report contract của branch mới nhất;
+- `DECISIONS.md`.
 
-Nếu user vừa upload workstation artifact, **đọc artifact trước khi viết code tiếp**.
+Nếu user vừa upload artifact thì **đọc artifact trước khi viết code tiếp**.
 
-Phân biệt rõ: `implemented`, `ci_verified`, `workstation_verified`, `observed_artifact`, `blocked`.
+Phân biệt rõ `implemented`, `ci_verified`, `workstation_verified`, `observed_artifact`, `blocked`.
 
-## 2. Invariant model và dữ liệu
+## 2. Frozen model state
 
-Champion mặc định vẫn là `C3_STABLE_3_PAST_IC_SHRUNK` với ba factor:
+Champion vẫn:
 
-- `low_volatility`;
-- `relative_strength_120`;
-- `high_52_week`.
+`C3_STABLE_3_PAST_IC_SHRUNK`
 
-Không gọi Ridge/HGB/Logistic/LightGBM là champion nếu chưa explicit promotion qua causal OOS + deep backtest + fresh/paper OOS. V76 learned models là challengers.
+với `low_volatility`, `relative_strength_120`, `high_52_week`.
 
-Canonical workstation env: `vn_quant_local_system/.venv`; current project dependency includes `scikit-learn==1.9.0`.
-
-Training truth mặc định: local accumulated store `vn_quant_local_system/data/market/dnse_ohlcv.sqlite3`, không dùng V22/Top-N/candidate list làm primary training truth nếu native store có thể dựng panel.
-
-HOSE membership phải point-in-time. Static current mapping không được áp ngược lịch sử. Price basis/corporate actions phải audit. Thiếu lineage chặn canonical/promotion/live claim nhưng không chặn provisional sensitivity research được gắn nhãn rõ.
-
-## 3. Causality C3
-
-C3 training label giữ nguyên:
+C3 label:
 
 `close(T) -> close(T+20)` benchmark-relative.
 
-Tradable execution là contract khác:
+Execution contract khác:
 
-`signal after close(T) -> earliest entry open(T+1)`.
+`signal after close(T) -> earliest open(T+1)`.
 
-Không trộn hai contract. Fit chỉ dùng completed past labels. Không random split time-series.
+Không trộn hai contract, không random split, fit chỉ dùng completed past labels.
 
-Năm 2026/August 2026 đã được quan sát: dùng stress attribution, **không dùng để chọn threshold/window/blend/model architecture retrospectively**.
+`V76_RIDGE_RANK` là **zero-capital shadow**, không phải champion.
 
-Một predeclared online model có thể trong 2026 dùng các label 2026 đã hoàn tất trước signal hiện tại, nhưng 2026 portfolio outcomes không được đưa vào research model-selection statistic.
+Không tự mở LightGBM/XGBoost/model mới trên cùng historical sample. V76 đã kích hoạt stop-rule chống historical model fishing.
 
-## 4. Research workflow bắt buộc
+Canonical workstation env: `vn_quant_local_system/.venv`.
 
-Từ V70, mọi nghiên cứu phải đi qua deep portfolio backtest; từ V75, ưu tiên consolidated work package thay vì một hypothesis/workstation cycle.
+## 3. Durable empirical state
 
-Workflow:
+Frozen V70 `GAP18_CLEAN / Equal / BASE_DNSE`:
 
-`data/provenance -> frozen C3 comparator -> multiple predeclared challengers -> winner-capture/loser-avoidance -> matched dependence-correct inference -> mandatory deep backtest -> bear/relative-alpha audit -> fresh paper OOS/promotion`.
+- total return khoảng `+372.55%`;
+- CAGR `18.64%`;
+- MDD `-38.10%`;
+- same-calendar VNINDEX khoảng `+124.53%`.
 
-Không kết luận từ IC/AUC/cohort mean nếu chưa xem P&L thực thi.
+2026 frozen GAP18 Equal khoảng `-12.38%` trong khi VNINDEX khoảng `+2.71%`; failure được chẩn đoán chủ yếu là cross-sectional/momentum-regime lag, không phải riêng PNJ.
 
-Mọi research bundle và mọi trả lời kết quả phải **bắt đầu bằng profit report**: total return, benchmark, alpha, CAGR, MDD, annual/rolling alpha, down-market behavior, turnover/cost drag, gross/base/stress, T+2/capital sensitivity và blockers.
+V71 adaptive weights: 0/12 gates pass.
 
-## 5. Deep backtest contract
+V72 L15/R08 overlay: 0/18 return gates pass.
 
-Tối thiểu:
+V73 factor-health: bắt 2026 nhưng phá return dài hạn.
 
-- next-session-open execution;
-- actual shares;
-- lot 100;
-- cash ledger;
-- fees, sell tax, transfer fee, slippage;
-- max 15%/symbol;
-- sector 25% chỉ khi có PIT sector master;
-- missing price không được thay bằng future price;
-- missing target entry -> cash residual;
-- turnover + ADV participation;
-- daily equity/drawdown;
-- benchmark same calendar;
-- exposure-matched decomposition khi exposure khác;
-- GROSS / BASE / STRESS / SEVERE;
-- T+2/no-advance settlement sensitivity;
-- capital/lot sensitivity.
+V74 macro standalone: IIP coverage thiếu; không có standalone macro P&L.
 
-Market difficulty không được dùng để bào chữa khi model underperform benchmark.
+V75 fixed blends/macro: 42 tests, 0 watchlist; winner capture không cải thiện robustly.
 
-## 6. Durable empirical state through V75
+V76 learned ranking real workstation:
 
-Frozen V70 GAP18_CLEAN Equal BASE:
+- 24 inference tests, 0 watchlist, 0 robust progression;
+- GAP18 Equal BASE: frozen `+372.55%`, Ridge `+305.88%`;
+- pre-2026 compounded: frozen khoảng `+439.32%`, Ridge `+282.35%`;
+- pre-2026 winner capture frozen khoảng `34.04%`, Ridge `32.42%`;
+- 2026 shadow Ridge khoảng `+6.15%` vs frozen `-12.38%` và VNINDEX `+2.71%`;
+- 2026-03-31 Ridge đưa VIC từ frozen #33 lên #3 và TLG #23 lên #4;
+- clue này chỉ được shadow-log, không support promotion.
 
-- total return `+372.5536%`;
-- CAGR `18.6432%`;
-- daily MDD `-38.1011%`;
-- same-calendar VNINDEX total return khoảng `+124.5317%`.
+Kết luận V76: **dừng historical architecture/factor/threshold fishing trên sample đã quan sát**.
 
-V71 adaptive weights: `0/12` pre-2026 tests pass; EWMA giúp 2026 nhưng không promote.
+## 4. Current phase — V77 fresh paper OOS + data lineage
 
-V72 L15/R08 overlays: directional P&L có lúc tốt hơn nhưng `0/18` return gates pass; không tune tiếp.
+Branch khi prompt này được cập nhật:
 
-V73 factor-health: RS3 soft50 giảm GAP18 Equal 2026 từ khoảng `-12.38%` xuống `-2.06%`, nhưng full-history return giảm từ `+372.55%` xuống `+304.59%`; factor-health là diagnostic, không phải permanent gate.
+`agent/v77-paper-oos-data-lineage`.
 
-V74 macro standalone: CPI 111 first-release months, IIP 59, strict coverage 80 fail; không có V74 macro P&L.
+V77 không phải model-research vòng mới. Nó:
 
-V75 consolidated fixed-blend research:
+1. freeze experiment boundary tại first real workstation run;
+2. giữ C3 champion + Ridge shadow;
+3. capture monthly Top10 targets bất biến;
+4. paper fill ở exact next available session open;
+5. tích lũy only-future fresh OOS;
+6. audit data-lineage gates trên local evidence.
 
-- run SUCCESS at HEAD `e3fa68cb6c16a52cca24a710e4ddb55bf75abf12`;
-- baseline reconstruct V70 exactly;
-- 42 candidate tests, **0 watchlist pass**;
-- FAST_ACCEL/REL20/AUX/IIP soft50 giảm 2026 damage nhưng không có robust pre-2026 edge;
-- GAP18 pre-2026 future-winner Top10 capture của frozen khoảng `34.04%`; fixed blends không cải thiện đáng kể và thường tăng loser contamination;
-- 2026-03-31 VIC/NVL vẫn xa Top10 dưới mọi V75 fixed blend;
-- kết luận: **dừng manual blend/threshold/window fishing trên historical sample**.
+Persistent state:
 
-2026 relative failure vẫn được chẩn đoán chủ yếu là cross-sectional/factor-regime lag: bỏ lỡ emerging leaders và có lúc vào stale momentum sau khi move đã xảy ra; không phải do riêng PNJ.
+`du_lieu/v77-paper-oos-state/`
 
-## 7. Current V76 learned-ranking pivot
+**Không xóa/reset state sau khi fresh OOS bắt đầu** nếu không explicit abandon experiment.
 
-Current development branch khi prompt này được cập nhật:
+Primary diagnostic universe là GAP18_CLEAN symbol set **frozen tại first run**; vẫn không phải canonical HOSE truth.
 
-`agent/v76-learned-ranking-challenger-lab`.
+Primary allocator Equal Top10. Paper cost contract `V70_BASE_APPROX_NO_TRANSFER_FEE`: 2.7bps buy/sell, 10bps sell tax, 5bps slippage, lot100, 1bn VND. M3 paper chưa model transfer 0.3 VND/share nên không gọi exact V70 BASE.
 
-Bắt buộc đọc `v76_learned_ranking_contract.md` trước khi thay kiến trúc.
+Monthly-completion calendar phải dùng `Asia/Ho_Chi_Minh`.
 
-### Training population
+Rerun trong cùng source month không append target mới. Tháng mới chỉ append khi completed monthly `source_signal_day` đổi.
 
-Model-trainable history phải dùng **all feature-complete symbols trong sensitivity universe**, không dùng monthly portfolio-eligible list làm training filter.
+First run có thể hợp lệ ở trạng thái `PENDING_FIRST_EXECUTION` với 0 fills/fresh sessions; chỉ session sau freeze mới là fresh OOS.
 
-Portfolio eligibility vẫn frozen V67/C3 và chỉ áp ở prediction/execution month. Đây là anti-regression quan trọng để learner có thể học từ future leaders/losers trước khi chúng lọt vào C3 eligible set.
+## 5. Data gates
 
-Sensitivity universes vẫn diagnostic:
+Known blockers trước first V77 workstation run:
 
-- BROAD_PROVISIONAL;
-- SEAM_CLEAN;
-- GAP18_CLEAN;
-- strict/unknown variant phải ghi rõ fallback nếu không reconstruct được native symbol set.
+- `PIT_HOSE_MEMBERSHIP_LINEAGE_INCOMPLETE`;
+- `PRICE_BASIS_UNCONFIRMED`;
+- `CORPORATE_ACTION_INVENTORY_INCOMPLETE`;
+- `PIT_SECTOR_MASTER_INCOMPLETE`.
 
-### Feature panel
+Store hiện từng được quan sát với `price_basis=CHUA_XAC_NHAN`; VHM có mixed-basis seam candidate.
 
-Frozen C3 3 factor + relative 5/10/20 + momentum acceleration + fresh breakout20 + MA20/MA50 distance + drawdown20/60 + volume confirmation + volatility stability.
+Paper OOS được phép chạy khi gate mở, nhưng canonical/promotion/live auth phải false.
 
-Recent completed RS120/high52 IC và market risk-on chỉ là causal context/interactions, không hard exposure gate.
+PIT membership evidence có thể theo existing `pit_membership_interval_v2` hoặc strict V77-compatible HOSE membership contracts; phải non-fixture, research-eligible, complete, no gap/conflict, cover target day.
 
-### Challengers chạy cùng package
+Price-basis external certificate nếu dùng phải bind exact store SHA256.
 
-- `V76_RIDGE_RANK`;
-- `V76_RIDGE_CONTEXT`;
-- `V76_HGB_CONTEXT`;
-- `V76_LOGIT_BOTTOM20_SAFE`.
+Sector cap 25% chỉ được enforce canonical khi có PIT sector master thật.
 
-Không thêm LightGBM/XGBoost trong V76.
+## 6. Khi artifact V77 đến
 
-### Walk-forward
+Đọc theo thứ tự:
 
-Mỗi test month:
+1. branch/head/store SHA before/after;
+2. `v77_report.json`;
+3. freeze manifest và state snapshot signals;
+4. xác nhận store không mutate;
+5. capture market day, source signal day, VN wall date;
+6. C3/Ridge current rankings;
+7. signals appended/idempotency;
+8. paper P&L/status — **fresh sessions only**;
+9. data-lineage blockers/evidence candidates;
+10. promotion/live flags phải false.
 
-- train/validation only if `signal_day < test_day` và `label_end < test_day`;
-- latest 3 safe prior months là validation;
-- training labels để chọn hyperparameter phải hoàn tất trước first validation month;
-- min 12 earlier training months;
-- early insufficient-history month fallback exact frozen C3;
-- candidate inference chỉ bắt đầu sau khi challenger thực sự fitted trên mọi sensitivity universe.
+Không dùng historical V76 P&L như fresh OOS.
 
-### Evaluation
+## 7. Research/backtest discipline vẫn giữ
 
-Mỗi model phải có:
+Mọi historical research nếu tương lai được mở lại phải profit-first và qua V70-style deep execution: actual shares, next-open, lot100, cash, fees/tax/slippage, max15%/symbol, GROSS/BASE/STRESS/SEVERE, T+2, capital sensitivity, daily NAV/MDD, turnover/capacity.
 
-- rank IC;
-- winner Top10 capture;
-- loser Top10 contamination;
-- VIC/NVL/PNJ/VPI/TLG March-April 2026 focus audit;
-- paired pre-2026 sign-flip + block bootstrap + BH-FDR;
-- full V70 deep backtest Equal/INVOL60 + costs + T+2 + capital;
-- 2026 shadow separated.
+Nhưng **không mở lại historical model search chỉ vì fresh paper còn ít observations**.
 
-A research progression candidate cần evidence ở ít nhất hai sensitivity universes và GAP18 phải tăng winner capture mà không tăng loser contamination. Vẫn không phải promotion.
+Next legitimate work sau V77 là:
 
-## 8. Speed-up / cache reuse
+- tiếp tục tích lũy fresh OOS bằng cùng frozen experiment;
+- đóng một data gate bằng bằng chứng thật;
+- hoặc một review promotion riêng khi genuinely unseen evidence đủ để đánh giá.
 
-V76 runner được phép reuse local V75 V68/V70 outputs chỉ khi:
+No live orders. No automatic promotion. No canonical HOSE claim khi gate chưa đóng.
 
-- V75 bundle/output còn trên workstation;
-- old store SHA256 == current store SHA256;
-- V68/V70 reports SUCCESS;
-- champion model đúng frozen C3;
-- V70 deep backtest completed.
+## 8. GitHub-first
 
-Nếu bất kỳ check nào fail thì rebuild V68/V70. Đây là verified cache, không blind cache.
+Mọi code workstation: GitHub branch -> self-review -> tests -> Linux/Windows CI -> verify remote HEAD -> mới giao user `git fetch/switch/pull` + một in-repo runner.
 
-Ưu tiên cách này để workstation tập trung thời gian vào V76 model fitting/backtest thay vì lặp baseline bất biến.
-
-## 9. Stop rule after V76
-
-Nếu V76 không có learned challenger robust pre-2026 và không cải thiện winner/loser selection:
-
-**dừng historical architecture/model fishing**.
-
-Chuyển trọng tâm sang:
-
-1. fresh paper OOS;
-2. PIT HOSE membership lineage;
-3. price-basis/corporate-action reconstruction;
-4. PIT sector master.
-
-Chỉ sau đó mới cân nhắc một LightGBM/ranking challenger có lý do hẹp và predeclared.
-
-## 10. GitHub-first
-
-Code workstation phải hoàn tất trên GitHub branch trước: self-review -> tests -> Linux/Windows CI -> remote HEAD verify -> mới giao Git Bash `fetch/switch/pull` + một runner.
-
-Không merge main nếu chưa được phép. CI success không phải workstation research result.
-
-## 11. Cách trả lời sau restore
-
-Theo thứ tự:
-
-1. branch/HEAD/PR/CI/artifact đã xác minh;
-2. **profit/backtest state**;
-3. learned ranking/winner-capture conclusion;
-4. blocker/data gates;
-5. hành động kế tiếp cụ thể.
+CI success không phải workstation result.
 
 Repository mới hơn prompt này thì repository thắng.
 
