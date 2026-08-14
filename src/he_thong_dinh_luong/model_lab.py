@@ -1,5 +1,5 @@
-"""Stable entrypoint for the quality-gated multi-model research lab."""
-from .model_lab_runner_v2 import main, run_model_lab
+"""Stable entrypoint for the predictive-value multi-model research lab."""
+from .model_lab_upgrade_v15 import main, run_model_lab
 
 __all__ = ["main", "run_model_lab"]
 
