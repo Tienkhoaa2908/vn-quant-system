@@ -62,7 +62,7 @@ class TestHoseLineagePriceProbeV67(unittest.TestCase):
         }
         report = probe.audit_price_gaps(by_symbol=by_symbol, calendar=calendar)
         self.assertEqual(report["event_count_by_threshold"]["0.18"], 1)
-        self.assertEqual(report["event_count_by_threshold"]["0.40"], 1)
+        self.assertEqual(report["event_count_by_threshold"]["0.4"], 1)
         self.assertEqual(report["events"][0]["symbol"], "AAA")
 
     def test_build_report_never_authorizes_c3_from_probe(self) -> None:
