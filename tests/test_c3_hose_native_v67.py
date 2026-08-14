@@ -26,6 +26,24 @@ class TestC3HoseNativeV67(unittest.TestCase):
             self.assertEqual(source.mode, "INTERVAL")
             self.assertEqual(source.table, "membership")
 
+    def test_start_only_listing_date_current_exchange_is_rejected(self) -> None:
+        with sqlite3.connect(":memory:") as db:
+            db.execute("CREATE TABLE bars(symbol TEXT, day TEXT, open REAL, close REAL, volume INTEGER, asset_type TEXT)")
+            db.execute("CREATE TABLE membership(symbol TEXT, exchange TEXT, listing_date TEXT)")
+            db.executemany("INSERT INTO membership VALUES(?,?,?)", [("AAA", "HOSE", "2020-01-01"), ("BBB", "HOSE", "2021-01-01")])
+            source = v67.resolve_venue_source(db)
+            with self.assertRaisesRegex(ValueError, "V67_START_ONLY_STATIC_LIKE_EXCHANGE_METADATA_NOT_ACCEPTED"):
+                v67._strict_membership_intervals(db, source)
+
+    def test_repeated_point_in_time_start_only_history_is_accepted(self) -> None:
+        with sqlite3.connect(":memory:") as db:
+            db.execute("CREATE TABLE bars(symbol TEXT, day TEXT, open REAL, close REAL, volume INTEGER, asset_type TEXT)")
+            db.execute("CREATE TABLE venue_history(symbol TEXT, exchange TEXT, day TEXT)")
+            db.executemany("INSERT INTO venue_history VALUES(?,?,?)", [("AAA", "HOSE", "2026-01-02"), ("AAA", "HOSE", "2026-01-05")])
+            source = v67.resolve_venue_source(db)
+            result = v67._strict_membership_intervals(db, source)
+            self.assertEqual(len(result["AAA"]), 2)
+
     def test_partial_analysis_month_is_not_a_canonical_snapshot(self) -> None:
         calendar = [date(2026, 6, 30), date(2026, 7, 1), date(2026, 7, 31), date(2026, 8, 3), date(2026, 8, 13)]
         self.assertEqual(v67._monthly_days(calendar, date(2026, 8, 13)), [date(2026, 6, 30), date(2026, 7, 31)])
