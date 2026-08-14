@@ -46,13 +46,17 @@ dữ liệu → kiểm tra chất lượng → tập cổ phiếu theo từng th
 33. CI xanh chỉ chứng minh code/contract đã qua kiểm tra tự động; không được coi CI là kết quả nghiên cứu. Kết luận research bắt buộc dựa trên artifact chạy thật trên workstation data và audit provenance/output.
 34. Trước mọi research architecture mới liên quan C3/HOSE, phải đọc `tai_lieu_dieu_phoi/anti_regression_c3_hose.md`; các lỗi và guardrail trong tài liệu đó là ràng buộc bắt buộc, không phải ghi chú tham khảo.
 35. Phải giữ nguyên semantics của nhãn học trọng số C3: relative return từ `close(T)` đến `close(T+20)` trên lịch benchmark. Đây là training label của C3, khác với tradable execution/outcome được đánh giá từ `open(T+1)`; không được trộn hai contract này.
+36. OHLCV dài nhiều năm không chứng minh point-in-time universe. Trước full-HOSE research phải xác minh venue/membership lịch sử và `price_basis`; nếu thiếu thì data gate fail-closed. `listing_date + current exchange` không được coi là exchange history.
+37. Runner workstation có log qua `tee` phải giữ fail-fast bên trong subshell/function có `set -euo pipefail`; lỗi test/compile không được phép bị command chạy sau che mất rồi báo success.
+38. Khi dùng SQLite file tạm trên Windows, connection phải được đóng rõ ràng trước cleanup; `with sqlite3.connect(...)` chỉ quản lý transaction và không được mặc định là đã giải phóng file handle.
 
 Chi tiết thực thi nằm tại:
 
 - `tai_lieu_dieu_phoi/giao_thuc_goi_cong_viec_lon.md`;
 - `tai_lieu_dieu_phoi/mau_prompt_goi_cong_viec_lon.md`;
 - `tai_lieu_dieu_phoi/ban_dieu_phoi_hien_hanh.md`;
-- `tai_lieu_dieu_phoi/anti_regression_c3_hose.md`.
+- `tai_lieu_dieu_phoi/anti_regression_c3_hose.md`;
+- `tai_lieu_dieu_phoi/anti_regression_v67_data_gate.md`.
 
 ## Quy ước ngôn ngữ
 
