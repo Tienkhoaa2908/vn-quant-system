@@ -8,9 +8,12 @@ on:
     paths:
       - 'src/he_thong_dinh_luong/c3_tactical_terminal_v78.py'
       - 'src/he_thong_dinh_luong/c3_tactical_terminal_v78_driver.py'
-      - 'src/he_thong_dinh_luong/web_console_app_v78.py'
+      - 'src/he_thong_dinh_luong/local_workstation_v78_bridge.py'
+      - 'src/he_thong_dinh_luong/existing_web_v78_installer.py'
+      - 'web_extensions/v78/**'
       - 'tests/test_c3_tactical_terminal_v78.py'
       - 'tests/test_c3_tactical_terminal_v78_driver.py'
+      - 'tests/test_existing_web_v78_installer.py'
       - 'scripts/run_v78_c3_tactical_terminal_gitbash.sh'
       - '.github/workflows/v78_c3_tactical_terminal.yml'
       - 'tai_lieu_dieu_phoi/v78_*'
@@ -24,7 +27,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install frozen V78 dependencies
-        run: python -m pip install --disable-pip-version-check scikit-learn==1.9.0 nicegui==3.14.0
+        run: python -m pip install --disable-pip-version-check scikit-learn==1.9.0
       - name: Compile V78
         env:
           PYTHONPATH: src
@@ -32,13 +35,15 @@ jobs:
           python -m py_compile \
             src/he_thong_dinh_luong/c3_tactical_terminal_v78.py \
             src/he_thong_dinh_luong/c3_tactical_terminal_v78_driver.py \
-            src/he_thong_dinh_luong/web_console_app_v78.py \
+            src/he_thong_dinh_luong/local_workstation_v78_bridge.py \
+            src/he_thong_dinh_luong/existing_web_v78_installer.py \
             tests/test_c3_tactical_terminal_v78.py \
-            tests/test_c3_tactical_terminal_v78_driver.py
+            tests/test_c3_tactical_terminal_v78_driver.py \
+            tests/test_existing_web_v78_installer.py
       - name: Run V78 tactical tests
         env:
           PYTHONPATH: src
-        run: python -m unittest tests.test_c3_tactical_terminal_v78 tests.test_c3_tactical_terminal_v78_driver -v
+        run: python -m unittest tests.test_c3_tactical_terminal_v78 tests.test_c3_tactical_terminal_v78_driver tests.test_existing_web_v78_installer -v
       - name: Validate Git Bash runner
         run: bash -n scripts/run_v78_c3_tactical_terminal_gitbash.sh
       - name: Guard operational contracts
@@ -47,8 +52,13 @@ jobs:
           grep -q 'SECONDARY_MODEL = "V76_RIDGE_RANK"' src/he_thong_dinh_luong/c3_tactical_terminal_v78.py
           grep -q 'r07_r08_auto_sell' src/he_thong_dinh_luong/c3_tactical_terminal_v78_driver.py
           grep -q 'prior_month_top10_never_hidden_by_current_eligibility_failure' src/he_thong_dinh_luong/c3_tactical_terminal_v78_driver.py
+          grep -q 'ADDITIVE_EXISTING_WEB_ONLY' src/he_thong_dinh_luong/existing_web_v78_installer.py
+          grep -q 'existing_layout_replaced' src/he_thong_dinh_luong/existing_web_v78_installer.py
+          grep -q 'credentials_or_state_touched' src/he_thong_dinh_luong/existing_web_v78_installer.py
+          grep -q 'http://127.0.0.1:8787' scripts/run_v78_c3_tactical_terminal_gitbash.sh
+          grep -q 'NEW_SEPARATE_WEB_CREATED=false' scripts/run_v78_c3_tactical_terminal_gitbash.sh
           grep -q 'set -euo pipefail' scripts/run_v78_c3_tactical_terminal_gitbash.sh
-          grep -q 'web_console_app_v78' scripts/run_v78_c3_tactical_terminal_gitbash.sh
+          if grep -q 'web_console_app_v78' scripts/run_v78_c3_tactical_terminal_gitbash.sh; then exit 1; fi
 
   windows-contract:
     runs-on: windows-latest
@@ -58,12 +68,12 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install frozen V78 dependencies
-        run: python -m pip install --disable-pip-version-check scikit-learn==1.9.0 nicegui==3.14.0
+        run: python -m pip install --disable-pip-version-check scikit-learn==1.9.0
       - name: Compile V78 on Windows
         env:
           PYTHONPATH: src
-        run: python -m py_compile src/he_thong_dinh_luong/c3_tactical_terminal_v78.py src/he_thong_dinh_luong/c3_tactical_terminal_v78_driver.py src/he_thong_dinh_luong/web_console_app_v78.py tests/test_c3_tactical_terminal_v78.py tests/test_c3_tactical_terminal_v78_driver.py
+        run: python -m py_compile src/he_thong_dinh_luong/c3_tactical_terminal_v78.py src/he_thong_dinh_luong/c3_tactical_terminal_v78_driver.py src/he_thong_dinh_luong/local_workstation_v78_bridge.py src/he_thong_dinh_luong/existing_web_v78_installer.py tests/test_c3_tactical_terminal_v78.py tests/test_c3_tactical_terminal_v78_driver.py tests/test_existing_web_v78_installer.py
       - name: Run V78 tactical tests on Windows
         env:
           PYTHONPATH: src
-        run: python -m unittest tests.test_c3_tactical_terminal_v78 tests.test_c3_tactical_terminal_v78_driver -v
+        run: python -m unittest tests.test_c3_tactical_terminal_v78 tests.test_c3_tactical_terminal_v78_driver tests.test_existing_web_v78_installer -v
