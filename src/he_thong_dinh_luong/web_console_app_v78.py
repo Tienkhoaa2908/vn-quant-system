@@ -1,7 +1,7 @@
 """VN Quant Local Terminal V78: C3 tactical operating screen + legacy terminal.
 
-Root page is the operational C3 tactical view.  `/terminal` preserves the full V5
-terminal.  No endpoint sends broker orders; the page is evidence/advisory only.
+Root page is the operational C3 tactical view. `/terminal` preserves the full V5
+terminal. No endpoint sends broker orders; the page is evidence/advisory only.
 """
 from __future__ import annotations
 
@@ -36,6 +36,8 @@ def _read_csv(path: Path) -> list[dict[str, str]]:
 
 def _pct(value: object) -> str:
     try:
+        if value in (None, ""):
+            return "—"
         return f"{float(value) * 100:.2f}%"
     except (TypeError, ValueError):
         return "—"
@@ -43,6 +45,8 @@ def _pct(value: object) -> str:
 
 def _num(value: object, digits: int = 2) -> str:
     try:
+        if value in (None, ""):
+            return "—"
         return f"{float(value):.{digits}f}"
     except (TypeError, ValueError):
         return "—"
@@ -68,10 +72,13 @@ def _present_tactical(rows: Sequence[Mapping[str, object]]) -> list[dict[str, ob
             "symbol": row.get("symbol"),
             "month_rank": canonical or "—",
             "now_rank": row.get("preview_rank") or "—",
+            "period": _pct(row.get("period_return")),
+            "alpha": _pct(row.get("period_relative_return")),
             "rel5": _pct(row.get("relative_5")),
             "dd20": _pct(row.get("drawdown_20")),
             "dd60": _pct(row.get("drawdown_60")),
             "volume": _num(row.get("volume_ratio_5_20")),
+            "drag": "↓" if str(row.get("dragging_current_period", "")).lower() in {"true", "1"} else "",
             "ridge": "✓" if str(row.get("ridge_monthly_top10", "")).lower() in {"true", "1"} else "",
             "action": row.get("action"),
             "reason": row.get("reason"),
@@ -84,6 +91,7 @@ def _columns() -> list[dict[str, object]]:
         {"name": key, "label": label, "field": key, "sortable": True, "align": "left"}
         for key, label in (
             ("symbol", "Mã"), ("month_rank", "Rank tháng"), ("now_rank", "Rank hiện tại"),
+            ("period", "P&L kỳ"), ("alpha", "Alpha kỳ"), ("drag", "Kéo xuống"),
             ("rel5", "Rel 5p"), ("dd20", "DD20"), ("dd60", "DD60"),
             ("volume", "Vol 5/20"), ("ridge", "Ridge"), ("action", "Hành động"), ("reason", "Lý do"),
         )
@@ -94,9 +102,9 @@ def build_tactical_page(ui: Any, config: LocalWebConfig) -> None:
     ui.colors(primary="#0b1f33", secondary="#1d3b55", accent="#0f8b8d", positive="#15803d", negative="#b91c1c", warning="#b45309")
     ui.add_css("""
         body { background:#eef2f6; color:#13283a; font-family:Inter,Segoe UI,Arial,sans-serif; }
-        .shell { max-width:1720px; margin:0 auto; padding:18px; }
+        .shell { max-width:1820px; margin:0 auto; padding:18px; }
         .surface { background:white; border:1px solid #dbe4ec; border-radius:12px; box-shadow:0 4px 14px rgba(15,35,55,.05); }
-        .metric { min-width:190px; flex:1 1 190px; padding:16px; }
+        .metric { min-width:180px; flex:1 1 180px; padding:16px; }
         .value { font-size:1.35rem; font-weight:760; color:#102a43; }
         .compact .q-table th { background:#f5f8fb; font-weight:700; }
     """)
@@ -119,16 +127,16 @@ def build_tactical_page(ui: Any, config: LocalWebConfig) -> None:
         with ui.row().classes("w-full gap-3 flex-wrap"):
             for title, key in (
                 ("Ngày dữ liệu", "capture"), ("Signal tháng", "source"),
-                ("Top10 đang cảnh báo", "health_count"), ("Leader đang nổi", "emerging_count"),
-                ("Swap L15", "swap"), ("Regime", "regime"),
+                ("Top10 cảnh báo", "health_count"), ("Đang kéo xuống", "drag_count"),
+                ("Leader đang nổi", "emerging_count"), ("Swap L15", "swap"), ("Regime", "regime"),
             ):
                 with ui.card().classes("surface metric"):
                     ui.label(title).classes("text-caption text-grey-7")
                     refs[key] = ui.label("—").classes("value")
 
         with ui.card().classes("surface w-full p-4"):
-            ui.label("Top tháng trước: sức khỏe hiện tại").classes("text-h6 text-weight-bold")
-            ui.label("Mã Top10 tháng trước luôn được giữ trên màn hình kể cả khi mất eligibility. R07/R08 chỉ cảnh báo, không tự bán.").classes("text-caption text-grey-7")
+            ui.label("Top tháng trước: sức khỏe + P&L thực thi hiện tại").classes("text-h6 text-weight-bold")
+            ui.label("P&L kỳ đo từ open phiên đầu sau monthly signal tới close hiện tại; Alpha kỳ trừ VNINDEX cùng calendar. Top10 vẫn hiện dù mất eligibility. R07/R08 chỉ cảnh báo.").classes("text-caption text-grey-7")
             refs["health"] = ui.table(columns=_columns(), rows=[], row_key="symbol", pagination=15).classes("w-full compact").props("flat bordered dense")
 
         with ui.card().classes("surface w-full p-4"):
@@ -165,11 +173,12 @@ def build_tactical_page(ui: Any, config: LocalWebConfig) -> None:
             return
         refs["summary"].set_text(
             f"Champion {report.get('operational_champion')} · secondary {report.get('secondary_model')} chỉ confirmation · "
-            f"monthly core giữ nguyên, tactical chỉ tư vấn intra-month."
+            f"P&L incumbent đo {report.get('period_execution_start_day')} → {report.get('capture_day')} · tactical chỉ tư vấn intra-month."
         )
         refs["capture"].set_text(str(report.get("capture_day") or "—"))
         refs["source"].set_text(str(report.get("source_monthly_signal_day") or "—"))
         refs["health_count"].set_text(str(report.get("incumbent_health_alert_count") or 0))
+        refs["drag_count"].set_text(str(report.get("dragging_incumbent_count") or 0))
         refs["emerging_count"].set_text(str(report.get("emerging_radar_count") or 0))
         pair = report.get("l15_swap_pair") if isinstance(report.get("l15_swap_pair"), Mapping) else {}
         refs["swap"].set_text(f"{pair.get('swap_out')} → {pair.get('leader')}" if pair.get("active") else "Chưa có")
