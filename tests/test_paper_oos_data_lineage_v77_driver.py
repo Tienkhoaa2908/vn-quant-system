@@ -13,7 +13,6 @@ from he_thong_dinh_luong import paper_oos_data_lineage_v77_driver as driver
 
 class TestV77Driver(unittest.TestCase):
     def test_vietnam_date_not_utc_date_controls_month_boundary(self):
-        # 2026-09-01 00:30 in Vietnam is still 2026-08-31 UTC.
         captured = datetime.fromisoformat("2026-09-01T00:30:00+07:00")
         seen = {}
 
@@ -44,7 +43,7 @@ class TestV77Driver(unittest.TestCase):
         self.assertEqual(result["capture_wall_date_vn"], "2026-09-01")
         self.assertEqual(result["wall_date_contract"], "ASIA_HO_CHI_MINH_UTC_PLUS_07")
 
-    def test_existing_pit_membership_interval_v2_is_recognized_fail_closed(self):
+    def test_generic_pit_membership_requires_explicit_hose_scope(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             path = root / "membership_coverage.json"
@@ -59,6 +58,12 @@ class TestV77Driver(unittest.TestCase):
                 "is_fixture": False,
                 "source_document_ids": ["official-1"],
             }
+            path.write_text(json.dumps(record), encoding="utf-8")
+            result = driver._scan_evidence_once(
+                [root], target_day=date(2026, 8, 14), store_sha="0" * 64
+            )
+            self.assertFalse(result["passes"]["pit_hose_membership"])
+            record["venue_scope"] = "HOSE"
             path.write_text(json.dumps(record), encoding="utf-8")
             result = driver._scan_evidence_once(
                 [root], target_day=date(2026, 8, 14), store_sha="0" * 64
