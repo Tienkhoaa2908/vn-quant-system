@@ -54,7 +54,7 @@ class BacktestConfig:
     periods_per_year: int = 12
     buy_fee_bps: float = 15.0
     sell_fee_bps: float = 15.0
-    sell_tax_bps: float = 100.0
+    sell_tax_bps: float = 10.0
     slippage_bps: float = 10.0
 
     def __post_init__(self) -> None:

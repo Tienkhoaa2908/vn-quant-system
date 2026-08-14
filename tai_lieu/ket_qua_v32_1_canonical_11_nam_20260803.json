@@ -1,0 +1,262 @@
+{
+  "artifact": {
+    "file_name": "portfolio-ablation-v32-1-canonical-11y-20260803-084529.zip",
+    "manifest_all_files_verified": true,
+    "manifest_file_count_excluding_manifest": 9,
+    "sha256": "c8f95875a5af8762b5a2de2ee923453135e238593ee708eacbe3e8b4bc6f781f",
+    "size_bytes": 450193,
+    "status": "SUCCESS"
+  },
+  "breadth_feasibility": {
+    "dynamic_breadth_used": false,
+    "evaluated_full_horizon": [
+      10
+    ],
+    "infeasible_full_horizon": [
+      15,
+      20,
+      30
+    ],
+    "months_dropped": 0,
+    "requested": [
+      10,
+      15,
+      20,
+      30
+    ],
+    "rows": [
+      {
+        "breadth": 10,
+        "breadth_shrunk_dynamically": false,
+        "evaluation_allowed": true,
+        "first_insufficient_month": "",
+        "first_insufficient_symbol_count": "",
+        "full_horizon_month_count": 57,
+        "insufficient_month_count": 0,
+        "insufficient_months": "",
+        "maximum_eligible_symbol_count": 98,
+        "minimum_eligible_symbol_count": 13,
+        "months_dropped": 0,
+        "status": "FULL_HORIZON_FEASIBLE"
+      },
+      {
+        "breadth": 15,
+        "breadth_shrunk_dynamically": false,
+        "evaluation_allowed": false,
+        "first_insufficient_month": "2022-12-30",
+        "first_insufficient_symbol_count": 13,
+        "full_horizon_month_count": 57,
+        "insufficient_month_count": 1,
+        "insufficient_months": "2022-12-30:13",
+        "maximum_eligible_symbol_count": 98,
+        "minimum_eligible_symbol_count": 13,
+        "months_dropped": 0,
+        "status": "INFEASIBLE_FULL_HORIZON"
+      },
+      {
+        "breadth": 20,
+        "breadth_shrunk_dynamically": false,
+        "evaluation_allowed": false,
+        "first_insufficient_month": "2022-09-30",
+        "first_insufficient_symbol_count": 19,
+        "full_horizon_month_count": 57,
+        "insufficient_month_count": 5,
+        "insufficient_months": "2022-09-30:19|2022-10-31:19|2022-11-30:18|2022-12-30:13|2023-01-31:19",
+        "maximum_eligible_symbol_count": 98,
+        "minimum_eligible_symbol_count": 13,
+        "months_dropped": 0,
+        "status": "INFEASIBLE_FULL_HORIZON"
+      },
+      {
+        "breadth": 30,
+        "breadth_shrunk_dynamically": false,
+        "evaluation_allowed": false,
+        "first_insufficient_month": "2022-09-30",
+        "first_insufficient_symbol_count": 19,
+        "full_horizon_month_count": 57,
+        "insufficient_month_count": 6,
+        "insufficient_months": "2022-09-30:19|2022-10-31:19|2022-11-30:18|2022-12-30:13|2023-01-31:19|2023-02-28:24",
+        "maximum_eligible_symbol_count": 98,
+        "minimum_eligible_symbol_count": 13,
+        "months_dropped": 0,
+        "status": "INFEASIBLE_FULL_HORIZON"
+      }
+    ]
+  },
+  "coverage": {
+    "eligible_first_test_date": "2021-10-29",
+    "eligible_last_test_date": "2026-06-30",
+    "eligible_prediction_key_count_per_model": 3530,
+    "eligible_test_month_count": 57,
+    "excluded_noneligible_prediction_key_count_per_model": 2825,
+    "maximum_eligible_symbol_count_per_month": 98,
+    "minimum_eligible_symbol_count_per_month": 13,
+    "nested_test_months": 3,
+    "nested_validation_months": 6,
+    "outer_test_first_date": "2022-04-29",
+    "outer_test_last_date": "2026-06-30",
+    "outer_test_period_count": 51
+  },
+  "decision": {
+    "automatic_live_orders_allowed": false,
+    "diagnostic_passing_policies": [],
+    "historical_promotion_passing_policies": [],
+    "live_capital_approved": false,
+    "recommendation": "KEEP_C3_AND_REDESIGN_REGIME_PORTFOLIO_POLICY",
+    "research_eligible": false
+  },
+  "interpretation": {
+    "all_challengers_underperform_c3_on_mean_monthly_net_excess_delta": true,
+    "c3_first_half_average_net_excess": 0.010846090975272931,
+    "c3_is_best_official_top10_policy": true,
+    "c3_positive_rank_ic_ratio": 0.5098039215686274,
+    "c3_second_half_average_net_excess": -0.005359668037794773,
+    "c3_v15_gate_failed_only": "positive_rank_ic_ratio_at_least_055",
+    "logit_leave_best_period_out_relative_total_return": -0.0033521950001186296,
+    "next_research_focus": "FREEZE_C3_SCORE_AND_DIAGNOSE_TURNOVER_POLICY_STABILITY;DO_NOT_ADD_MORE_MODEL_SWITCHING"
+  },
+  "limitations": {
+    "corporate_actions_complete": false,
+    "data_blockers_unchanged": [
+      "PRICE_BASIS_CHUA_XAC_NHAN",
+      "CORPORATE_ACTIONS_CHUA_DAY_DU",
+      "CANDIDATE_UNION_IS_NOT_POINT_IN_TIME",
+      "SURVIVORSHIP_BIAS_NOT_RESOLVED"
+    ],
+    "exact_cash_ledger_pnl_computed": false,
+    "exact_t1_open_execution_price_applied": false,
+    "inverse_volatility_allocation_applied": false,
+    "lot_size_100_applied": false,
+    "return_basis": "EQUAL_WEIGHT_MONTHLY_LABEL_RETURN_PROXY_WITH_TURNOVER_COSTS",
+    "sector_cap_25_percent_applied": false,
+    "single_name_cap_15_percent_applied": false
+  },
+  "lineage": {
+    "source_v22_sha256": "66f4dd6699026289501b260949237772f832ac716e700fa686f8b0b8accd38e5",
+    "source_v31_protocol": "EXPANDING_PURGED_WALK_FORWARD_ALL_TRAINABLE_HISTORY",
+    "source_v31_sha256": "6634060e33e21552b60749ad4fd5492e0f771197ead309da927fc34aab444759"
+  },
+  "official_model_results": [
+    {
+      "base_leave_best_period_out_relative_total_return": 0.07263500235582243,
+      "base_max_drawdown": -0.2259930949363177,
+      "base_mean_turnover": 0.2607843137254902,
+      "base_net_total_return": 0.38838120558979305,
+      "base_relative_total_return": 0.15561570005198244,
+      "benchmark_total_return": 0.20142120388926887,
+      "breadth": 10,
+      "failed_gates": "positive_rank_ic_ratio_at_least_055",
+      "mean_rank_ic": 0.053458557733051415,
+      "model": "C3_STABLE_3_PAST_IC_SHRUNK",
+      "period_count": 51,
+      "positive_rank_ic_ratio": 0.5098039215686274,
+      "stress_net_total_return": 0.37081329277849084,
+      "stress_relative_total_return": 0.14099309080018063,
+      "v15_gate_passed": false
+    },
+    {
+      "base_leave_best_period_out_relative_total_return": -0.0033521950001186296,
+      "base_max_drawdown": -0.2504726894030863,
+      "base_mean_turnover": 0.24705882352941175,
+      "base_net_total_return": 0.31307018404545683,
+      "base_relative_total_return": 0.09293075550419383,
+      "benchmark_total_return": 0.20142120388926887,
+      "breadth": 10,
+      "failed_gates": "leave_best_period_out_relative_positive",
+      "mean_rank_ic": 0.06251106996907833,
+      "model": "V29_LOGIT_BOTTOM20_SAFE",
+      "period_count": 51,
+      "positive_rank_ic_ratio": 0.6470588235294118,
+      "stress_net_total_return": 0.2972390774867779,
+      "stress_relative_total_return": 0.07975377268798423,
+      "v15_gate_passed": false
+    },
+    {
+      "base_leave_best_period_out_relative_total_return": -0.15557313082660262,
+      "base_max_drawdown": -0.2601574378731485,
+      "base_mean_turnover": 0.31176470588235294,
+      "base_net_total_return": 0.07935591612682869,
+      "base_relative_total_return": -0.10160074365866656,
+      "benchmark_total_return": 0.20142120388926887,
+      "breadth": 10,
+      "failed_gates": "base_average_net_excess_positive|base_positive_net_excess_ratio_at_least_half|base_relative_total_return_positive|stress_relative_total_return_positive|leave_best_period_out_relative_positive",
+      "mean_rank_ic": 0.07324411137594196,
+      "model": "V32_LOGIT_RISK_ON_C3_RISK_OFF",
+      "period_count": 51,
+      "positive_rank_ic_ratio": 0.6078431372549019,
+      "stress_net_total_return": 0.06288368876563988,
+      "stress_relative_total_return": -0.11531136180646062,
+      "v15_gate_passed": false
+    },
+    {
+      "base_leave_best_period_out_relative_total_return": -0.2861333065168279,
+      "base_max_drawdown": -0.42653004577938025,
+      "base_mean_turnover": 0.26274509803921564,
+      "base_net_total_return": -0.07910345586241363,
+      "base_relative_total_return": -0.23349401429204142,
+      "benchmark_total_return": 0.20142120388926887,
+      "breadth": 10,
+      "failed_gates": "positive_rank_ic_ratio_at_least_055|base_average_net_excess_positive|base_positive_net_excess_ratio_at_least_half|base_relative_total_return_positive|stress_relative_total_return_positive|leave_best_period_out_relative_positive",
+      "mean_rank_ic": 0.04911502398366441,
+      "model": "V29_RIDGE_RANK_REGIME_INTERACTION",
+      "period_count": 51,
+      "positive_rank_ic_ratio": 0.5490196078431373,
+      "stress_net_total_return": -0.09100571437932914,
+      "stress_relative_total_return": -0.2434008300518975,
+      "v15_gate_passed": false
+    },
+    {
+      "base_leave_best_period_out_relative_total_return": -0.3297059715680607,
+      "base_max_drawdown": -0.42653004577938025,
+      "base_mean_turnover": 0.2607843137254902,
+      "base_net_total_return": -0.10627176815230488,
+      "base_relative_total_return": -0.2561074925642255,
+      "benchmark_total_return": 0.20142120388926887,
+      "breadth": 10,
+      "failed_gates": "base_average_net_excess_positive|base_positive_net_excess_ratio_at_least_half|base_relative_total_return_positive|stress_relative_total_return_positive|leave_best_period_out_relative_positive",
+      "mean_rank_ic": 0.0702169910573108,
+      "model": "V32_LOGIT_RISK_ON_RIDGE_RISK_OFF",
+      "period_count": 51,
+      "positive_rank_ic_ratio": 0.6666666666666666,
+      "stress_net_total_return": -0.1177811200855271,
+      "stress_relative_total_return": -0.2656872734903186,
+      "v15_gate_passed": false
+    }
+  ],
+  "paired_vs_c3": [
+    {
+      "bootstrap_delta_lower_90": -0.015886774024191874,
+      "bootstrap_delta_upper_90": 0.0006067020316916602,
+      "bootstrap_probability_delta_positive": 0.0595,
+      "challenger_model": "V29_RIDGE_RANK_REGIME_INTERACTION",
+      "leave_best_3_mean_net_excess_delta": -0.012008576727015781,
+      "mean_monthly_net_excess_delta": -0.007848024960950557
+    },
+    {
+      "bootstrap_delta_lower_90": -0.008596273083006692,
+      "bootstrap_delta_upper_90": 0.006126111479754737,
+      "bootstrap_probability_delta_positive": 0.3625,
+      "challenger_model": "V29_LOGIT_BOTTOM20_SAFE",
+      "leave_best_3_mean_net_excess_delta": -0.006610458977861077,
+      "mean_monthly_net_excess_delta": -0.0015006670219735849
+    },
+    {
+      "bootstrap_delta_lower_90": -0.011301554902107588,
+      "bootstrap_delta_upper_90": 0.000683199197765806,
+      "bootstrap_probability_delta_positive": 0.07,
+      "challenger_model": "V32_LOGIT_RISK_ON_C3_RISK_OFF",
+      "leave_best_3_mean_net_excess_delta": -0.00932425477585321,
+      "mean_monthly_net_excess_delta": -0.005366001087746907
+    },
+    {
+      "bootstrap_delta_lower_90": -0.016302885356729985,
+      "bootstrap_delta_upper_90": 0.00010195232896595836,
+      "bootstrap_probability_delta_positive": 0.052,
+      "challenger_model": "V32_LOGIT_RISK_ON_RIDGE_RISK_OFF",
+      "leave_best_3_mean_net_excess_delta": -0.012933270583341809,
+      "mean_monthly_net_excess_delta": -0.008143268423692144
+    }
+  ],
+  "run_id": "portfolio-ablation-v32-1-canonical-11y-20260803-084529",
+  "schema_version": "v32_1_canonical_11y_result_registry_v1"
+}

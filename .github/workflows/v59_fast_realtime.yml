@@ -1,0 +1,42 @@
+name: v59_fast_realtime
+
+on:
+  push:
+    branches:
+      - agent/v59-fast-realtime-dnse
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile V59
+        env:
+          PYTHONPATH: vn_quant_local_system/src:src
+        run: |
+          python -m py_compile vn_quant_local_system/src/vn_quant_local/v59_fast_realtime.py
+          python -m py_compile vn_quant_local_system/src/vn_quant_local/v59_market_stream.py
+          python -m py_compile vn_quant_local_system/src/vn_quant_local/v59_model_cache.py
+          python -m py_compile vn_quant_local_system/src/vn_quant_local/webapp_v59.py
+          python -m py_compile vn_quant_local_system/tests/test_v59_fast_realtime.py
+      - name: Pure V59 tests
+        env:
+          PYTHONPATH: vn_quant_local_system/src:src
+        run: python -m unittest vn_quant_local_system.tests.test_v59_fast_realtime -v
+      - name: Contract checks
+        run: |
+          bash -n vn_quant_local_system/scripts/validate_v59_gitbash.sh
+          bash -n vn_quant_local_system/scripts/serve_web_gitbash.sh
+          grep -q '__version__ = "0.5.9"' vn_quant_local_system/src/vn_quant_local/__init__.py
+          grep -q 'DEFERRED_MAINTENANCE_ONLY' vn_quant_local_system/src/vn_quant_local/v59_fast_realtime.py
+          grep -q 'PERSISTED_SELECTED_ACCOUNT_FAST_PATH' vn_quant_local_system/src/vn_quant_local/v59_fast_realtime.py
+          grep -q 'DnseTradingStream' vn_quant_local_system/src/vn_quant_local/v59_fast_realtime.py
+          grep -q 'DnseMarketStream' vn_quant_local_system/src/vn_quant_local/v59_market_stream.py
+          grep -q 'SKIPPED_INTERACTIVE_FAST_PATH' vn_quant_local_system/src/vn_quant_local/webapp_v59.py
+          grep -q 'webapp_v59' vn_quant_local_system/scripts/serve_web_gitbash.sh
+          grep -q 'V59_POLL_MS = 1000' vn_quant_local_system/web/realtime_v59.js
+          if grep -REn 'orders\.(place|cancel|update)|place_order|cancel_order|update_order' vn_quant_local_system/src/vn_quant_local/v59_*.py vn_quant_local_system/src/vn_quant_local/webapp_v59.py; then exit 2; fi
