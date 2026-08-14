@@ -50,6 +50,7 @@ dữ liệu → kiểm tra chất lượng → tập cổ phiếu theo từng th
 37. Runner workstation có log qua `tee` phải giữ fail-fast bên trong subshell/function có `set -euo pipefail`; lỗi test/compile không được phép bị command chạy sau che mất rồi báo success.
 38. Khi dùng SQLite file tạm trên Windows, connection phải được đóng rõ ràng trước cleanup; `with sqlite3.connect(...)` chỉ quản lý transaction và không được mặc định là đã giải phóng file handle.
 39. Data gate fail-closed ở quy tắc 36 chặn **canonical research claim, policy/model promotion và paper/live use**, nhưng không được làm blocker của một lane dừng toàn bộ research package. Được phép chạy `diagnostic sensitivity` bằng C3 trên universe provisional nếu output ghi rõ `provisional`, source store không bị sửa, không dùng kết quả để tuyên bố HOSE point-in-time chuẩn, và luôn chạy song song các biến thể loại symbol có price/basis anomaly. Diagnostic này dùng để đo độ nhạy và tăng tốc phát hiện vấn đề; không tự đóng data gate và không tự cho phép promotion.
+40. Mọi hành vi phụ thuộc hệ điều hành nhưng nằm trên đường chạy workstation phải có **CI cùng hệ điều hành** trước khi giao runner. Ubuntu/Linux CI không được dùng thay cho xác minh Windows đối với file locking, path conversion, PowerShell/Git Bash hoặc SQLite temporary-file lifetime. Với runner tạo SQLite tạm, bắt buộc có Windows end-to-end test chứng minh source DB và temp variant đều cleanup được ngay sau run.
 
 Chi tiết thực thi nằm tại:
 
