@@ -2,13 +2,15 @@
 
 Vietnam has no daylight-saving transition in the project period, so this driver
 uses an explicit UTC+07:00 timezone instead of depending on host tzdata. It also
-recognizes the repository's existing PIT membership coverage contract and refuses
-to continue an existing paper experiment if its frozen model/universe definition
-differs from the current V77 contract.
+recognizes the repository's existing PIT membership coverage contract, refuses
+to continue a paper experiment whose frozen definition drifts, and verifies that
+an already-captured monthly signal still recomputes identically before treating a
+rerun as idempotent.
 """
 from __future__ import annotations
 
 import json
+import math
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Mapping, Sequence
@@ -116,6 +118,44 @@ def _validate_existing_freeze(state_dir: Path) -> None:
         raise ValueError("V77_EXISTING_FREEZE_VARIANT_SYMBOLS_INVALID")
 
 
+def _guarded_signal_recorder(original):
+    def record(**kwargs):
+        state_dir = Path(kwargs["state_dir"])
+        model_id = str(kwargs["model_id"])
+        source_day = kwargs["source_day"].isoformat()
+        existing = [
+            row
+            for path in core._model_signal_files(state_dir, model_id)
+            for row in core._read_csv(path)
+            if row.get("source_signal_day") == source_day
+        ]
+        if not existing:
+            return original(**kwargs)
+        if len(existing) != 10:
+            raise ValueError(f"V77_EXISTING_SOURCE_SIGNAL_ROW_COUNT:{model_id}:{source_day}:{len(existing)}")
+        old = sorted(existing, key=lambda row: int(row["rank"]))
+        new = list(kwargs["ranking"][:10])
+        if len(new) != 10:
+            raise ValueError(f"V77_RECOMPUTED_TOP10_INCOMPLETE:{model_id}:{source_day}")
+        for old_row, new_row in zip(old, new):
+            if str(old_row.get("symbol")) != str(new_row.get("symbol")):
+                raise ValueError(f"V77_EXISTING_SOURCE_SIGNAL_RECOMPUTE_DRIFT:{model_id}:{source_day}:symbol")
+            if int(old_row.get("rank") or 0) != int(new_row.get("rank") or 0):
+                raise ValueError(f"V77_EXISTING_SOURCE_SIGNAL_RECOMPUTE_DRIFT:{model_id}:{source_day}:rank")
+            if str(old_row.get("risk_on", "")).lower() != str(bool(kwargs["risk_on"])).lower():
+                raise ValueError(f"V77_EXISTING_SOURCE_SIGNAL_RECOMPUTE_DRIFT:{model_id}:{source_day}:risk_on")
+            if not math.isclose(
+                float(old_row.get("model_score") or 0.0),
+                float(new_row.get("score") or 0.0),
+                rel_tol=1e-10,
+                abs_tol=1e-12,
+            ):
+                raise ValueError(f"V77_EXISTING_SOURCE_SIGNAL_RECOMPUTE_DRIFT:{model_id}:{source_day}:score")
+        return None, False
+
+    return record
+
+
 def run(
     *,
     store: Path,
@@ -133,12 +173,14 @@ def run(
     vn_wall_day = captured.astimezone(VN_TZ).date()
     original_boundary = core._analysis_end_for_capture
     original_scan = core._scan_evidence
+    original_recorder = core._record_model_signal
 
     def vietnam_boundary(capture_day, _host_wall_day, confirmed):
         return original_boundary(capture_day, vn_wall_day, confirmed)
 
     core._analysis_end_for_capture = vietnam_boundary
     core._scan_evidence = _scan_evidence_once
+    core._record_model_signal = _guarded_signal_recorder(original_recorder)
     try:
         report = core.run(
             store=store,
@@ -152,10 +194,19 @@ def run(
     finally:
         core._analysis_end_for_capture = original_boundary
         core._scan_evidence = original_scan
+        core._record_model_signal = original_recorder
     report["wall_date_contract"] = "ASIA_HO_CHI_MINH_UTC_PLUS_07"
     report["capture_wall_date_vn"] = vn_wall_day.isoformat()
     report["pit_membership_contracts_recognized"] = sorted(PIT_MEMBERSHIP_CONTRACTS)
     report["existing_freeze_definition_verified"] = True
+    report["existing_source_signal_recompute_verified"] = True
+    report["paper_execution_limitations"] = {
+        "settlement_mode": "M3_ENGINE_DEFAULT_IMMEDIATE_CASH_REUSE",
+        "t2_no_advance_modeled": False,
+        "transfer_fee_vnd_per_share_modeled": False,
+        "pit_sector_cap_enforced": False,
+        "reason": "V77 is a frozen comparative paper evidence lane, not exact V70 BASE execution.",
+    }
     (Path(output_dir) / "v77_report.json").write_text(core._json_text(report), encoding="utf-8")
     return report
 
