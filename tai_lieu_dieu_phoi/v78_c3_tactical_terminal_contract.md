@@ -104,32 +104,55 @@ V76 recent cards: `C3_BASELINE` vs `V76_RIDGE_RANK`, GAP18_CLEAN, Equal, BASE_DN
 
 Không chọn cửa sổ sau khi nhìn kết quả; luôn báo đủ 6/12/18 khi data đủ. Đây chỉ là **regime evidence**, không thay long-run champion evidence.
 
-## Web
+## Existing approved web is frozen as the UI baseline
 
-Web V78 localhost-only:
+User đã xác nhận web local hiện hữu trong `vn_quant_local_system/` là giao diện đã hoàn thiện và được duyệt về trải nghiệm. V78 **không được thay giao diện này bằng web/NiceGUI mới**.
 
-`python -m he_thong_dinh_luong.web_console_app_v78`
+Baseline đã quan sát từ workstation archive:
 
-- `/` = C3 tactical operating screen;
-- `/terminal` = full V5 terminal hiện hữu;
-- `/api/v78/tactical` = read-only current V78 report;
-- `/healthz` = health metadata.
+- app: `VN Quant Local Workstation`;
+- localhost: `http://127.0.0.1:8787`;
+- static UI: `vn_quant_local_system/web/index.html` + các JS/CSS versioned hiện hữu;
+- backend: `vn_quant_local_system/src/vn_quant_local/webapp.py`;
+- baseline local package có data-integrity V55 semantics.
 
-Root tactical screen hiển thị:
+Known uploaded baseline hashes chỉ dùng để audit/diagnostic, không phải lý do ghi đè:
 
-- C3 MAIN / advisory no-live banner;
-- monthly Top10 health;
+- `web/index.html`: `c4b26ce2d59cd92c1f2c2d1985eab34e7f9bf260f4562eed9de94476a461b1f5`;
+- `src/vn_quant_local/webapp.py`: `99d1ec1ef6347280094c35e6ec737a77489078b2f909822eea4d35342096cc78`.
+
+V78 integration phải **additive**:
+
+- giữ nguyên layout/tabs/chức năng cũ;
+- thêm `tactical_v78.js` và `tactical_v78.css` với CSS scoped;
+- thêm một tab `Tactical` và một summary panel nhỏ ở Dashboard;
+- thêm API read/refresh tactical hẹp vào backend cũ;
+- `Chạy C3` có thể refresh tactical fail-soft, không được làm hỏng C3/web nếu tactical unavailable;
+- backup `index.html` và `webapp.py` trước lần patch đầu;
+- installer idempotent;
+- tuyệt đối không đọc/ghi/xóa credentials, holdings, workstation SQLite, DNSE state hoặc V77 paper state.
+
+Separate `web_console_app_v78.py`/port 8089 không còn là deployment contract và phải bị loại khỏi runner.
+
+## Nội dung mới được thêm vào web cũ
+
+Tab/panel Tactical hiển thị:
+
+- C3 MAIN và current market regime;
+- toàn bộ prior-month Top10, không chỉ mã đang cảnh báo;
+- current preview rank;
 - **P&L kỳ và Alpha kỳ của từng incumbent từ tradable next-open đến close hiện tại**;
 - marker mã đang kéo xuống;
-- current intra-month leader radar;
-- current full preview;
+- leader intra-month / `WATCH_EMERGING`;
 - exact L15 pair nếu có;
 - Ridge confirmation;
-- recent 6/12/18 backtest evidence.
+- recent 6/12/18 backtest evidence C3 vs L15/R08/Ridge.
 
-Stable snapshot cho web:
+Stable snapshot vẫn ở:
 
 `vn_quant_local_system/data/v78-c3-tactical/`
+
+Web đọc/refresh qua bridge của repository nhưng tiếp tục phục vụ trên UI cũ tại `127.0.0.1:8787`.
 
 ## Safety
 
@@ -138,5 +161,7 @@ Stable snapshot cho web:
 - no automatic champion replacement;
 - no automatic R07/R08/period-drag sell;
 - no L15 swap label nếu thiếu exact trigger;
+- existing approved web không bị redesign/thay thế;
+- existing credentials/state không được touched bởi installer;
 - V77 paper state không bị sửa/xóa;
 - data-lineage gates vẫn giữ fail-closed cho canonical/promotion/live.
