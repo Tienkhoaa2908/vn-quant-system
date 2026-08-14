@@ -1,6 +1,6 @@
 """Safety wrapper for V78 operational tactical output.
 
-The core preview ranks only currently eligible names.  This wrapper additionally
+The core preview ranks only currently eligible names. This wrapper additionally
 keeps every prior-month C3 Top10 incumbent visible when it loses current
 eligibility, so a falling/illiquid incumbent can never disappear from the health
 screen merely because it failed the new-month eligibility filter.
@@ -11,7 +11,7 @@ import argparse
 import json
 from datetime import date
 from pathlib import Path
-from typing import Mapping, Sequence
+from typing import Sequence
 
 from . import c3_tactical_terminal_v78 as core
 from . import deep_portfolio_backtest_v70 as v70
@@ -48,6 +48,27 @@ def _incumbent_fallback_row(
     }
 
 
+def _ridge_recent_from_file(path: Path) -> list[dict[str, object]]:
+    rows = []
+    for raw in core._read_csv(path):
+        if str(raw.get("variant_id") or "") != "GAP18_CLEAN":
+            continue
+        if str(raw.get("allocator") or "") != "EQUAL":
+            continue
+        if str(raw.get("cost_scenario") or "") != "BASE_DNSE":
+            continue
+        policy = str(raw.get("policy_id") or "")
+        if policy not in {v76.BASE_POLICY, core.SECONDARY_MODEL}:
+            continue
+        row = dict(raw); row["model_key"] = policy; rows.append(row)
+    return core.recent_window_summary(
+        rows,
+        policy_field="model_key",
+        baseline_id=v76.BASE_POLICY,
+        candidate_ids=(core.SECONDARY_MODEL,),
+    )
+
+
 def run(
     *,
     store: Path,
@@ -66,6 +87,8 @@ def run(
     if freeze.get("champion_model") != core.OPERATIONAL_CHAMPION or freeze.get("shadow_model") != core.SECONDARY_MODEL:
         raise ValueError("V78_V77_MODEL_DEFINITION_MISMATCH")
     symbols = [str(value).upper() for value in freeze.get("variant_symbols", [])]
+    if len(symbols) < 10:
+        raise ValueError("V78_FROZEN_SYMBOL_SET_INVALID")
     market = v70.load_market(store, symbols)
     capture_day = core._latest_market_day(market)
     rank_snapshot = v77._build_rank_snapshot(
@@ -120,7 +143,7 @@ def run(
         )
     ridge_recent: list[dict[str, object]] = []
     if v76_monthly and Path(v76_monthly).is_file():
-        ridge_recent = core._ridge_recent_summary(core._filter_v76_recent(core._read_csv(Path(v76_monthly))))
+        ridge_recent = _ridge_recent_from_file(Path(v76_monthly))
 
     top10 = [row for row in tactical_rows if core._int(row.get("canonical_rank")) <= 10]
     top10.sort(key=lambda row: core._int(row.get("canonical_rank")))
