@@ -9,6 +9,7 @@ import unittest
 
 from he_thong_dinh_luong import c3_hose_consolidated_v68_safe as v68
 from he_thong_dinh_luong import c3_matched_control_v69 as v69
+from he_thong_dinh_luong import c3_portfolio_profit_v69 as profit
 
 
 def weekdays(start: date, count: int) -> list[date]:
@@ -22,7 +23,7 @@ def weekdays(start: date, count: int) -> list[date]:
 
 
 class TestC3MatchedControlV69Integration(unittest.TestCase):
-    def test_real_v68_output_is_consumed_by_v69(self):
+    def test_real_v68_output_is_consumed_by_v69_and_profit_report(self):
         days = weekdays(date(2018, 1, 2), 900)
         symbols = [f"S{i:02d}" for i in range(16)]
         with tempfile.TemporaryDirectory() as tmp:
@@ -78,6 +79,17 @@ class TestC3MatchedControlV69Integration(unittest.TestCase):
             self.assertTrue((v69_out / "v69_leader_matched_control.csv").is_file())
             self.assertTrue((v69_out / "v69_risk_matched_control.csv").is_file())
             self.assertTrue((v69_out / "v69_report.json").is_file())
+
+            profit_report = profit.analyze(v68_output=v68_out, store=store, output_dir=v69_out)
+            self.assertIn(profit_report["status"], {"SUCCESS", "SUCCESS_WITH_MISSING_PRICE_PERIODS"})
+            self.assertEqual(profit_report["champion_model"], "C3_STABLE_3_PAST_IC_SHRUNK")
+            self.assertTrue(profit_report["gross_only"])
+            self.assertFalse(profit_report["costs_included"])
+            self.assertTrue((v69_out / "v69_portfolio_equity_curve.csv").is_file())
+            self.assertTrue((v69_out / "v69_portfolio_annual_returns.csv").is_file())
+            self.assertTrue((v69_out / "v69_portfolio_profit_summary.csv").is_file())
+            self.assertTrue((v69_out / "v69_profit_report.json").is_file())
+            self.assertGreater(len(profit_report["summary"]), 0)
 
 
 if __name__ == "__main__":
