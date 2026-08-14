@@ -22,7 +22,7 @@ def weekdays(start: date, count: int) -> list[date]:
     return output
 
 
-def build_store(path: Path, count: int = 900) -> None:
+def build_store(path: Path, count: int = 1300) -> None:
     days = weekdays(date(2018, 1, 2), count)
     symbols = [f"S{i:02d}" for i in range(16)]
     db = sqlite3.connect(path)
@@ -41,7 +41,7 @@ def build_store(path: Path, count: int = 900) -> None:
                 cycle = 0.8 * math.sin(i / (9.0 + j * 0.25))
                 base = 28.0 + j * 2.1 + (0.02 + j * 0.00065) * i + cycle
                 open_price, close_price, fetched = base * 0.999, base, "batch-a"
-                if symbol == "S00" and i == 650:
+                if symbol == "S00" and i == 950:
                     open_price, close_price, fetched = base * 0.50, base * 0.51, "batch-b"
                 db.execute(
                     "INSERT INTO bars VALUES(?,?,?,?,?,?,?,?,?,?)",
@@ -115,8 +115,7 @@ class TestWeeklyOverlayBacktestV72(unittest.TestCase):
     def test_2026_does_not_enter_policy_inference(self):
         rows = []
         daily = []
-        start = date(2023, 1, 31)
-        current = start
+        current = date(2023, 1, 31)
         for index in range(42):
             end = current
             period_start = end - timedelta(days=25)
