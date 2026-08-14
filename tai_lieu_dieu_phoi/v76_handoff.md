@@ -41,11 +41,25 @@ V76 is not a C3 replacement. It is a challenger laboratory with four learned ran
 - `V76_HGB_CONTEXT`;
 - `V76_LOGIT_BOTTOM20_SAFE`.
 
-The canonical environment already pins `scikit-learn==1.9.0`; no new ML dependency is introduced.
+The repository pins `scikit-learn==1.9.0`. A workstation can still have a stale canonical `.venv` that predates that dependency. The V76 runner therefore verifies the exact version inside `vn_quant_local_system/.venv` and, only when missing or mismatched, installs the pinned wheel into that same canonical environment before compilation/tests. This is dependency bootstrap only; it does not change model architecture or select a different environment.
 
 Critical anti-regression change: model-trainable history is built from all **feature-complete symbols in the sensitivity universe**, not from the monthly C3-eligible set. Portfolio eligibility is applied only to the monthly prediction/execution candidate set. This prevents the learner from being trained only on stocks the frozen model already liked.
 
 Features are the frozen C3 three plus relative 5/10/20, momentum acceleration, fresh breakout, MA20/MA50 distance, drawdown20/60, volume confirmation and volatility stability. Recent completed RS120/high52 IC and market regime are context/interactions, not hard gates.
+
+## First workstation attempt — dependency bootstrap failure
+
+Observed failure bundle on 2026-08-14:
+
+- branch: `agent/v76-learned-ranking-challenger-lab`;
+- HEAD: `47a67cc77835675864bafde68f569a3e65d97f2f`;
+- store SHA256: `2959f8cce0c11e8e4186fcb49ae75bf7babf86b84afe64ca3b843a7470d58b1a`;
+- failure occurred before compile/regression and before V68/V70 cache resolution;
+- canonical Python raised `ModuleNotFoundError: No module named 'sklearn'`;
+- `output/v76` contained no research artifacts;
+- therefore this attempt produced **no V76 P&L, inference, rank-IC, winner-capture or 2026 research result**.
+
+The runner was corrected to bootstrap exactly `scikit-learn==1.9.0` into the canonical workstation `.venv` when needed, then verify its version before proceeding. The failed attempt must never be interpreted as evidence about any challenger.
 
 ## Causality
 
