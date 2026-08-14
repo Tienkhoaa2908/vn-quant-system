@@ -32,19 +32,11 @@ Phân biệt rõ `implemented`, `ci_verified`, `workstation_verified`, `observed
 
 ## 2. Frozen model state
 
-Champion vẫn:
+Champion vẫn `C3_STABLE_3_PAST_IC_SHRUNK` với `low_volatility`, `relative_strength_120`, `high_52_week`.
 
-`C3_STABLE_3_PAST_IC_SHRUNK`
+C3 label: `close(T) -> close(T+20)` benchmark-relative.
 
-với `low_volatility`, `relative_strength_120`, `high_52_week`.
-
-C3 label:
-
-`close(T) -> close(T+20)` benchmark-relative.
-
-Execution contract khác:
-
-`signal after close(T) -> earliest open(T+1)`.
+Execution contract khác: `signal after close(T) -> earliest open(T+1)`.
 
 Không trộn hai contract, không random split, fit chỉ dùng completed past labels.
 
@@ -66,13 +58,9 @@ Frozen V70 `GAP18_CLEAN / Equal / BASE_DNSE`:
 2026 frozen GAP18 Equal khoảng `-12.38%` trong khi VNINDEX khoảng `+2.71%`; failure được chẩn đoán chủ yếu là cross-sectional/momentum-regime lag, không phải riêng PNJ.
 
 V71 adaptive weights: 0/12 gates pass.
-
 V72 L15/R08 overlay: 0/18 return gates pass.
-
 V73 factor-health: bắt 2026 nhưng phá return dài hạn.
-
 V74 macro standalone: IIP coverage thiếu; không có standalone macro P&L.
-
 V75 fixed blends/macro: 42 tests, 0 watchlist; winner capture không cải thiện robustly.
 
 V76 learned ranking real workstation:
@@ -89,9 +77,7 @@ Kết luận V76: **dừng historical architecture/factor/threshold fishing trê
 
 ## 4. Current phase — V77 fresh paper OOS + data lineage
 
-Branch khi prompt này được cập nhật:
-
-`agent/v77-paper-oos-data-lineage`.
+Branch khi prompt này được cập nhật: `agent/v77-paper-oos-data-lineage`.
 
 V77 không phải model-research vòng mới. Nó:
 
@@ -102,21 +88,36 @@ V77 không phải model-research vòng mới. Nó:
 5. tích lũy only-future fresh OOS;
 6. audit data-lineage gates trên local evidence.
 
-Persistent state:
-
-`du_lieu/v77-paper-oos-state/`
+Persistent state: `du_lieu/v77-paper-oos-state/`.
 
 **Không xóa/reset state sau khi fresh OOS bắt đầu** nếu không explicit abandon experiment.
 
-Primary diagnostic universe là GAP18_CLEAN symbol set **frozen tại first run**; vẫn không phải canonical HOSE truth.
+Primary diagnostic universe là GAP18_CLEAN symbol set **frozen tại first run**; vẫn không phải canonical HOSE truth. Primary allocator Equal Top10.
 
-Primary allocator Equal Top10. Paper cost contract `V70_BASE_APPROX_NO_TRANSFER_FEE`: 2.7bps buy/sell, 10bps sell tax, 5bps slippage, lot100, 1bn VND. M3 paper chưa model transfer 0.3 VND/share nên không gọi exact V70 BASE.
+Experiment state fail-closed: frozen model/variant/allocator/cost definition phải giữ nguyên; rerun cùng source month phải recompute cùng Top10/rank/score/risk-on rồi mới được coi là idempotent.
 
-Monthly-completion calendar phải dùng `Asia/Ho_Chi_Minh`.
-
-Rerun trong cùng source month không append target mới. Tháng mới chỉ append khi completed monthly `source_signal_day` đổi.
+Monthly-completion calendar dùng Việt Nam UTC+07:00 (`Asia/Ho_Chi_Minh` semantics), không phụ thuộc host UTC/tzdata.
 
 First run có thể hợp lệ ở trạng thái `PENDING_FIRST_EXECUTION` với 0 fills/fresh sessions; chỉ session sau freeze mới là fresh OOS.
+
+### V77 paper execution contract
+
+Dùng cùng contract comparative cho C3/Ridge:
+
+- 1bn VND;
+- Equal Top10;
+- lot100;
+- buy/sell 2.7bps;
+- sell tax 10bps;
+- slippage 5bps/side.
+
+Label: `V70_BASE_APPROX_NO_TRANSFER_FEE`.
+
+**Không gọi exact V70 BASE** vì M3 paper engine hiện:
+
+- immediate cash reuse, không phải T+2/no-advance;
+- chưa model transfer fee 0.3 VND/share;
+- chưa enforce PIT sector 25% cap khi sector gate còn mở.
 
 ## 5. Data gates
 
@@ -127,15 +128,17 @@ Known blockers trước first V77 workstation run:
 - `CORPORATE_ACTION_INVENTORY_INCOMPLETE`;
 - `PIT_SECTOR_MASTER_INCOMPLETE`.
 
-Store hiện từng được quan sát với `price_basis=CHUA_XAC_NHAN`; VHM có mixed-basis seam candidate.
+Store từng được quan sát với `price_basis=CHUA_XAC_NHAN`; VHM có mixed-basis seam candidate.
 
 Paper OOS được phép chạy khi gate mở, nhưng canonical/promotion/live auth phải false.
 
-PIT membership evidence có thể theo existing `pit_membership_interval_v2` hoặc strict V77-compatible HOSE membership contracts; phải non-fixture, research-eligible, complete, no gap/conflict, cover target day.
+### PIT HOSE evidence
 
-Price-basis external certificate nếu dùng phải bind exact store SHA256.
+Dedicated `pit_hose_membership_v1` / `hose_membership_interval_v1` có thể chứng minh HOSE nếu non-fixture, research-eligible, complete, no gap/conflict và cover target day.
 
-Sector cap 25% chỉ được enforce canonical khi có PIT sector master thật.
+Existing generic foundation contract `pit_membership_interval_v2` **không tự chứng minh venue HOSE**. Nó chỉ có thể đóng PIT-HOSE gate nếu certificate explicit `venue_scope`, `exchange` hoặc `market = HOSE`. VN100/index membership coverage không có venue scope vẫn là insufficient evidence.
+
+Price-basis external certificate nếu dùng phải bind exact store SHA256. Corporate-action evidence phải inventory-complete/research-eligible/non-fixture/conflict-free và cover target. Sector cap 25% chỉ enforce canonical khi có `pit_sector_master_v1` thật.
 
 ## 6. Khi artifact V77 đến
 
@@ -147,9 +150,9 @@ Sector cap 25% chỉ được enforce canonical khi có PIT sector master thật
 4. xác nhận store không mutate;
 5. capture market day, source signal day, VN wall date;
 6. C3/Ridge current rankings;
-7. signals appended/idempotency;
-8. paper P&L/status — **fresh sessions only**;
-9. data-lineage blockers/evidence candidates;
+7. signals appended/idempotency + recompute verification;
+8. paper P&L/status — **fresh sessions only** — và execution limitations;
+9. data-lineage blockers/evidence candidates, đặc biệt explicit HOSE venue scope;
 10. promotion/live flags phải false.
 
 Không dùng historical V76 P&L như fresh OOS.
@@ -164,7 +167,7 @@ Next legitimate work sau V77 là:
 
 - tiếp tục tích lũy fresh OOS bằng cùng frozen experiment;
 - đóng một data gate bằng bằng chứng thật;
-- hoặc một review promotion riêng khi genuinely unseen evidence đủ để đánh giá.
+- hoặc review promotion riêng khi genuinely unseen evidence đủ để đánh giá.
 
 No live orders. No automatic promotion. No canonical HOSE claim khi gate chưa đóng.
 
