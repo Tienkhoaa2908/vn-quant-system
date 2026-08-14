@@ -22,14 +22,19 @@ jobs:
           python -m py_compile \
             src/he_thong_dinh_luong/c3_hose_native_v67.py \
             src/he_thong_dinh_luong/c3_hose_native_driver_v67.py \
-            tests/test_c3_hose_native_v67.py
+            src/he_thong_dinh_luong/hose_data_readiness_v67.py \
+            tests/test_c3_hose_native_v67.py \
+            tests/test_hose_data_readiness_v67.py
       - name: Run V67 pure tests
         env:
           PYTHONPATH: src
-        run: python -m unittest tests.test_c3_hose_native_v67 -v
+        run: |
+          python -m unittest \
+            tests.test_c3_hose_native_v67 \
+            tests.test_hose_data_readiness_v67 -v
       - name: Validate runner syntax
         run: bash -n scripts/run_v67_c3_hose_native_gitbash.sh
-      - name: Validate C3 and workstation contracts
+      - name: Validate C3, workstation and fail-closed contracts
         run: |
           set -euo pipefail
           grep -q 'CHAMPION_MODEL = "C3_STABLE_3_PAST_IC_SHRUNK"' src/he_thong_dinh_luong/c3_hose_native_v67.py
@@ -37,10 +42,14 @@ jobs:
           grep -q 'vn_quant_local_system/.venv/Scripts/python.exe' scripts/run_v67_c3_hose_native_gitbash.sh
           grep -q 'CHALLENGER_ML_RUN=false' scripts/run_v67_c3_hose_native_gitbash.sh
           grep -q 'AUGUST_2026_SHADOW_ONLY=true' scripts/run_v67_c3_hose_native_gitbash.sh
+          grep -q 'run_all() (' scripts/run_v67_c3_hose_native_gitbash.sh
+          grep -q 'V67_DATA_GATE_BLOCKED:NO_POINT_IN_TIME_HOSE_VENUE_IN_MARKET_DB' scripts/run_v67_c3_hose_native_gitbash.sh
+          grep -q 'research_must_not_assume_adjusted_prices' src/he_thong_dinh_luong/hose_data_readiness_v67.py
           grep -q 'anti_regression_c3_hose.md' tai_lieu_dieu_phoi/nguyen_tac_du_an.md
           if grep -Eiq '(sklearn|lightgbm|xgboost|place_order|create_order|trading_token|otp)' \
             src/he_thong_dinh_luong/c3_hose_native_v67.py \
-            src/he_thong_dinh_luong/c3_hose_native_driver_v67.py; then
+            src/he_thong_dinh_luong/c3_hose_native_driver_v67.py \
+            src/he_thong_dinh_luong/hose_data_readiness_v67.py; then
             echo 'V67 must remain C3-native, dependency-light, and research-only' >&2
             exit 1
           fi
