@@ -1,0 +1,46 @@
+name: v67_c3_hose_native
+
+on:
+  push:
+    branches:
+      - agent/v67-c3-hose-native-research
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pure-contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile V67
+        run: |
+          python -m py_compile \
+            src/he_thong_dinh_luong/c3_hose_native_v67.py \
+            src/he_thong_dinh_luong/c3_hose_native_driver_v67.py \
+            tests/test_c3_hose_native_v67.py
+      - name: Run V67 pure tests
+        env:
+          PYTHONPATH: src
+        run: python -m unittest tests.test_c3_hose_native_v67 -v
+      - name: Validate runner syntax
+        run: bash -n scripts/run_v67_c3_hose_native_gitbash.sh
+      - name: Validate C3 and workstation contracts
+        run: |
+          set -euo pipefail
+          grep -q 'CHAMPION_MODEL = "C3_STABLE_3_PAST_IC_SHRUNK"' src/he_thong_dinh_luong/c3_hose_native_v67.py
+          grep -q 'STATIC_EXCHANGE_METADATA_NOT_ACCEPTED' src/he_thong_dinh_luong/c3_hose_native_v67.py
+          grep -q 'vn_quant_local_system/.venv/Scripts/python.exe' scripts/run_v67_c3_hose_native_gitbash.sh
+          grep -q 'CHALLENGER_ML_RUN=false' scripts/run_v67_c3_hose_native_gitbash.sh
+          grep -q 'AUGUST_2026_SHADOW_ONLY=true' scripts/run_v67_c3_hose_native_gitbash.sh
+          grep -q 'anti_regression_c3_hose.md' tai_lieu_dieu_phoi/nguyen_tac_du_an.md
+          if grep -Eiq '(sklearn|lightgbm|xgboost|place_order|create_order|trading_token|otp)' \
+            src/he_thong_dinh_luong/c3_hose_native_v67.py \
+            src/he_thong_dinh_luong/c3_hose_native_driver_v67.py; then
+            echo 'V67 must remain C3-native, dependency-light, and research-only' >&2
+            exit 1
+          fi
