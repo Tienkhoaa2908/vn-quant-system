@@ -26,6 +26,7 @@ jobs:
             src/he_thong_dinh_luong/hose_lineage_price_probe_v67.py \
             src/he_thong_dinh_luong/market_store_basis_audit_v67.py \
             src/he_thong_dinh_luong/c3_hose_consolidated_v68.py \
+            src/he_thong_dinh_luong/c3_hose_consolidated_v68_safe.py \
             tests/test_c3_hose_native_v67.py \
             tests/test_hose_data_readiness_v67.py \
             tests/test_hose_lineage_price_probe_v67.py \
@@ -52,13 +53,43 @@ jobs:
           grep -q 'BROAD_PROVISIONAL' src/he_thong_dinh_luong/c3_hose_consolidated_v68.py
           grep -q 'SEAM_CLEAN' src/he_thong_dinh_luong/c3_hose_consolidated_v68.py
           grep -q 'GAP18_CLEAN' src/he_thong_dinh_luong/c3_hose_consolidated_v68.py
+          grep -q 'closing(sqlite3.connect' src/he_thong_dinh_luong/c3_hose_consolidated_v68_safe.py
+          ! grep -q 'with sqlite3.connect' src/he_thong_dinh_luong/c3_hose_consolidated_v68_safe.py
+          grep -q 'c3_hose_consolidated_v68_safe as v68' tests/test_c3_hose_consolidated_v68.py
+          grep -q 'c3_hose_consolidated_v68_safe' scripts/run_v68_consolidated_c3_hose_gitbash.sh
           grep -q 'BOOTSTRAP_SAMPLES=2000' scripts/run_v68_consolidated_c3_hose_gitbash.sh
           grep -q 'vn_quant_local_system/.venv/Scripts/python.exe' scripts/run_v68_consolidated_c3_hose_gitbash.sh
           grep -q 'CHAMPION_REPLACED=false' scripts/run_v68_consolidated_c3_hose_gitbash.sh
           grep -q 'AUGUST_2026_SHADOW_ONLY=true' scripts/run_v68_consolidated_c3_hose_gitbash.sh
           grep -q 'SOURCE_STORE_MUTATION_ALLOWED=false' scripts/run_v68_consolidated_c3_hose_gitbash.sh
           if grep -Eiq '(sklearn|lightgbm|xgboost|place_order|create_order|trading_token|otp)' \
-            src/he_thong_dinh_luong/c3_hose_consolidated_v68.py; then
+            src/he_thong_dinh_luong/c3_hose_consolidated_v68.py \
+            src/he_thong_dinh_luong/c3_hose_consolidated_v68_safe.py; then
             echo 'V68 must remain C3-native, research-only, and challenger-free' >&2
             exit 1
           fi
+
+  windows-resource-contract:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile Windows resource-safe entrypoint
+        shell: pwsh
+        run: |
+          python -m py_compile `
+            src/he_thong_dinh_luong/c3_hose_native_v67.py `
+            src/he_thong_dinh_luong/c3_hose_native_driver_v67.py `
+            src/he_thong_dinh_luong/hose_data_readiness_v67.py `
+            src/he_thong_dinh_luong/hose_lineage_price_probe_v67.py `
+            src/he_thong_dinh_luong/market_store_basis_audit_v67.py `
+            src/he_thong_dinh_luong/c3_hose_consolidated_v68.py `
+            src/he_thong_dinh_luong/c3_hose_consolidated_v68_safe.py `
+            tests/test_c3_hose_consolidated_v68.py
+      - name: Run Windows consolidated cleanup regression
+        shell: pwsh
+        env:
+          PYTHONPATH: src
+        run: python -m unittest tests.test_c3_hose_consolidated_v68 -v
