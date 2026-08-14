@@ -43,6 +43,10 @@ jobs:
           bash -n scripts/run_v79_tactical_capital_policy_workstation_gitbash.sh
       - name: Exercise approved V78 web-state transaction
         run: |
+          EXPECTED='agent/v79-c3-tactical-capital-policy'
+          if [[ "$(git branch --show-current)" != "$EXPECTED" ]]; then
+            git switch -c "$EXPECTED"
+          fi
           WEBAPP='vn_quant_local_system/src/vn_quant_local/webapp.py'
           INDEX='vn_quant_local_system/web/index.html'
           printf '\n# V78_TACTICAL_BRIDGE_IMPORT\n' >> "$WEBAPP"
