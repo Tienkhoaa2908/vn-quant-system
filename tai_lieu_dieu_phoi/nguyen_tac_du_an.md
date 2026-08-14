@@ -49,6 +49,7 @@ dữ liệu → kiểm tra chất lượng → tập cổ phiếu theo từng th
 36. OHLCV dài nhiều năm không chứng minh point-in-time universe. Trước full-HOSE research phải xác minh venue/membership lịch sử và `price_basis`; nếu thiếu thì data gate fail-closed. `listing_date + current exchange` không được coi là exchange history.
 37. Runner workstation có log qua `tee` phải giữ fail-fast bên trong subshell/function có `set -euo pipefail`; lỗi test/compile không được phép bị command chạy sau che mất rồi báo success.
 38. Khi dùng SQLite file tạm trên Windows, connection phải được đóng rõ ràng trước cleanup; `with sqlite3.connect(...)` chỉ quản lý transaction và không được mặc định là đã giải phóng file handle.
+39. Data gate fail-closed ở quy tắc 36 chặn **canonical research claim, policy/model promotion và paper/live use**, nhưng không được làm blocker của một lane dừng toàn bộ research package. Được phép chạy `diagnostic sensitivity` bằng C3 trên universe provisional nếu output ghi rõ `provisional`, source store không bị sửa, không dùng kết quả để tuyên bố HOSE point-in-time chuẩn, và luôn chạy song song các biến thể loại symbol có price/basis anomaly. Diagnostic này dùng để đo độ nhạy và tăng tốc phát hiện vấn đề; không tự đóng data gate và không tự cho phép promotion.
 
 Chi tiết thực thi nằm tại:
 
