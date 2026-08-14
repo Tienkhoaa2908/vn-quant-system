@@ -36,7 +36,9 @@ First real workstation V77 run creates persistent ignored state:
 
 Do not delete/reset this directory after fresh OOS starts unless explicitly abandoning the experiment. `freeze_manifest.json` and captured signal CSVs are the paper-evidence chain.
 
-Freeze locks model IDs, diagnostic GAP18 symbol set, allocator, original store SHA/HEAD and first market day. Historical 2026 performance is not fresh OOS.
+Freeze locks model IDs, diagnostic GAP18 symbol set, allocator, paper-cost contract, original store SHA/HEAD and first market day. Historical 2026 performance is not fresh OOS.
+
+Existing state is fail-closed: model/variant/allocator/cost-definition drift aborts. A rerun of an already-captured monthly source signal must also recompute the same Top10/rank/score/risk-on before it is accepted as idempotent.
 
 ## Signal cadence
 
@@ -52,13 +54,30 @@ Current mid-August expected behavior with store ending around 2026-08-13:
 
 This is the desired first-run state, not a failure.
 
-## Current costs
+Monthly-completion uses Vietnam UTC+07:00 semantics and does not depend on Windows/Linux tzdata.
 
-Paper engine uses V70-like BASE research assumptions except transfer fee is not implemented in the M3 paper engine:
+## Current paper execution contract
+
+Paper engine uses the same comparative assumptions for C3 and Ridge:
+
+- initial capital 1bn VND;
+- Equal Top10;
+- lot 100;
+- buy/sell fee 2.7 bps;
+- sell tax 10 bps;
+- slippage 5 bps/side.
+
+Contract label:
 
 `V70_BASE_APPROX_NO_TRANSFER_FEE`.
 
-Never compare tiny C3/Ridge differences as exact V70 BASE differences without accounting for this.
+Important limitations:
+
+- M3 engine currently uses immediate cash reuse, not V70 `T+2/no-advance`;
+- transfer fee 0.3 VND/share is not modeled;
+- PIT sector 25% cap is not enforced while sector gate is open.
+
+Therefore do **not** call V77 exact V70 BASE P&L. It is a frozen comparative paper lane; both models use the same execution contract.
 
 ## Data gates
 
@@ -71,6 +90,10 @@ Expected current blockers from known store state:
 
 V77 scans local evidence JSON but does not download or invent proof. Fixtures never close gates. Price-basis external certificate must bind exact current store SHA.
 
+For PIT HOSE, dedicated contracts `pit_hose_membership_v1` / `hose_membership_interval_v1` can prove the venue when all fail-closed fields pass. Existing generic foundation contract `pit_membership_interval_v2` **does not prove HOSE by itself**; it may close the PIT-HOSE gate only if the certificate explicitly declares `venue_scope`, `exchange`, or `market = HOSE`. VN100/index membership coverage without venue scope remains insufficient.
+
+Corporate-action proof must come from corporate-action evidence, be non-fixture, inventory-complete, research-eligible, conflict-free and cover the target day.
+
 Paper OOS is allowed with blockers; promotion/canonical/live remain false.
 
 ## First workstation artifact review
@@ -82,10 +105,11 @@ When the user uploads `UPLOAD_THIS_v77_PAPER_OOS_LINEAGE-*.zip`, inspect in this
 3. verify `store_mutated=false`;
 4. capture/source dates and Vietnam wall-date contract;
 5. current C3 vs Ridge Top10 rankings;
-6. signals appended exactly once per model/source month;
+6. signals appended exactly once per model/source month and recompute verification passed;
 7. paper status. First run can legitimately have 0 fills / fresh sessions;
-8. data-lineage blocker list and any evidence candidates;
-9. no promotion/live authorization.
+8. paper execution limitations;
+9. data-lineage blocker list and any evidence candidates, including whether generic membership evidence has explicit HOSE scope;
+10. no promotion/live authorization.
 
 Do **not** demand historical P&L from V77. V70/V76 already provide historical P&L; V77's purpose is future unseen evidence.
 
