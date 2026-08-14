@@ -20,7 +20,10 @@ class TestHoseDataReadinessV67(unittest.TestCase):
         self.assertFalse(listing["shape_candidate"])
 
     def test_store_census_reports_coverage_price_basis_and_redacts_secret(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
+        # On Windows sqlite3 can retain read-only statement handles until process
+        # teardown even after the function has returned.  Cleanup failure is not
+        # part of the census contract, so temp cleanup is best-effort here.
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
             store = Path(tmp) / "market.sqlite3"
             with closing(sqlite3.connect(store)) as db:
                 db.execute("CREATE TABLE bars(asset_type TEXT, symbol TEXT, day TEXT, open REAL, close REAL, volume INTEGER, source TEXT, source_version TEXT, price_basis TEXT)")
@@ -42,7 +45,7 @@ class TestHoseDataReadinessV67(unittest.TestCase):
             self.assertEqual(report["bars_price_basis_distribution"][0]["price_basis"], "raw")
 
     def test_local_scan_finds_candidate_header_without_reading_market_store(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
             root = Path(tmp)
             path = root / "hose_membership_history.csv"
             with path.open("w", encoding="utf-8", newline="") as handle:
