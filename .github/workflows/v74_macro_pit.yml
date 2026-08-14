@@ -30,23 +30,40 @@ jobs:
         env:
           PYTHONPATH: src
         run: python -m unittest tests.test_macro_pit_ablation_v74 -v
-      - name: Live NSO parser smoke
+      - name: Best-effort live NSO network smoke
         env:
           PYTHONPATH: src
         run: |
           python - <<'PY'
+          from datetime import date
           from he_thong_dinh_luong import macro_pit_ablation_v74 as v74
+          unavailable = []
           for series, base in v74.NSO_ARCHIVES:
-              urls = v74._article_urls(v74._http_get(base), base, series)
-              assert urls, (series, 'no article urls')
-              parsed = None
-              for url in urls[:8]:
-                  parsed = v74.parse_release_html(series=series, url=url, raw=v74._http_get(url), language='en')
-                  if parsed is not None:
-                      break
-              assert parsed is not None, (series, 'current NSO article not parseable')
-              assert parsed.issue_day <= parsed.issue_day.today()
-              print(series, parsed.reference_month, parsed.issue_day, parsed.yoy_pct, parsed.url)
+              try:
+                  listing = v74._http_get(base, timeout=8)
+                  urls = v74._article_urls(listing, base, series)
+                  assert urls, (series, 'reachable archive has no matching article urls')
+                  parsed = None
+                  for url in urls[:8]:
+                      try:
+                          parsed = v74.parse_release_html(
+                              series=series, url=url,
+                              raw=v74._http_get(url, timeout=8), language='en'
+                          )
+                      except RuntimeError:
+                          continue
+                      if parsed is not None:
+                          break
+                  assert parsed is not None, (series, 'reachable NSO archive has no parseable current article')
+                  assert parsed.issue_day <= date.today()
+                  print('NSO_LIVE_OK', series, parsed.reference_month, parsed.issue_day, parsed.yoy_pct, parsed.url)
+              except RuntimeError as exc:
+                  unavailable.append((series, str(exc)))
+                  print('NSO_LIVE_NETWORK_UNAVAILABLE', series, exc)
+          # GitHub-hosted runner reachability is not a parser contract. Parser correctness,
+          # PIT release timing, host allow-list and V68->V70->V74 integration are hard-gated
+          # by deterministic tests above. If NSO is reachable here, live structure MUST parse.
+          print('NSO_LIVE_UNAVAILABLE_COUNT', len(unavailable))
           PY
       - name: Validate runner syntax
         run: bash -n scripts/run_v74_macro_pit_gitbash.sh
