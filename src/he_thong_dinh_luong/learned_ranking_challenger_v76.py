@@ -756,7 +756,7 @@ def analyze(
         all_rank_rows += [{"variant_id": vd.name, **dict(row)} for row in ranking_rows]
         all_fit_rows += [{"variant_id": vd.name, **dict(row)} for row in fit_rows]
         for policy, start in starts.items():
-            policy_start[policy] = min(policy_start.get(policy, start), start)
+            policy_start[policy] = max(policy_start.get(policy, start), start)
         _, labels = _recorded_eligible(vd)
         rim, ris = _rank_ic_diagnostics(vd.name, ranking_rows, labels)
         all_rank_ic_monthly += rim
