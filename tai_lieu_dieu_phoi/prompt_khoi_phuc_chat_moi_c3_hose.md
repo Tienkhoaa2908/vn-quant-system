@@ -23,10 +23,12 @@ Không yêu cầu tao kể lại lịch sử bằng trí nhớ. **GitHub, Git hi
 - `tai_lieu_dieu_phoi/v71_workstation_result_20260814.md`;
 - `tai_lieu_dieu_phoi/v72_workstation_result_20260814.md`;
 - `tai_lieu_dieu_phoi/v73_workstation_result_20260814.md`;
-- `tai_lieu_dieu_phoi/v74_research_contract.md` và `tai_lieu_dieu_phoi/v74_handoff.md` hoặc handoff mới hơn;
-- `tai_lieu_dieu_phoi/ban_dieu_phoi_hien_hanh.md`, `ban_giao_doan_chat.md`, `cong_viec_hien_tai.md` nếu tồn tại;
-- `DECISIONS.md`;
-- source/tests/runner/workflow/report contract của branch nghiên cứu mới nhất.
+- `tai_lieu_dieu_phoi/v74_workstation_result_20260814.md`;
+- `tai_lieu_dieu_phoi/v75_research_plan.md`;
+- `tai_lieu_dieu_phoi/v75_handoff.md`;
+- `tai_lieu_dieu_phoi/v75_speedup_policy.md`;
+- source/tests/runner/workflow/report contract của branch nghiên cứu mới nhất;
+- `DECISIONS.md` và các tài liệu điều phối khác nếu tồn tại.
 
 Nếu user vừa upload workstation artifact, **đọc artifact trước khi viết code tiếp**.
 
@@ -58,34 +60,21 @@ Tradable execution là contract khác:
 
 Không được trộn hai contract. Không random split time-series. Fit chỉ dùng completed past labels. Monthly canonical chỉ từ tháng đã hoàn tất.
 
-August 2026 đã được quan sát từ lâu: shadow/audit only, không tune.
+August 2026 và năm 2026 nói chung đã được quan sát: dùng stress attribution, **không dùng để đặt threshold/window/blend tối ưu**.
 
-Năm 2026 nói chung đã được quan sát: dùng stress attribution, **không dùng để đặt threshold tối ưu**.
+## 4. Research workflow bắt buộc
 
-## 4. Research workflow bắt buộc từ V70
+Đọc `chuan_nghien_cuu_va_backtest.md` và `v75_speedup_policy.md`.
 
-Đọc `chuan_nghien_cuu_va_backtest.md` và làm theo thứ tự:
+Từ V75, không quay lại nhịp một hypothesis/một workstation cycle nếu các lane có thể chạy độc lập trong cùng package. External-data lane có thể fail closed riêng nhưng không được chặn local C3/factor research nếu không phải primary truth input.
 
-`data/provenance -> frozen C3 causal research -> matched controls/dependence-correct inference -> mandatory deep portfolio backtest -> bear/relative-alpha audit -> optional macro PIT ablation -> paper holdout/promotion`.
+Workflow:
 
-Không được kết luận từ AUC/IC/cohort mean nếu chưa xem P&L thực thi.
+`data/provenance -> frozen C3 causal comparator -> multiple predeclared stock-selection lanes -> winner-capture/loser-avoidance -> matched dependence-correct inference -> mandatory deep portfolio backtest -> bear/relative-alpha audit -> optional macro PIT -> paper holdout/promotion`.
 
-Mọi research bundle và mọi trả lời kết quả phải **bắt đầu bằng profit report**:
+Không được kết luận từ IC/cohort mean nếu chưa xem P&L thực thi.
 
-- total return;
-- benchmark return;
-- alpha;
-- CAGR;
-- max drawdown;
-- annual returns/alpha;
-- rolling alpha;
-- down-market behavior;
-- turnover/cost drag;
-- gross/base/stress;
-- capital/lot sensitivity;
-- assumptions/blockers.
-
-Nếu chỉ có proxy phải ghi `proxy`; không gọi là exact backtest.
+Mọi research bundle và mọi trả lời kết quả phải **bắt đầu bằng profit report**: total return, benchmark, alpha, CAGR, MDD, annual/rolling alpha, down-market behavior, turnover/cost drag, gross/base/stress, T+2/capital sensitivity và blockers.
 
 ## 5. Deep backtest contract
 
@@ -103,77 +92,62 @@ Tối thiểu:
 - turnover + ADV participation;
 - daily equity/drawdown;
 - benchmark same calendar;
-- exposure-matched decomposition khi policy khác stock exposure;
+- exposure-matched decomposition khi exposure thay đổi;
 - GROSS / BASE / STRESS / SEVERE;
-- settlement sensitivity khi sale proceeds không tái dùng ngay.
+- T+2/no-advance settlement sensitivity;
+- capital/lot sensitivity.
 
-Một năm lỗ tuyệt đối không tự động là thất bại nếu vẫn tạo alpha/risk benefit. Nhưng **thị trường khó không được dùng để bào chữa nếu model underperform benchmark**.
+Một năm lỗ tuyệt đối không tự động là thất bại nếu vẫn có alpha/risk benefit. Nhưng market difficulty không được dùng để bào chữa khi model underperform benchmark.
 
 ## 6. Macro lane
 
-Không thêm macro cho đủ feature. Chỉ thêm sau attribution nếu có mechanism hợp lý.
+V74 standalone đã **không sinh macro P&L**: workstation thu CPI=111 first-release months nhưng IIP=59, dưới strict gate 80. Đây là coverage/collector limitation, không phải bằng chứng macro fail.
 
-Nếu thêm macro:
+V75 đổi macro thành optional nonblocking late-era diagnostic: official NSO CPI/IIP, publication-date PIT, minimum 48 observations/series. Nếu macro site/coverage fail thì ghi `MACRO_LANE_BLOCKED` và tiếp tục stock-selection research. Không chạy lại standalone collector probe chỉ để sửa coverage.
 
-- official sources trước;
-- feature chỉ khả dụng sau publication/release timestamp;
-- first release/vintage khi có thể;
-- không backfill revision vào quá khứ;
-- purged C3-vs-C3+macro ablation trên cùng folds và cùng deep backtest;
-- không tune bằng 2026/August đã quan sát.
+## 7. Durable empirical state trước V75
 
-V74 là macro lane đầu tiên và cố tình chỉ dùng official NSO CPI YoY + IIP YoY, publication-date PIT. Không tự mở thêm SBV/FX/rate/credit trước khi đọc V74 result.
+- V70 GAP18_CLEAN Equal BASE frozen C3: `+372.5536%`, CAGR `18.6432%`, MDD `-38.1011%`; same-calendar VNINDEX `+124.5317%`.
+- V71 adaptive-weight: `0/12` pre-2026 tests pass. Không promote.
+- V72 L15/R08 weekly overlay: directional P&L tốt hơn nhưng `0/18` return gates pass. Không tune tiếp.
+- V73 factor-health: 0 watchlist pass. RS3 giảm GAP18 Equal 2026 từ khoảng `-12.38%` xuống `-2.06%` nhưng full-history BASE return giảm từ `+372.55%` xuống `+304.59%`; diagnostic đúng nhưng hard exposure gate không được chọn.
+- V74 macro: blocked bởi IIP coverage 59<80; không có macro P&L.
+- 2026 relative failure không phải do riêng PNJ. Working diagnosis: cross-sectional/momentum regime lag, bỏ lỡ leader mới và đôi khi vào stale momentum sau khi move đã xảy ra.
 
-## 7. Các lỗi lịch sử không được lặp
+## 8. V75 current research package
 
-Bắt buộc đọc `anti_regression_c3_hose.md`. Tối thiểu nhớ:
+Branch khi prompt này được cập nhật: `agent/v75-consolidated-selection-optimization`.
 
-- V61 exposure confounder;
-- V62 cherry-pick tail metric;
-- V63 VPI rank-only blind spot;
-- V64 raw event-count overlap illusion + missing latest shadow;
-- V64/V65 stale canonical và 119-symbol universe mistake;
-- V65 robustness không chữa data lineage;
-- V66 tự thay C3 bằng Logistic/HGB và đổi env sai tầng;
-- V67 từng trộn C3 training label với t+1 outcome;
-- SQLite Windows connection lifetime;
-- Linux CI không thay Windows CI cho workstation behavior;
-- bootstrap tail probability không phải null p-value;
-- incremental edge phải matched-control cùng thời điểm;
-- CI success không phải research result.
+V75 predeclares và chạy song song:
 
-## 8. GitHub-first và one-shot
+- frozen `C3_BASELINE`;
+- `C3_FAST_REL20_25`;
+- `C3_FAST_ACCEL_25`;
+- `C3_FRESH_BREAKOUT_25`;
+- `C3_AUX_IC36_35` dùng auxiliary IC 36 completed months causal;
+- winner-capture / loser-contamination diagnostics;
+- optional NSO CPI/IIP publication-date PIT macro;
+- full V70 deep backtest cho candidate;
+- paired pre-2026 sign-flip + block-bootstrap + BH-FDR;
+- 2026 shadow only.
+
+Auxiliary features gồm relative 5/10/20, momentum acceleration, breakout20, distance MA20, volume confirmation và short-vs-long realized-vol stability.
+
+Không được đổi blend fractions/windows từ 2026 sau khi artifact chạy. Nếu V75 không tìm được enhancement robust, dừng mở rộng historical threshold search và ưu tiên fresh paper holdout + data-lineage/PIT completion.
+
+## 9. GitHub-first và one-shot
 
 Code workstation phải hoàn tất trên GitHub branch trước: self-review -> tests -> Linux/Windows CI -> remote HEAD verify -> mới giao Git Bash `fetch/switch/pull` + một runner.
 
-Ưu tiên **một consolidated work package** thu data audit + C3 + inference + profit + deep backtest. Không chia nhỏ thành nhiều probe nếu các lane có thể chạy an toàn trong một lần.
-
-Không sửa/merge main nếu chưa được phép.
-
-## 9. Mốc nghiên cứu hiện hành khi prompt này được cập nhật
-
-Branch đang phát triển: `agent/v74-macro-pit-ablation`.
-
-Durable workstation facts:
-
-- V70: GAP18_CLEAN Equal BASE frozen C3 `+372.5536%`, CAGR `18.6432%`, MDD `-38.1011%`, cùng-calendar VNINDEX `+124.5317%`;
-- V71: EWMA/rolling adaptive weight **0/12** pre-2026 tests pass; EWMA chỉ là 2026 stress clue, không promote;
-- V72: L15/R08 directional P&L tốt hơn nhưng **0/18** standalone return gates pass; không tune threshold/fraction;
-- V73: factor-health gates **0** watchlist pass. `FH_RS3_SOFT50` giảm GAP18 Equal 2026 từ khoảng `-12.38%` xuống `-2.06%` và cải thiện April khoảng `+5.57pp`, nhưng làm full-history BASE return giảm từ `+372.55%` xuống `+304.59%`. Vì vậy recent RS120 IC deterioration là diagnostic hợp lý nhưng permanent soft50 gate không được chọn;
-- 2026 vẫn là relative failure thật của frozen C3, không phải do riêng PNJ. Root cause hiện tại nghiêng về cross-sectional/momentum regime lag và bỏ lỡ leader mới;
-- V74 kiểm độc lập macro PIT bằng official NSO CPI/IIP first release, không thay C3 ranking, không dùng 2026 để chọn rule.
-
-PIT HOSE, price-basis/corporate-action và PIT-sector vẫn là data gates chưa giải quyết cho canonical/live claims.
-
-Phải verify HEAD/CI/artifact mới hơn trước khi hành động.
+Không sửa/merge main nếu chưa được phép. CI success không phải research result; workstation artifact real data vẫn bắt buộc.
 
 ## 10. Cách trả lời sau restore
 
 Trả lời ngắn gọn theo thứ tự:
 
-1. hiện trạng xác minh: branch/HEAD/PR/CI/artifact;
+1. branch/HEAD/PR/CI/artifact đã xác minh;
 2. **profit/backtest state hiện tại**;
-3. kết luận data/C3/signal/macro;
+3. kết luận stock selection / winner capture / macro;
 4. blocker/rủi ro;
 5. hành động kế tiếp cụ thể.
 
