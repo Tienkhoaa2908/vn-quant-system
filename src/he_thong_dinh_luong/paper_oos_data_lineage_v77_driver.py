@@ -2,8 +2,9 @@
 
 Vietnam has no daylight-saving transition in the project period, so this driver
 uses an explicit UTC+07:00 timezone instead of depending on host tzdata. It also
-recognizes the repository's existing PIT membership coverage contract without
-relaxing any research-eligibility requirement.
+recognizes the repository's existing PIT membership coverage contract and refuses
+to continue an existing paper experiment if its frozen model/universe definition
+differs from the current V77 contract.
 """
 from __future__ import annotations
 
@@ -92,6 +93,29 @@ def _scan_evidence_once(
     return {"passes": passes, "candidates": candidates, "files_scanned": len(paths)}
 
 
+def _validate_existing_freeze(state_dir: Path) -> None:
+    path = Path(state_dir) / "freeze_manifest.json"
+    if not path.is_file():
+        return
+    freeze = json.loads(path.read_text(encoding="utf-8-sig"))
+    expected = {
+        "schema_version": core.FREEZE_SCHEMA,
+        "champion_model": core.CHAMPION_MODEL,
+        "shadow_model": core.SHADOW_MODEL,
+        "primary_variant": core.PRIMARY_VARIANT,
+        "primary_allocator": core.PRIMARY_ALLOCATOR,
+        "paper_cost_contract": core.PAPER_COST_CONTRACT,
+        "future_model_mutation_allowed": False,
+        "capital_authorized": False,
+    }
+    for key, value in expected.items():
+        if freeze.get(key) != value:
+            raise ValueError(f"V77_EXISTING_FREEZE_DEFINITION_DRIFT:{key}")
+    symbols = freeze.get("variant_symbols")
+    if not isinstance(symbols, list) or len(symbols) < 10 or len(symbols) != len(set(map(str, symbols))):
+        raise ValueError("V77_EXISTING_FREEZE_VARIANT_SYMBOLS_INVALID")
+
+
 def run(
     *,
     store: Path,
@@ -105,6 +129,7 @@ def run(
     captured = captured_at or datetime.now(timezone.utc)
     if captured.tzinfo is None or captured.utcoffset() is None:
         raise ValueError("V77_CAPTURE_TIME_MUST_HAVE_TIMEZONE")
+    _validate_existing_freeze(Path(state_dir))
     vn_wall_day = captured.astimezone(VN_TZ).date()
     original_boundary = core._analysis_end_for_capture
     original_scan = core._scan_evidence
@@ -130,6 +155,7 @@ def run(
     report["wall_date_contract"] = "ASIA_HO_CHI_MINH_UTC_PLUS_07"
     report["capture_wall_date_vn"] = vn_wall_day.isoformat()
     report["pit_membership_contracts_recognized"] = sorted(PIT_MEMBERSHIP_CONTRACTS)
+    report["existing_freeze_definition_verified"] = True
     (Path(output_dir) / "v77_report.json").write_text(core._json_text(report), encoding="utf-8")
     return report
 
