@@ -25,11 +25,13 @@ jobs:
             src/he_thong_dinh_luong/deep_portfolio_backtest_v70.py \
             src/he_thong_dinh_luong/c3_adaptive_weight_v71.py \
             src/he_thong_dinh_luong/c3_adaptive_weight_v71_safe.py \
-            tests/test_c3_adaptive_weight_v71.py
+            src/he_thong_dinh_luong/c3_adaptive_weight_v71_reportfix.py \
+            tests/test_c3_adaptive_weight_v71.py \
+            tests/test_c3_adaptive_weight_v71_reporting.py
       - name: Run V71 pure and end-to-end tests
         env:
           PYTHONPATH: src
-        run: python -m unittest tests.test_c3_adaptive_weight_v71 -v
+        run: python -m unittest tests.test_c3_adaptive_weight_v71 tests.test_c3_adaptive_weight_v71_reporting -v
       - name: Validate runner syntax
         run: bash -n scripts/run_v71_c3_adaptive_weight_gitbash.sh
       - name: Validate frozen C3 and selection contracts
@@ -45,11 +47,13 @@ jobs:
           grep -q 'promotion_authorized": False' src/he_thong_dinh_luong/c3_adaptive_weight_v71.py
           grep -q 'V67_FROZEN_TRAINING_ROW' src/he_thong_dinh_luong/c3_adaptive_weight_v71_safe.py
           grep -q 'DIRECT_RAW_STORE_CAUSAL_LATEST' src/he_thong_dinh_luong/c3_adaptive_weight_v71_safe.py
-          grep -q 'c3_adaptive_weight_v71_safe' scripts/run_v71_c3_adaptive_weight_gitbash.sh
+          grep -q 'annual_cost_scenario_preserved' src/he_thong_dinh_luong/c3_adaptive_weight_v71_reportfix.py
+          grep -q 'adaptive_2026_shadow_included' src/he_thong_dinh_luong/c3_adaptive_weight_v71_reportfix.py
+          grep -q 'c3_adaptive_weight_v71_reportfix' scripts/run_v71_c3_adaptive_weight_gitbash.sh
           grep -q 'PRIMARY_SELECTION_END=2025-12-31' scripts/run_v71_c3_adaptive_weight_gitbash.sh
           grep -q 'YEAR_2026_USED_FOR_SELECTION=false' scripts/run_v71_c3_adaptive_weight_gitbash.sh
           grep -q 'MACRO_INCLUDED=false' scripts/run_v71_c3_adaptive_weight_gitbash.sh
-          if grep -Eiq '(sklearn|lightgbm|xgboost|place_order|create_order|trading_token|otp)' src/he_thong_dinh_luong/c3_adaptive_weight_v71.py src/he_thong_dinh_luong/c3_adaptive_weight_v71_safe.py; then
+          if grep -Eiq '(sklearn|lightgbm|xgboost|place_order|create_order|trading_token|otp)' src/he_thong_dinh_luong/c3_adaptive_weight_v71.py src/he_thong_dinh_luong/c3_adaptive_weight_v71_safe.py src/he_thong_dinh_luong/c3_adaptive_weight_v71_reportfix.py; then
             echo 'V71 must remain frozen-C3 research-only and challenger-ML free' >&2
             exit 1
           fi
@@ -62,8 +66,8 @@ jobs:
         with:
           python-version: '3.12'
       - name: Compile V71 on Windows
-        run: python -m py_compile src/he_thong_dinh_luong/deep_portfolio_backtest_v70.py src/he_thong_dinh_luong/c3_adaptive_weight_v71.py src/he_thong_dinh_luong/c3_adaptive_weight_v71_safe.py tests/test_c3_adaptive_weight_v71.py
+        run: python -m py_compile src/he_thong_dinh_luong/deep_portfolio_backtest_v70.py src/he_thong_dinh_luong/c3_adaptive_weight_v71.py src/he_thong_dinh_luong/c3_adaptive_weight_v71_safe.py src/he_thong_dinh_luong/c3_adaptive_weight_v71_reportfix.py tests/test_c3_adaptive_weight_v71.py tests/test_c3_adaptive_weight_v71_reporting.py
       - name: Run V71 end-to-end on Windows
         env:
           PYTHONPATH: src
-        run: python -m unittest tests.test_c3_adaptive_weight_v71 -v
+        run: python -m unittest tests.test_c3_adaptive_weight_v71 tests.test_c3_adaptive_weight_v71_reporting -v
