@@ -41,6 +41,25 @@ jobs:
         run: |
           bash -n scripts/run_v79_tactical_capital_policy_gitbash.sh
           bash -n scripts/run_v79_tactical_capital_policy_workstation_gitbash.sh
+      - name: Exercise approved V78 web-state transaction
+        run: |
+          WEBAPP='vn_quant_local_system/src/vn_quant_local/webapp.py'
+          INDEX='vn_quant_local_system/web/index.html'
+          printf '\n# V78_TACTICAL_BRIDGE_IMPORT\n' >> "$WEBAPP"
+          printf '\n<!-- V78_TACTICAL_EXISTING_WEB -->\n' >> "$INDEX"
+          cat > /tmp/v79-inner-stub.sh <<'EOF'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          git diff --quiet
+          git diff --cached --quiet
+          echo 'V79_TRANSACTION_INNER_CLEAN=true'
+          EOF
+          chmod +x /tmp/v79-inner-stub.sh
+          V79_INNER_RUNNER=/tmp/v79-inner-stub.sh bash scripts/run_v79_tactical_capital_policy_workstation_gitbash.sh
+          grep -q 'V78_TACTICAL_BRIDGE_IMPORT' "$WEBAPP"
+          grep -q 'V78_TACTICAL_EXISTING_WEB' "$INDEX"
+          git restore --worktree -- "$WEBAPP" "$INDEX"
+          git diff --quiet
       - name: Guard frozen architecture and causal contracts
         run: |
           grep -q 'CHAMPION_MODEL = "C3_STABLE_3_PAST_IC_SHRUNK"' src/he_thong_dinh_luong/tactical_capital_policy_v79.py
