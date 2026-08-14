@@ -1,21 +1,20 @@
 """Vietnam-time and evidence-contract-safe entry point for V77.
 
-The core V77 package is intentionally deterministic around a captured timestamp.
-This driver makes the monthly-completion decision from Asia/Ho_Chi_Minh calendar
-semantics and recognizes the repository's existing PIT membership coverage contract
-without relaxing any research-eligibility requirement.
+Vietnam has no daylight-saving transition in the project period, so this driver
+uses an explicit UTC+07:00 timezone instead of depending on host tzdata. It also
+recognizes the repository's existing PIT membership coverage contract without
+relaxing any research-eligibility requirement.
 """
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Mapping, Sequence
-from zoneinfo import ZoneInfo
 
 from . import paper_oos_data_lineage_v77 as core
 
-VN_TZ = ZoneInfo("Asia/Ho_Chi_Minh")
+VN_TZ = timezone(timedelta(hours=7), name="Asia/Ho_Chi_Minh")
 PIT_MEMBERSHIP_CONTRACTS = {
     "pit_membership_interval_v2",
     "pit_hose_membership_v1",
@@ -128,7 +127,7 @@ def run(
     finally:
         core._analysis_end_for_capture = original_boundary
         core._scan_evidence = original_scan
-    report["wall_date_contract"] = "ASIA_HO_CHI_MINH"
+    report["wall_date_contract"] = "ASIA_HO_CHI_MINH_UTC_PLUS_07"
     report["capture_wall_date_vn"] = vn_wall_day.isoformat()
     report["pit_membership_contracts_recognized"] = sorted(PIT_MEMBERSHIP_CONTRACTS)
     (Path(output_dir) / "v77_report.json").write_text(core._json_text(report), encoding="utf-8")
