@@ -86,10 +86,12 @@ Không lấy V22, Top-N snapshot, candidate list, canonical Top10/preview Top20 
 
 Membership HOSE phải point-in-time. Nếu chỉ có static/current mapping thì **fail-closed**; không được áp danh sách hiện tại ngược về lịch sử.
 
-### 4. Causality
+### 4. Causality và hai contract nhãn/thi hành
 
 - Signal dùng dữ liệu hoàn tất tại close phiên `t`.
-- Entry sớm nhất open phiên `t+1`.
+- **Nhãn học trọng số C3 gốc phải giữ nguyên: relative return `close(T) -> close(T+20)` so với VNINDEX cùng horizon.**
+- Tradable execution/outcome là contract khác: entry sớm nhất tại `open(T+1)`.
+- Không được thay nhãn C3 bằng t+1-open return chỉ vì backtest dùng t+1 execution.
 - Mọi label dùng cho fit phải có `label_end < signal_day` tại thời điểm fit.
 - Không random split chuỗi thời gian.
 - Monthly canonical chỉ từ tháng đã hoàn tất.
@@ -136,6 +138,8 @@ Nếu code cần chạy trên workstation:
 
 11. **CI != research result:** CI success chỉ verify code/contract. Kết luận chỉ sau workstation artifact chạy trên data thật và audit sâu.
 
+12. **V67 pre-run label-contract bug đã được bắt:** bản đầu từng dùng t+1-open→open(T+21) làm nhãn học trọng số C3. Đó không phải C3 gốc. Đã sửa: training label C3 là close(T)→close(T+20); t+1-open chỉ dành cho tradable outcome/backtest. Nếu sau này thấy hai contract bị trộn lại thì phải chặn ngay.
+
 ## PHẦN D — NGUYÊN TẮC NGHIÊN CỨU
 
 Protection và opportunity nghiên cứu riêng trước khi combine.
@@ -175,7 +179,8 @@ Mục tiêu V67:
 - đọc local SQLite 11 năm;
 - require point-in-time HOSE membership;
 - rebuild monthly C3 champion từ store;
-- C3 weight fit chỉ dùng completed past labels;
+- C3 weight fit dùng nhãn gốc close(T)→close(T+20) và chỉ dùng completed past labels;
+- tradable outcome vẫn dùng next-session open;
 - July 2026 canonical phải có thể được rebuild để August shadow không stale;
 - weekly preview dùng cùng C3 weights trên broad HOSE;
 - re-test 36 protection/opportunity cohort đã predeclare;
