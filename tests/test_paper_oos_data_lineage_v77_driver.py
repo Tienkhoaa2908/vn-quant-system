@@ -89,6 +89,34 @@ class TestV77Driver(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "V77_EXISTING_FREEZE_DEFINITION_DRIFT:champion_model"):
                 driver._validate_existing_freeze(state)
 
+    def test_existing_source_signal_must_recompute_identically(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp)
+            ranking = [
+                {"symbol": f"S{i:02d}", "rank": i + 1, "score": 1.0 - i / 20.0}
+                for i in range(12)
+            ]
+            kwargs = dict(
+                state_dir=state,
+                model_id=core.CHAMPION_MODEL,
+                capture_day=date(2026, 8, 14),
+                source_day=date(2026, 7, 31),
+                captured_at=datetime(2026, 8, 14, 12, tzinfo=timezone.utc),
+                ranking=ranking,
+                risk_on=True,
+                git_head="head",
+                store_sha="0" * 64,
+            )
+            core._record_model_signal(**kwargs)
+            guarded = driver._guarded_signal_recorder(core._record_model_signal)
+            path, created = guarded(**kwargs)
+            self.assertIsNone(path)
+            self.assertFalse(created)
+            bad = [dict(row) for row in ranking]
+            bad[0]["symbol"] = "DIFF"
+            with self.assertRaisesRegex(ValueError, "V77_EXISTING_SOURCE_SIGNAL_RECOMPUTE_DRIFT"):
+                guarded(**{**kwargs, "ranking": bad})
+
 
 if __name__ == "__main__":
     unittest.main()
