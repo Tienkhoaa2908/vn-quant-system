@@ -1,20 +1,27 @@
-"""Vietnam-time and evidence-contract-safe entry point for V77.
+"""Vietnam-time, causal-execution and evidence-contract-safe entry point for V77.
 
 Vietnam has no daylight-saving transition in the project period, so this driver
 uses an explicit UTC+07:00 timezone instead of depending on host tzdata. Generic
 PIT membership evidence can close the HOSE gate only when its venue scope explicitly
 says HOSE. Existing paper definitions and monthly signals are revalidated before an
 idempotent rerun is accepted.
+
+V77 workstation capture is an after-EOD workflow. A signal captured on Vietnam
+calendar day D may therefore execute no earlier than the first market session on or
+after D+1, even when the local market store is stale and still ends at D-1. This
+prevents a later data sync from retroactively filling at an open that occurred before
+the target was actually captured.
 """
 from __future__ import annotations
 
 import json
 import math
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Mapping, Sequence
 
 from . import paper_oos_data_lineage_v77 as core
+from .mo_phong import engine as sim_engine
 
 VN_TZ = timezone(timedelta(hours=7), name="Asia/Ho_Chi_Minh")
 PIT_MEMBERSHIP_CONTRACTS = {
@@ -22,6 +29,7 @@ PIT_MEMBERSHIP_CONTRACTS = {
     "pit_hose_membership_v1",
     "hose_membership_interval_v1",
 }
+EXECUTION_FLOOR_CONTRACT = "FIRST_MARKET_SESSION_ON_OR_AFTER_CAPTURE_VN_DATE_PLUS_1"
 
 
 def _explicit_hose_scope(record: Mapping[str, object], contract: str) -> bool:
@@ -171,6 +179,106 @@ def _guarded_signal_recorder(original):
     return record
 
 
+def _execution_floor_by_signal_day(state_dir: Path, model_id: str) -> dict[date, date]:
+    rows = core._all_model_signals(Path(state_dir), model_id)
+    captures: dict[date, set[str]] = {}
+    for row in rows:
+        signal_day = date.fromisoformat(str(row["paper_signal_day"]))
+        captured_text = str(row.get("captured_at") or "")
+        try:
+            captured = datetime.fromisoformat(captured_text)
+        except ValueError as exc:
+            raise ValueError(f"V77_CAPTURE_TIMESTAMP_INVALID:{model_id}:{signal_day}") from exc
+        if captured.tzinfo is None or captured.utcoffset() is None:
+            raise ValueError(f"V77_CAPTURE_TIMESTAMP_NAIVE:{model_id}:{signal_day}")
+        captures.setdefault(signal_day, set()).add(captured.astimezone(timezone.utc).isoformat())
+    floors: dict[date, date] = {}
+    for signal_day, timestamps in captures.items():
+        if len(timestamps) != 1:
+            raise ValueError(f"V77_SIGNAL_CAPTURE_TIMESTAMP_CONFLICT:{model_id}:{signal_day}")
+        captured = datetime.fromisoformat(next(iter(timestamps)))
+        floor = captured.astimezone(VN_TZ).date() + timedelta(days=1)
+        if floor <= signal_day:
+            raise ValueError(f"V77_EXECUTION_FLOOR_NOT_AFTER_SIGNAL:{model_id}:{signal_day}:{floor}")
+        floors[signal_day] = floor
+    return floors
+
+
+def _floor_aware_next_session(original, floors: Mapping[date, date]):
+    def next_session(cac_ngay, chi_so, ngay):
+        floor = floors.get(ngay)
+        if floor is None:
+            return original(cac_ngay, chi_so, ngay)
+        start = chi_so[ngay] + 1
+        for candidate in cac_ngay[start:]:
+            if candidate >= floor:
+                return candidate
+        return None
+
+    return next_session
+
+
+def _guarded_replay(original):
+    def replay(state_dir: Path, store: Path, model_id: str, output_dir: Path):
+        floors = _execution_floor_by_signal_day(Path(state_dir), model_id)
+        if not floors:
+            return original(state_dir, store, model_id, output_dir)
+        original_next = sim_engine._ngay_ke_tiep
+        sim_engine._ngay_ke_tiep = _floor_aware_next_session(original_next, floors)
+        try:
+            result = original(state_dir, store, model_id, output_dir)
+        finally:
+            sim_engine._ngay_ke_tiep = original_next
+
+        safe = model_id.lower().replace("/", "_")
+        orders_path = Path(output_dir) / f"v77_{safe}_orders.csv"
+        nav_path = Path(output_dir) / f"v77_{safe}_nav.csv"
+        orders = core._read_csv(orders_path)
+        latest_market = date.fromisoformat(str(result.get("latest_market_day")))
+        retroactive = 0
+        for row in orders:
+            signal_text = str(row.get("signal_date") or "")
+            if not signal_text:
+                continue
+            signal_day = date.fromisoformat(signal_text)
+            floor = floors.get(signal_day)
+            if floor is None:
+                continue
+            row["causal_execution_floor_date"] = floor.isoformat()
+            execution_text = str(row.get("execution_date") or "").strip()
+            if execution_text:
+                execution_day = date.fromisoformat(execution_text)
+                if execution_day < floor:
+                    retroactive += 1
+            elif latest_market < floor:
+                row["status"] = "PENDING_NEXT_SESSION"
+                row["reason"] = "CAUSAL_EXECUTION_FLOOR_NOT_REACHED"
+        if retroactive:
+            raise RuntimeError(f"V77_RETROACTIVE_FILL_DETECTED:{model_id}:{retroactive}")
+        if orders:
+            core._write_csv(orders_path, orders)
+            result["pending_order_count"] = sum(
+                str(row.get("status") or "") == "PENDING_NEXT_SESSION" for row in orders
+            )
+
+        earliest_floor = min(floors.values())
+        nav_rows = core._read_csv(nav_path)
+        result["fresh_oos_session_count"] = sum(
+            date.fromisoformat(str(row["ngay"])) >= earliest_floor
+            for row in nav_rows
+            if row.get("ngay")
+        )
+        result["execution_floor_contract"] = EXECUTION_FLOOR_CONTRACT
+        result["execution_floor_by_signal_day"] = {
+            signal.isoformat(): floor.isoformat() for signal, floor in sorted(floors.items())
+        }
+        result["earliest_execution_floor_date"] = earliest_floor.isoformat()
+        result["retroactive_fill_count"] = 0
+        return result
+
+    return replay
+
+
 def run(
     *,
     store: Path,
@@ -189,6 +297,7 @@ def run(
     original_boundary = core._analysis_end_for_capture
     original_scan = core._scan_evidence
     original_recorder = core._record_model_signal
+    original_replay = core._replay_model
 
     def vietnam_boundary(capture_day, _host_wall_day, confirmed):
         return original_boundary(capture_day, vn_wall_day, confirmed)
@@ -196,6 +305,7 @@ def run(
     core._analysis_end_for_capture = vietnam_boundary
     core._scan_evidence = _scan_evidence_once
     core._record_model_signal = _guarded_signal_recorder(original_recorder)
+    core._replay_model = _guarded_replay(original_replay)
     try:
         report = core.run(
             store=store,
@@ -210,13 +320,21 @@ def run(
         core._analysis_end_for_capture = original_boundary
         core._scan_evidence = original_scan
         core._record_model_signal = original_recorder
+        core._replay_model = original_replay
     report["wall_date_contract"] = "ASIA_HO_CHI_MINH_UTC_PLUS_07"
     report["capture_wall_date_vn"] = vn_wall_day.isoformat()
     report["pit_membership_contracts_recognized"] = sorted(PIT_MEMBERSHIP_CONTRACTS)
     report["generic_membership_requires_explicit_hose_scope"] = True
     report["existing_freeze_definition_verified"] = True
     report["existing_source_signal_recompute_verified"] = True
+    report["causal_execution_floor_verified"] = all(
+        int(payload.get("retroactive_fill_count") or 0) == 0
+        and payload.get("execution_floor_contract") == EXECUTION_FLOOR_CONTRACT
+        for payload in report["paper_results"].values()
+    )
     report["paper_execution_limitations"] = {
+        "execution_floor_contract": EXECUTION_FLOOR_CONTRACT,
+        "retroactive_fill_allowed": False,
         "settlement_mode": "M3_ENGINE_DEFAULT_IMMEDIATE_CASH_REUSE",
         "t2_no_advance_modeled": False,
         "transfer_fee_vnd_per_share_modeled": False,
@@ -252,6 +370,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "champion_paper": report["paper_results"][core.CHAMPION_MODEL],
         "shadow_paper": report["paper_results"][core.SHADOW_MODEL],
         "data_gate_blockers": report["data_lineage"]["blockers"],
+        "causal_execution_floor_verified": report["causal_execution_floor_verified"],
         "promotion_authorized": False,
     }, ensure_ascii=False, sort_keys=True))
     return 0
