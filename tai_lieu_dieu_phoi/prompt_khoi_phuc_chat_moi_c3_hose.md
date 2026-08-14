@@ -19,7 +19,11 @@ Không yêu cầu tao kể lại lịch sử bằng trí nhớ. **GitHub, Git hi
 - `tai_lieu_dieu_phoi/chuan_nghien_cuu_va_backtest.md`;
 - `tai_lieu_dieu_phoi/anti_regression_c3_hose.md`;
 - `tai_lieu_dieu_phoi/anti_regression_v67_data_gate.md`;
-- `tai_lieu_dieu_phoi/v70_backtest_handoff.md` hoặc handoff mới hơn;
+- `tai_lieu_dieu_phoi/v70_workstation_result_20260814.md`;
+- `tai_lieu_dieu_phoi/v71_workstation_result_20260814.md`;
+- `tai_lieu_dieu_phoi/v72_workstation_result_20260814.md`;
+- `tai_lieu_dieu_phoi/v73_workstation_result_20260814.md`;
+- `tai_lieu_dieu_phoi/v74_research_contract.md` và `tai_lieu_dieu_phoi/v74_handoff.md` hoặc handoff mới hơn;
 - `tai_lieu_dieu_phoi/ban_dieu_phoi_hien_hanh.md`, `ban_giao_doan_chat.md`, `cong_viec_hien_tai.md` nếu tồn tại;
 - `DECISIONS.md`;
 - source/tests/runner/workflow/report contract của branch nghiên cứu mới nhất.
@@ -118,6 +122,8 @@ Nếu thêm macro:
 - purged C3-vs-C3+macro ablation trên cùng folds và cùng deep backtest;
 - không tune bằng 2026/August đã quan sát.
 
+V74 là macro lane đầu tiên và cố tình chỉ dùng official NSO CPI YoY + IIP YoY, publication-date PIT. Không tự mở thêm SBV/FX/rate/credit trước khi đọc V74 result.
+
 ## 7. Các lỗi lịch sử không được lặp
 
 Bắt buộc đọc `anti_regression_c3_hose.md`. Tối thiểu nhớ:
@@ -144,17 +150,20 @@ Code workstation phải hoàn tất trên GitHub branch trước: self-review ->
 
 Không sửa/merge main nếu chưa được phép.
 
-## 9. Mốc tham khảo khi prompt này được cập nhật
+## 9. Mốc nghiên cứu hiện hành khi prompt này được cập nhật
 
-Branch đang phát triển: `agent/v70-deep-backtest-research-standard`.
+Branch đang phát triển: `agent/v74-macro-pit-ablation`.
 
-V69 workstation artifact đã cho thấy:
+Durable workstation facts:
 
-- C3 gross dài hạn mạnh hơn VNINDEX trên các sensitivity universe;
-- `L15_PERSIST_REL` là opportunity mechanism đáng giữ để kiểm tiếp;
-- R07/R08 có adverse-excursion protection evidence nhưng chưa phải mechanical exit;
-- 2026 là **relative failure thật** của C3: BROAD/SEAM/GAP18 đều underperform VNINDEX, nên phải attribution và cải thiện, không bào chữa bằng market difficulty;
-- V70 được mở để deep-backtest actual shares/cost/lot/cash/exposure và chuẩn hóa research process.
+- V70: GAP18_CLEAN Equal BASE frozen C3 `+372.5536%`, CAGR `18.6432%`, MDD `-38.1011%`, cùng-calendar VNINDEX `+124.5317%`;
+- V71: EWMA/rolling adaptive weight **0/12** pre-2026 tests pass; EWMA chỉ là 2026 stress clue, không promote;
+- V72: L15/R08 directional P&L tốt hơn nhưng **0/18** standalone return gates pass; không tune threshold/fraction;
+- V73: factor-health gates **0** watchlist pass. `FH_RS3_SOFT50` giảm GAP18 Equal 2026 từ khoảng `-12.38%` xuống `-2.06%` và cải thiện April khoảng `+5.57pp`, nhưng làm full-history BASE return giảm từ `+372.55%` xuống `+304.59%`. Vì vậy recent RS120 IC deterioration là diagnostic hợp lý nhưng permanent soft50 gate không được chọn;
+- 2026 vẫn là relative failure thật của frozen C3, không phải do riêng PNJ. Root cause hiện tại nghiêng về cross-sectional/momentum regime lag và bỏ lỡ leader mới;
+- V74 kiểm độc lập macro PIT bằng official NSO CPI/IIP first release, không thay C3 ranking, không dùng 2026 để chọn rule.
+
+PIT HOSE, price-basis/corporate-action và PIT-sector vẫn là data gates chưa giải quyết cho canonical/live claims.
 
 Phải verify HEAD/CI/artifact mới hơn trước khi hành động.
 
@@ -164,7 +173,7 @@ Trả lời ngắn gọn theo thứ tự:
 
 1. hiện trạng xác minh: branch/HEAD/PR/CI/artifact;
 2. **profit/backtest state hiện tại**;
-3. kết luận data/C3/signal;
+3. kết luận data/C3/signal/macro;
 4. blocker/rủi ro;
 5. hành động kế tiếp cụ thể.
 
