@@ -1,0 +1,61 @@
+{
+  "schema_version": "vn_quant_v35_1_canonical_result_registry_v1",
+  "recorded_at": "2026-08-03T10:27:00+07:00",
+  "artifact": {
+    "filename": "exact-cash-ledger-readiness-v35-1-20260803-102221.zip",
+    "sha256": "8dc1550810647da4ba5a390f75c2030f255b7b24b40fcb78d6a413120209b2b1",
+    "size_bytes": 4016,
+    "manifest_sha256": "98e0e2964bce4a5e9541c5b40607ecb21e06258945e7340efe3f345d81d47d4d",
+    "report_sha256": "c3438125308b4d0083162b492675779fe638c18ceabfb4351b6c1987d8f0ad66",
+    "all_manifest_entries_verified": true,
+    "status": "SUCCESS"
+  },
+  "decision": {
+    "audit_outcome": "BLOCKED",
+    "recommendation": "BLOCKED_COMPLETE_DATA_CONTRACTS_BEFORE_EXACT_LEDGER",
+    "exact_cash_ledger_pnl_computed": false,
+    "research_eligible": false,
+    "live_capital_approved": false,
+    "automatic_live_orders_allowed": false
+  },
+  "frozen_policy": {
+    "policy_id": "c3-top10-cap3-c32fe6ec8c2fd4ce",
+    "model": "C3_STABLE_3_PAST_IC_SHRUNK",
+    "breadth": 10,
+    "fixed_voluntary_replacement_cap": 3
+  },
+  "sqlite": {
+    "sha256": "7b6f2274d43c12a311f83aa71952ef2abcfca04e2f5204c2f0e9a36a6c144549",
+    "row_count": 299466,
+    "first_day": "2015-06-29",
+    "last_day": "2026-07-31",
+    "distinct_days": 2775,
+    "distinct_symbols": 122,
+    "duplicate_key_count": 0,
+    "conflict_row_count": 0,
+    "t1_open_coverage_ratio": 1.0,
+    "invalid_ohlcv_row_count": 679,
+    "invalid_ohlcv_ratio": 0.0022673692505994
+  },
+  "capabilities_present": [
+    "INVERSE_VOLATILITY_ALLOCATOR_AVAILABLE",
+    "SINGLE_NAME_CAP_15_AVAILABLE",
+    "LOT_SIZE_100_LEDGER_REQUIRED"
+  ],
+  "blockers": [
+    "CORPORATE_ACTION_COMPLETENESS_UNCONFIRMED",
+    "CORPORATE_ACTION_INVENTORY_MISSING",
+    "EXACT_LEDGER_DATA_ASSURANCE_REPORT_MISSING",
+    "POINT_IN_TIME_SECTOR_MASTER_COMPLETENESS_UNCONFIRMED",
+    "POINT_IN_TIME_SECTOR_MASTER_MISSING",
+    "POINT_IN_TIME_SECTOR_MASTER_NOT_READY_FOR_SECTOR_CAP",
+    "PRICE_BASIS_UNCONFIRMED",
+    "SQLITE_INVALID_OHLCV"
+  ],
+  "next_release": {
+    "name": "V36_INTEGRATED_DATA_INTEGRITY_AND_EXACT_SHADOW_LEDGER",
+    "single_decision_unit": true,
+    "automatic_ohlcv_correction_allowed": false,
+    "portfolio_proxy_may_be_relabelled_exact_pnl": false
+  }
+}

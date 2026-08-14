@@ -1,0 +1,47 @@
+{
+  "schema_version": "vn_quant_v38_workstation_result_v1",
+  "recorded_at": "2026-08-03T12:17:00+07:00",
+  "source": "USER_PROVIDED_CONSOLE_OUTPUT",
+  "artifacts": {
+    "v36": {
+      "filename": "integrated-data-ledger-v36-20260803-121340.zip",
+      "sha256": "aac019ebca8f2a338307943e5d9c90db5593470b50e00d9445e01cb6a422e7b8"
+    },
+    "v37": {
+      "filename": "trade-readiness-v37-20260803-121340.zip",
+      "sha256": "5d5b2ad6e6825fa04dc307cd1be0ca9aae83d360362e96cc5ef121e231f4578d"
+    },
+    "v38": {
+      "filename": "trade-evidence-accelerator-v38-20260803-121413.zip",
+      "sha256": "f2e84c48926cc878a04f034070c0af46dc24bf93e414d3dc83a3f848ecbb3088",
+      "zip_manifest_independently_verified": false
+    }
+  },
+  "policy": {
+    "policy_id": "c3-top10-cap3-c32fe6ec8c2fd4ce",
+    "period_count": 51,
+    "position_time_key_count": 510,
+    "holding_window_count": 510,
+    "unique_selected_symbol_count": 78,
+    "execution_date_count": 52,
+    "execution_first_day": "2022-05-04",
+    "execution_last_day": "2026-07-29"
+  },
+  "operations": {
+    "passed_count": 7,
+    "total_count": 9,
+    "remaining": [
+      "account_sync_verified",
+      "position_reconciliation_verified"
+    ]
+  },
+  "trade_readiness": {
+    "capital_stage": "DATA_BLOCKED",
+    "score_percent": 30.0,
+    "paper_observations_completed": 0,
+    "paper_observations_required": 12,
+    "live_capital_approved": false,
+    "automatic_live_orders_allowed": false
+  },
+  "next_release": "V39_AUTHORITATIVE_DECISION_SURFACE_TO_EXACT_LEDGER"
+}

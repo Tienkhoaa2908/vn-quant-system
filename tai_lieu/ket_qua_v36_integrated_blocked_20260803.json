@@ -1,0 +1,78 @@
+{
+  "schema_version": "vn_quant_v36_integrated_canonical_result_v1",
+  "recorded_at": "2026-08-03T11:02:00+07:00",
+  "artifact": {
+    "filename": "integrated-data-ledger-v36-20260803-110107.zip",
+    "sha256": "29eca8cc91301e650efa4764b71ddf4daf13db0e393e4fb542e58ca49ecf800f",
+    "size_bytes": 28466,
+    "manifest_sha256": "44caa39d4de1d56db9c0daa8ee8650819a61de87995d2fdb68bc63d20be68dd4",
+    "report_sha256": "0acfcfafb069a3365162d83927f480b5d10907558a6ede04d997672bc46bacc9",
+    "all_manifest_entries_verified": true,
+    "manifest_entry_count": 16,
+    "status": "SUCCESS"
+  },
+  "decision": {
+    "decision": "BLOCKED",
+    "recommendation": "COMPLETE_DATA_INTEGRITY_PACK_THEN_RERUN_SAME_V36",
+    "ledger_status": "NOT_RUN_BLOCKED",
+    "exact_cash_ledger_pnl_computed": false,
+    "exact_vnindex_comparison_computed": false,
+    "research_eligible": false,
+    "live_capital_approved": false
+  },
+  "frozen_policy": {
+    "policy_id": "c3-top10-cap3-c32fe6ec8c2fd4ce",
+    "model": "C3_STABLE_3_PAST_IC_SHRUNK",
+    "breadth": 10,
+    "fixed_voluntary_replacement_cap": 3,
+    "selection_lineage_exact": true,
+    "historical_period_count": 51,
+    "first_signal_date": "2022-04-29",
+    "last_signal_date": "2026-06-30"
+  },
+  "data_integrity": {
+    "sqlite_row_count": 299466,
+    "invalid_ohlcv_row_count": 679,
+    "invalid_ohlcv_ratio": 0.0022673692505994,
+    "invalid_ohlcv_export_sha256": "26b00cc18626a506c6292dca8cdd178e095634be9b10bd07bc09a1e9c9e7f92d",
+    "invalid_ohlcv_execution_critical_count": 0,
+    "invalid_category": "OHLC_RANGE_INCONSISTENT",
+    "high_below_open_or_close_count": 563,
+    "low_above_open_or_close_count": 116,
+    "invalid_first_day": "2015-06-29",
+    "invalid_last_day": "2022-09-12",
+    "invalid_symbol_count": 81,
+    "invalid_rows_inside_51_month_window": 1,
+    "inside_window_row": {
+      "day": "2022-09-12",
+      "symbol": "PVD",
+      "reason": "LOW_ABOVE_OPEN_OR_CLOSE",
+      "execution_critical": false
+    },
+    "duplicate_key_count": 0,
+    "conflict_row_count": 0,
+    "t1_open_coverage_ratio": 1.0,
+    "automatic_correction_performed": false
+  },
+  "source_file_hashes": {
+    "selection_lineage_audit_v36_csv_sha256": "e4de2894a94c192dfca2a5174e46a5b9775ca8e71673125b4b88b3482e73c6e6",
+    "benchmark_execution_coverage_v36_csv_sha256": "e9a96ebf15a5c8ea5c65f73382b07d5644de4d871f5fc630af1bffcaeb138883"
+  },
+  "blockers_at_run_time": [
+    "CORPORATE_ACTION_INVENTORY_MISSING",
+    "POINT_IN_TIME_SECTOR_MASTER_MISSING",
+    "V36_DATA_ASSURANCE_V2_MISSING",
+    "V36_INVALID_OHLCV_QUARANTINE_NOT_APPROVED",
+    "V36_PRICE_BASIS_NOT_CONFIRMED",
+    "V36_SECTOR_COVERAGE_INCOMPLETE",
+    "V36_VNINDEX_ASSURANCE_MISSING"
+  ],
+  "same_release_follow_up": {
+    "no_new_research_version": true,
+    "auto_derive_vnindex_from_canonical_sqlite": true,
+    "machine_approve_high_low_only_quarantine_when_execution_critical_zero": true,
+    "price_basis_auto_confirmation_allowed": false,
+    "sector_completeness_auto_confirmation_allowed": false,
+    "corporate_action_completeness_auto_confirmation_allowed": false
+  }
+}

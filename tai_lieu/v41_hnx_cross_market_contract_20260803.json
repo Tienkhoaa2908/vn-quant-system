@@ -1,0 +1,69 @@
+{
+  "schema_version": "hnx_cross_market_validation_v41_contract",
+  "created_date": "2026-08-03",
+  "primary_experiment": {
+    "protocol": "HOSE_FROZEN_C3_TRANSFER_TOP10",
+    "description": "Transfer the frozen HOSE C3 ranking algorithm to HNX without HNX hyperparameter selection.",
+    "components": [
+      "low_volatility",
+      "relative_strength_120",
+      "high_52_week"
+    ],
+    "component_weight_rule": "past monthly IC, 50% shrinkage to equal weight, maximum 50% per component",
+    "selection_breadth": 10,
+    "allocation": "inverse volatility, 60 sessions",
+    "maximum_symbol_weight": 0.15,
+    "signal_frequency": "monthly",
+    "execution": "next HNX trading-day open",
+    "lot_size": 100
+  },
+  "diagnostic_protocols": [
+    "HNX_ONLY_C3_EXPANDING_TOP10",
+    "HNX_RELATIVE_STRENGTH_120_TOP10",
+    "HNX_LIQUIDITY_TOP10_EQUAL_WEIGHT"
+  ],
+  "universe": {
+    "target_size": 70,
+    "minimum_history_sessions": 250,
+    "liquidity_ranking": "past 60-session average traded value",
+    "current_symbol_discovery": "Vnstock candidate locator",
+    "historical_membership_requirement": "independent listing/delisting history required for strict gate"
+  },
+  "cost_and_capacity": {
+    "slippage_bps_each_side": {
+      "BASE": 10,
+      "STRESS": 20,
+      "SEVERE": 40
+    },
+    "exchange_fee_bps_each_side": 2.7,
+    "sell_tax_bps": 10,
+    "transfer_fee_vnd_per_share": 0.3,
+    "maximum_trade_share_of_adv20": 0.05
+  },
+  "performance_gates": [
+    "minimum 36 completed monthly periods",
+    "BASE and STRESS relative return positive",
+    "SEVERE total return positive",
+    "BASE beats momentum baseline",
+    "mean rank IC at least 0.02",
+    "positive rank IC ratio at least 0.53",
+    "second-half rank IC non-negative",
+    "at least 3 of 5 recent years have positive excess return",
+    "leave-one-year-out relative return positive",
+    "mean execution fill ratio at least 0.80"
+  ],
+  "strict_blockers": [
+    "HNX historical listing/delisting membership incomplete",
+    "HNX point-in-time trading status incomplete",
+    "HNX corporate-action inventory incomplete",
+    "DNSE price basis unconfirmed",
+    "HNX point-in-time sector history incomplete"
+  ],
+  "permissions": {
+    "research_only": true,
+    "may_extend_shadow_paper_evidence": true,
+    "live_capital_approved": false,
+    "automatic_live_orders_allowed": false,
+    "merge_approved": false
+  }
+}
