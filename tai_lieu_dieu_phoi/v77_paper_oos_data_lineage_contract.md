@@ -35,11 +35,14 @@ Manifest khóa:
 - champion/shadow IDs;
 - primary variant/allocator;
 - fixed diagnostic symbol set;
+- paper cost contract;
 - không cho phép model mutation hoặc capital authorization.
 
 Dữ liệu/return trước freeze **không được tính là fresh OOS**, kể cả 2026 đã quan sát.
 
 Historical bars trước freeze chỉ được dùng để fit hai thuật toán đã khóa theo đúng causality cũ. Paper execution bắt đầu từ target được capture sau freeze.
+
+Nếu state đã tồn tại, V77 phải xác minh model IDs, variant, allocator, cost contract và symbol-set shape vẫn khớp manifest. Drift phải fail closed.
 
 ## Paper signal semantics
 
@@ -57,15 +60,15 @@ Mỗi invocation:
 6. replay toàn bộ signal store bằng engine paper hiện có;
 7. lệnh phát sinh sau capture day, fill ở exact next available session open.
 
-Rerun nhiều lần trong cùng source month không tạo daily-rebalance giả. Khi tháng mới hoàn tất, source monthly snapshot thay đổi và một signal mới được append.
+Rerun nhiều lần trong cùng source month không tạo daily-rebalance giả. Trước khi coi rerun là idempotent, Top10/rank/score/risk-on của source month cũ phải recompute khớp signal đã freeze; drift phải fail closed.
 
 Nếu EOD tháng vừa đóng đã xác nhận nhưng local wall date chưa sang tháng mới, runner cho phép opt-in `V77_MONTH_CLOSE_CONFIRMED=1`; mặc định không tự đoán.
 
 ## Timezone
 
-Quyết định monthly completion dùng `Asia/Ho_Chi_Minh`, không dùng UTC host date.
+Quyết định monthly completion dùng lịch Việt Nam UTC+07:00 (`Asia/Ho_Chi_Minh` semantics), không dùng UTC host date và không phụ thuộc OS tzdata.
 
-## Paper cost contract
+## Paper execution/cost contract
 
 V77 dùng:
 
@@ -76,11 +79,20 @@ V77 dùng:
 - sell tax 10 bps;
 - slippage 5 bps/side.
 
-M3 paper engine hiện chưa có transfer fee 0.3 VND/share của V70 BASE, nên V77 ghi rõ:
+M3 paper engine hiện chưa có transfer fee 0.3 VND/share của V70 BASE và dùng default immediate cash reuse, không phải V70 T+2/no-advance. PIT sector cap cũng chưa enforce khi sector gate còn mở.
 
-`V70_BASE_APPROX_NO_TRANSFER_FEE`.
+Vì vậy V77 ghi rõ:
 
-Không được gọi đây là exact V70 BASE P&L. Không gửi live order.
+`V70_BASE_APPROX_NO_TRANSFER_FEE`
+
+và report thêm execution limitations:
+
+- `M3_ENGINE_DEFAULT_IMMEDIATE_CASH_REUSE`;
+- `t2_no_advance_modeled=false`;
+- `transfer_fee_vnd_per_share_modeled=false`;
+- `pit_sector_cap_enforced=false`.
+
+Không được gọi đây là exact V70 BASE P&L. Hai model dùng cùng paper contract nên vẫn dùng được cho fresh comparative evidence. Không gửi live order.
 
 ## Persistent state
 
@@ -95,7 +107,7 @@ Tối thiểu gồm:
 
 Runner không xóa state giữa các lần chạy. Artifact upload chỉ snapshot manifest + signals + output hiện tại; state workstation là source of truth cho paper OOS continuity.
 
-Cùng source day không được append signal khác. Conflict phải fail closed.
+Cùng source day không được append signal khác. Conflict hoặc recompute drift phải fail closed.
 
 ## Data-lineage audit
 
@@ -116,13 +128,14 @@ Paper OOS được phép chạy khi blocker còn mở, nhưng:
 
 ### PIT HOSE
 
-V77 nhận các contract history fail-closed tương thích foundation hiện tại:
+Dedicated HOSE contracts được nhận trực tiếp:
 
-- `pit_membership_interval_v2`;
 - `pit_hose_membership_v1`;
 - `hose_membership_interval_v1`.
 
-Bằng chứng phải non-fixture, `research_eligible=true`, complete, không gaps/conflicts và cover target day.
+Foundation contract `pit_membership_interval_v2` cũng có thể được audit, **nhưng nó chỉ đóng PIT-HOSE gate nếu record có explicit `venue_scope`, `exchange` hoặc `market` bằng `HOSE`**. Generic VN100/index membership coverage không chứng minh venue HOSE và không được đóng gate.
+
+Mọi bằng chứng phải non-fixture, `research_eligible=true`, complete, không gaps/conflicts và cover target day.
 
 ### Price basis
 
@@ -132,7 +145,7 @@ Nếu store vẫn `CHUA_XAC_NHAN`, chỉ external `price_basis_certificate_v1` n
 
 ### Corporate actions
 
-Certificate phải non-fixture, `inventory_complete=true`, `research_eligible=true`, không conflict và cover target day.
+Certificate phải đến từ corporate-action evidence file, non-fixture, `inventory_complete=true`, `research_eligible=true`, không conflict và cover target day.
 
 ### PIT sector
 
@@ -168,4 +181,5 @@ Bất kỳ quyết định promotion sau này phải là một review riêng, d�
 - no future-price substitution;
 - no retroactive paper entry;
 - no overwriting frozen signal history;
+- generic membership evidence cannot masquerade as HOSE venue proof;
 - CI synthetic success không thay thế first real workstation freeze/artifact.
