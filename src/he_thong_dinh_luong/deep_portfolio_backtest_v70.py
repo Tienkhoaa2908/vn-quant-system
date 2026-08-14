@@ -1,1 +1,1 @@
-{"error":"placeholder"}
+__FULL_V70_CODE__
