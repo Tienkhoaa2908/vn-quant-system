@@ -140,13 +140,47 @@ For the first frozen targets captured on Vietnam date 2026-08-14, the causal exe
 
 The persistent state must NOT be deleted. The patch must reuse the existing `captured_at` values, preserve model/ranking semantics, and fail if any execution date is earlier than its causal floor.
 
+## Patched workstation rerun
+
+A second workstation artifact was run on the same persistent state after pulling safe-driver HEAD:
+
+`676f20f6210830e269c9146342273d0fcfa2db97`.
+
+Observed rerun:
+
+- branch/head correct;
+- Python 3.12.13 in canonical `.venv`;
+- scikit-learn 1.9.0;
+- workstation regression tests: 13/13 PASS;
+- store SHA before/after unchanged at `2959f8cce0c11e8e4186fcb49ae75bf7babf86b84afe64ca3b843a7470d58b1a`;
+- `store_mutated=false`;
+- existing freeze manifest is byte-for-byte unchanged from the first artifact;
+- existing C3 and Ridge frozen signal CSVs are byte-for-byte unchanged;
+- current ranking snapshot is unchanged;
+- `signals_appended=false` for both models;
+- `existing_freeze_definition_verified=true`;
+- `existing_source_signal_recompute_verified=true`;
+- `causal_execution_floor_verified=true`.
+
+Per-model causal execution state:
+
+| Model | Earliest execution floor | Retroactive fills | Fresh sessions | Fills | Pending | Status |
+|---|---|---:|---:|---:|---:|---|
+| C3 | `2026-08-15` | 0 | 0 | 0 | 10 | `PENDING_FIRST_EXECUTION` |
+| Ridge | `2026-08-15` | 0 | 0 | 0 | 10 | `PENDING_FIRST_EXECUTION` |
+
+The rerun store still ends at `2026-08-13`, so it does **not** yet exercise a real later market bar on or after the floor. The code-level stale-session regressions and Linux/Windows CI cover the forbidden-2026-08-14 case; the workstation state is now ready to consume the first real stored session on or after 2026-08-15 without resetting the experiment.
+
 ## Decision
 
 - Freeze/target capture: accepted.
-- Fresh OOS P&L: not started.
+- Causal execution-floor patch: accepted on the same persistent state.
+- Fresh OOS P&L: still not started; no performance inference is allowed yet.
+- First eligible fresh execution date for the frozen target: first actual market session on or after `2026-08-15`.
+- Do not rerun merely while the local store still ends before the execution floor.
+- Do not delete/reset `du_lieu/v77-paper-oos-state/`.
 - C3 champion: unchanged.
 - Ridge: shadow only.
 - Data gates: all four still closed.
 - No V78 historical model research.
-- Apply causal execution-floor bugfix, verify Linux/Windows CI, then rerun the same V77 workstation state.
-- The first valid fresh session is the first market session that satisfies the causal floor; no session that opened before target capture may be counted.
+- Next useful V77 run is after the local market store contains a real session on or after the causal floor; then inspect exact fill date/open, NAV and `retroactive_fill_count=0` before counting the first fresh OOS observation.
