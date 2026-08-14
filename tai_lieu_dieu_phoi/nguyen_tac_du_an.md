@@ -41,12 +41,17 @@ dữ liệu → kiểm tra chất lượng → tập cổ phiếu theo từng th
 28. Mọi claim phải phân biệt rõ `implemented`, `locally_verified`, `ci_verified`, `observed_external`, `reported_not_verified` và `blocked`.
 29. Khi work package có code cần chạy trên workstation, trợ lý phải hoàn tất code trên nhánh GitHub trước; người vận hành chỉ nhận lệnh Git Bash để `fetch/switch/pull` nhánh rồi chạy runner trong repo. Không dùng ZIP/patch thủ công hoặc yêu cầu giải nén code nếu GitHub vẫn ghi được. Nếu connector GitHub bị chặn, phải nói rõ blocker và chỉ dùng action kit như fallback cuối cùng.
 30. Phạm vi nghiên cứu và học máy mặc định tập trung vào cổ phiếu HOSE. Dữ liệu huấn luyện chuẩn phải được dựng từ kho dữ liệu local đã tích lũy thành master panel HOSE tổng hợp theo thời gian; không dùng candidate list, Top-N snapshot hoặc V22 làm nguồn huấn luyện chính nếu bài toán có thể dựng lại từ kho tổng hợp. Membership HOSE phải point-in-time khi đánh giá lịch sử; nếu chỉ có mapping hiện tại thì phải đánh dấu survivorship blocker thay vì âm thầm dùng.
+31. Champion/model nền mặc định là `C3_STABLE_3_PAST_IC_SHRUNK` cho đến khi có quyết định promotion riêng dựa trên causal OOS, stability, portfolio simulation và paper OOS. Logistic Regression, HistGradientBoosting, LightGBM hoặc model khác chỉ là challenger/augmentation; không được tự thay C3 vì đã triển khai được model mới.
+32. Canonical workstation environment hiện hành là `vn_quant_local_system/.venv`. Thay đổi dependency/environment và thay đổi model architecture là hai việc độc lập; không được đổi model nền chỉ vì thiếu package trong môi trường chạy.
+33. CI xanh chỉ chứng minh code/contract đã qua kiểm tra tự động; không được coi CI là kết quả nghiên cứu. Kết luận research bắt buộc dựa trên artifact chạy thật trên workstation data và audit provenance/output.
+34. Trước mọi research architecture mới liên quan C3/HOSE, phải đọc `tai_lieu_dieu_phoi/anti_regression_c3_hose.md`; các lỗi và guardrail trong tài liệu đó là ràng buộc bắt buộc, không phải ghi chú tham khảo.
 
 Chi tiết thực thi nằm tại:
 
 - `tai_lieu_dieu_phoi/giao_thuc_goi_cong_viec_lon.md`;
 - `tai_lieu_dieu_phoi/mau_prompt_goi_cong_viec_lon.md`;
-- `tai_lieu_dieu_phoi/ban_dieu_phoi_hien_hanh.md`.
+- `tai_lieu_dieu_phoi/ban_dieu_phoi_hien_hanh.md`;
+- `tai_lieu_dieu_phoi/anti_regression_c3_hose.md`.
 
 ## Quy ước ngôn ngữ
 
