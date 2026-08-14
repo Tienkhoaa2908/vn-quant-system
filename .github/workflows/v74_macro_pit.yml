@@ -1,0 +1,85 @@
+name: v74_macro_pit
+
+on:
+  push:
+    branches:
+      - agent/v74-macro-pit-ablation
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux-contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile V74
+        run: |
+          python -m py_compile \
+            src/he_thong_dinh_luong/c3_hose_native_v67.py \
+            src/he_thong_dinh_luong/c3_hose_consolidated_v68_safe.py \
+            src/he_thong_dinh_luong/deep_portfolio_backtest_v70.py \
+            src/he_thong_dinh_luong/c3_factor_health_regime_v73.py \
+            src/he_thong_dinh_luong/macro_pit_ablation_v74.py \
+            tests/test_macro_pit_ablation_v74.py
+      - name: Run V74 pure and end-to-end tests
+        env:
+          PYTHONPATH: src
+        run: python -m unittest tests.test_macro_pit_ablation_v74 -v
+      - name: Live NSO parser smoke
+        env:
+          PYTHONPATH: src
+        run: |
+          python - <<'PY'
+          from he_thong_dinh_luong import macro_pit_ablation_v74 as v74
+          for series, base in v74.NSO_ARCHIVES:
+              urls = v74._article_urls(v74._http_get(base), base, series)
+              assert urls, (series, 'no article urls')
+              parsed = None
+              for url in urls[:8]:
+                  parsed = v74.parse_release_html(series=series, url=url, raw=v74._http_get(url), language='en')
+                  if parsed is not None:
+                      break
+              assert parsed is not None, (series, 'current NSO article not parseable')
+              assert parsed.issue_day <= parsed.issue_day.today()
+              print(series, parsed.reference_month, parsed.issue_day, parsed.yoy_pct, parsed.url)
+          PY
+      - name: Validate runner syntax
+        run: bash -n scripts/run_v74_macro_pit_gitbash.sh
+      - name: Validate frozen and PIT contracts
+        run: |
+          set -euo pipefail
+          grep -q 'CHAMPION_MODEL = "C3_STABLE_3_PAST_IC_SHRUNK"' src/he_thong_dinh_luong/macro_pit_ablation_v74.py
+          grep -q 'PRIMARY_SELECTION_END = date(2025, 12, 31)' src/he_thong_dinh_luong/macro_pit_ablation_v74.py
+          grep -q 'MACRO_IIP3_DECEL_SOFT50' src/he_thong_dinh_luong/macro_pit_ablation_v74.py
+          grep -q 'MACRO_CPI3_ACCEL_SOFT50' src/he_thong_dinh_luong/macro_pit_ablation_v74.py
+          grep -q 'MACRO_STAGFLATION3_SOFT50' src/he_thong_dinh_luong/macro_pit_ablation_v74.py
+          grep -q 'row.issue_day <= signal_day' src/he_thong_dinh_luong/macro_pit_ablation_v74.py
+          grep -q 'publication_date_pit_enforced' src/he_thong_dinh_luong/macro_pit_ablation_v74.py
+          grep -q 'year_2026_used_for_candidate_selection": False' src/he_thong_dinh_luong/macro_pit_ablation_v74.py
+          grep -q 'OFFICIAL_NSO_PUBLIC_ARCHIVES' src/he_thong_dinh_luong/macro_pit_ablation_v74.py
+          grep -q 'NETWORK_SCOPE=NSO_OFFICIAL_PUBLIC_MACRO_ONLY' scripts/run_v74_macro_pit_gitbash.sh
+          grep -q 'STORE_MUTATION_ALLOWED=false' scripts/run_v74_macro_pit_gitbash.sh
+          grep -q 'PROMOTION_AUTHORIZED=false' scripts/run_v74_macro_pit_gitbash.sh
+          if grep -Eiq '(place_order|create_order|trading_token|otp|lightgbm|xgboost)' src/he_thong_dinh_luong/macro_pit_ablation_v74.py; then
+            echo 'V74 must remain research-only and broker/model-challenger free' >&2
+            exit 1
+          fi
+
+  windows-contract:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile V74 on Windows
+        run: python -m py_compile src/he_thong_dinh_luong/deep_portfolio_backtest_v70.py src/he_thong_dinh_luong/c3_factor_health_regime_v73.py src/he_thong_dinh_luong/macro_pit_ablation_v74.py tests/test_macro_pit_ablation_v74.py
+      - name: Run V74 end-to-end on Windows
+        env:
+          PYTHONPATH: src
+        run: python -m unittest tests.test_macro_pit_ablation_v74 -v
