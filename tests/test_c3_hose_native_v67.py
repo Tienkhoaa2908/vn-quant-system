@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import closing
 from datetime import date, timedelta
 import math
 from pathlib import Path
@@ -121,7 +122,9 @@ class TestC3HoseNativeV67(unittest.TestCase):
             root = Path(tmp)
             store = root / "market.sqlite3"
             output = root / "out"
-            with sqlite3.connect(store) as db:
+            # sqlite3.Connection context manager commits/rolls back but does not
+            # close the handle.  closing() is required for Windows temp cleanup.
+            with closing(sqlite3.connect(store)) as db:
                 db.execute("CREATE TABLE bars(symbol TEXT, day TEXT, open REAL, close REAL, volume INTEGER, asset_type TEXT, exchange TEXT)")
                 rows: list[tuple[object, ...]] = []
                 for i, day in enumerate(days):
