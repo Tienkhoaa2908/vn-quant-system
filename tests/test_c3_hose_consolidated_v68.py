@@ -8,7 +8,7 @@ import sqlite3
 import tempfile
 import unittest
 
-from he_thong_dinh_luong import c3_hose_consolidated_v68 as v68
+from he_thong_dinh_luong import c3_hose_consolidated_v68_safe as v68
 
 
 def weekdays(start: date, count: int) -> list[date]:
@@ -49,6 +49,9 @@ class TestC3HoseConsolidatedV68(unittest.TestCase):
         days = weekdays(date(2018, 1, 2), 900)
         symbols = [f"S{i:02d}" for i in range(16)]
         gap_symbol = symbols[0]
+        # On Windows this test also proves every SQLite handle in the consolidated
+        # call graph is closed: TemporaryDirectory cleanup fails immediately if a
+        # source or diagnostic variant DB remains open.
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             store = root / "market.sqlite3"
