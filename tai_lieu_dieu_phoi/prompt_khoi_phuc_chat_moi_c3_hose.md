@@ -19,10 +19,10 @@ Không yêu cầu user kể lại lịch sử bằng trí nhớ. **GitHub, Git h
 - `tai_lieu_dieu_phoi/chuan_nghien_cuu_va_backtest.md`;
 - `tai_lieu_dieu_phoi/anti_regression_c3_hose.md`;
 - `tai_lieu_dieu_phoi/anti_regression_v67_data_gate.md`;
-- workstation results V70→V77, đặc biệt V76/V77;
+- workstation results V70→V78, đặc biệt `v78_workstation_result_20260814.md`;
 - `tai_lieu_dieu_phoi/v78_c3_tactical_terminal_contract.md`;
 - `tai_lieu_dieu_phoi/v78_handoff.md`;
-- V78 source/driver/tests/runner/workflow/web;
+- V78 source/driver/bridge/installer/tests/runner/workflow/assets;
 - `DECISIONS.md`.
 
 Nếu user vừa upload artifact thì **đọc artifact trước khi viết code tiếp**.
@@ -98,9 +98,9 @@ Causal execution floor patch is mandatory:
 
 `FIRST_MARKET_SESSION_ON_OR_AFTER_CAPTURE_VN_DATE_PLUS_1`
 
-For first freeze floor date is `2026-08-15`; retroactive fills before floor are forbidden. Latest rerun verified persistent state/signals unchanged and `retroactive_fill_count=0`.
+For first freeze floor date is `2026-08-15`; retroactive fills before floor are forbidden.
 
-## 5. Current operating phase — V78 C3 tactical terminal
+## 5. Current operating phase — V78 C3 tactical inside the approved local web
 
 Current branch when this prompt was written:
 
@@ -115,19 +115,19 @@ Primary goals:
 3. detect prior-month Top10 names that are currently damaging the portfolio;
 4. use Ridge only as confirmation;
 5. show fixed recent 6/12/18-month evidence for secondary overlays/models;
-6. redeploy the localhost web terminal around these decisions.
+6. **add those results to the existing approved `VN Quant Local Workstation` UI, never replace/redesign it.**
 
 ## 6. V78 current preview
 
-Current preview uses the exact C3 components and the current completed-month C3 weights.
+Current preview uses exact C3 components and current completed-month C3 weights.
 
-Current eligibility:
+Eligibility:
 
 - close >= MA250;
 - ADV20 >= 5bn VND;
 - zero-volume60 <=5.
 
-Important fail-closed rule: **every prior-month C3 Top10 stays visible even if it loses current eligibility**. A bad incumbent cannot disappear from the health screen just because it fails MA250/liquidity.
+Important fail-closed rule: **every prior-month C3 Top10 stays visible even if it loses current eligibility**.
 
 Persistent tactical preview state:
 
@@ -137,7 +137,7 @@ Do not delete if exact L15 persistence is being evaluated.
 
 ## 7. Prior-month Top10 health and actual period drag
 
-V78 uses previous V72 health semantics:
+V78 retains V72 health semantics:
 
 - R07: prior-month Top10 + drawdown20 <= -8%;
 - R08: prior-month Top10 + drawdown60 <= -12%;
@@ -145,9 +145,9 @@ V78 uses previous V72 health semantics:
 
 **R07/R08 are advisory only; no auto-sell.**
 
-V78 additionally measures each prior-month Top10 name directly from the tradable path:
+V78 additionally measures each prior-month Top10 directly:
 
-- entry = first market open after the monthly signal;
+- entry = first market open after monthly signal;
 - mark = current close;
 - `period_return = current close / entry open - 1`;
 - benchmark = VNINDEX entry open -> current close;
@@ -157,9 +157,7 @@ Contract:
 
 `NEXT_SESSION_OPEN_AFTER_MONTHLY_SIGNAL_TO_CURRENT_CLOSE_GROSS`
 
-`dragging_current_period=true` only when both absolute return and benchmark-relative return are negative. If the name also falls outside current preview Top10 it can become `WATCH_MONTH_DRAG`. Still no auto-sell.
-
-This is the required direct check for “mã top tháng trước tháng này đang kéo danh mục xuống hay không”.
+`dragging_current_period=true` only when both absolute return and benchmark-relative return are negative. Still no auto-sell.
 
 ## 8. Emerging leader / exact L15
 
@@ -177,78 +175,158 @@ If exact L15 is active, show advisory pair:
 
 `weakest current incumbent -> strongest L15 leader`, fraction 50%.
 
-No live order. No fake persistence. A first V78 run can legitimately have zero exact L15 because it is only seeding the first V78 preview week.
+No live order. No fake persistence.
 
-## 9. Recent regime evidence
+## 9. First real V78 workstation result — observed 2026-08-14
 
-V78 does not open a new optimization search. It discovers existing V72/V76 monthly-return artifacts and reports fixed windows:
+Read `tai_lieu_dieu_phoi/v78_workstation_result_20260814.md` before interpreting V78.
 
-- 6 months;
-- 12 months;
-- 18 months.
+Observed research artifact provenance:
 
-V72 recent comparison: GAP18_CLEAN / Equal / BASE_DNSE / immediate, `NO_OVERLAY` vs `L15_SWAP50_WORST` and `R08_TRIM50_CASH`.
+- artifact HEAD `a53c7bbd62cd6ef4175364193d3e0bee9173a161`;
+- store SHA unchanged `2959f8cce0c11e8e4186fcb49ae75bf7babf86b84afe64ca3b843a7470d58b1a`;
+- capture day `2026-08-13`;
+- source monthly signal `2026-07-31`;
+- current-period tradable entry `2026-08-03`;
+- risk_on=false.
 
-V76 recent comparison: GAP18_CLEAN / Equal / BASE_DNSE, `C3_BASELINE` vs `V76_RIDGE_RANK`.
+Monthly Top10:
 
-These windows are regime evidence only. They never replace C3 as operational main model.
+`VPI, MSB, HCM, VIC, GMD, LPB, STB, BAF, DHC, ACB`
 
-If old artifact files do not exist locally, report recent evidence as unavailable; do not invent P&L.
+Current preview Top10:
 
-## 10. V78 web
+`MSB, HCM, TLG, LPB, BAF, DHC, STB, BWE, KDC, GMD`
 
-Module:
+Current-period dragging incumbents:
 
-`src/he_thong_dinh_luong/web_console_app_v78.py`
+- VPI: period about `-4.71%`, alpha about `-5.89pp`, rank 1 -> current 13;
+- VIC: period about `-3.75%`, alpha about `-4.93pp`, rank 4 -> current 14.
 
-Routes:
+Emerging radar:
 
-- `/` = C3 tactical operating screen;
-- `/terminal` = inherited full V5 terminal;
-- `/api/v78/tactical` = read-only tactical report;
-- `/healthz` = health metadata.
+- TLG current preview rank 3;
+- period about `+9.18%`;
+- alpha about `+8.00pp`;
+- relative5 about `+10.15%`;
+- volume ratio about `1.79`;
+- action `WATCH_EMERGING` because first V78 run had no prior-week V78 preview.
 
-Default V78 runner launches localhost port `8089` and leaves possible old 8088 terminal alone.
+Exact L15 correctly remained inactive on first run.
 
-Root screen shows:
+## 10. Recent regime evidence already observed
 
-- C3 MAIN status;
-- monthly rank vs current preview rank;
-- incumbent P&L kỳ and Alpha kỳ;
-- marker names currently dragging the period;
-- R07/R08/period-drag alerts;
+Fixed 6/12/18 months; diagnostic only.
+
+L15 delta vs frozen C3/no-overlay:
+
+- 6m `+0.576pp`;
+- 12m `+2.485pp`;
+- 18m `+3.745pp`.
+
+R08 delta:
+
+- 6m `-1.312pp`;
+- 12m `-0.943pp`;
+- 18m `-3.005pp`.
+
+Ridge delta vs C3:
+
+- 6m `+10.431pp`;
+- 12m `+12.964pp`;
+- 18m `-8.335pp`.
+
+Interpretation:
+
+- L15 = useful tactical opportunity clue, still advisory;
+- R08 = warning-only, not automatic trim;
+- Ridge = useful recent-regime confirmation/radar, not champion;
+- C3 stays main.
+
+## 11. Critical UI rule — preserve the user-approved web
+
+User supplied the actual workstation archive and explicitly confirmed that this web is already finished and approved.
+
+Approved baseline:
+
+- title: `VN Quant Local Workstation`;
+- root: `vn_quant_local_system/`;
+- frontend: `vn_quant_local_system/web/index.html` + existing versioned JS/CSS;
+- backend: `vn_quant_local_system/src/vn_quant_local/webapp.py`;
+- URL: `http://127.0.0.1:8787`;
+- existing tabs/layout/features must remain intact.
+
+**Do not revive or deploy `web_console_app_v78.py`, NiceGUI replacement UI, port 8089, or any separate V78 web.** That earlier direction was corrected and the replacement module was removed.
+
+V78 web integration is additive only through:
+
+- `src/he_thong_dinh_luong/local_workstation_v78_bridge.py`;
+- `src/he_thong_dinh_luong/existing_web_v78_installer.py`;
+- `web_extensions/v78/tactical_v78.js`;
+- `web_extensions/v78/tactical_v78.css`.
+
+Installer contract:
+
+- backup existing `web/index.html` and `src/vn_quant_local/webapp.py` before first patch;
+- idempotent narrow anchors;
+- add a compact Tactical summary on Dashboard;
+- add one `Tactical` tab before Docs;
+- add read/refresh tactical API bridge to existing backend;
+- existing `Chạy C3` refreshes tactical fail-soft;
+- no global redesign;
+- no credentials, holdings, account state, workstation DB, DNSE state, V77 state mutation.
+
+Tactical tab shows:
+
+- all prior-month Top10;
+- current preview rank;
+- period P&L, VNINDEX, alpha;
+- drag marker;
+- rel5/DD20/DD60;
 - emerging leader radar;
-- L15 advisory pair if exact trigger exists;
+- exact L15 state;
 - Ridge confirmation;
 - recent 6/12/18 evidence.
 
-Stable web snapshot:
+Stable tactical snapshot:
 
 `vn_quant_local_system/data/v78-c3-tactical/`
 
-No broker order endpoint. `live_orders_allowed=false`.
+## 12. Current V78 runner
 
-## 11. V78 workstation artifact review order
+Runner:
 
-When `UPLOAD_THIS_v78_C3_TACTICAL_TERMINAL-*.zip` arrives:
+`scripts/run_v78_c3_tactical_terminal_gitbash.sh`
+
+It must:
+
+1. use canonical `.venv`;
+2. compute current tactical + recent evidence;
+3. publish stable tactical snapshot;
+4. install additive Tactical extension into the approved existing web;
+5. create web backup/audit;
+6. preserve store SHA;
+7. use/open existing `127.0.0.1:8787`;
+8. never automatically kill a pre-existing old web process;
+9. if restart is required, tell user to Ctrl+C old server then run `bash vn_quant_local_system/scripts/run_web_gitbash.sh`;
+10. keep live orders false.
+
+When a **post-integration** V78 ZIP arrives, review in this order:
 
 1. branch/head/store SHA before/after;
-2. tests and status;
-3. `operational_champion` must be C3 and `operational_champion_finalized=true`;
-4. source monthly signal, `period_execution_start_day`, capture day;
-5. monthly Top10 + current preview Top10;
-6. per-incumbent `period_return` and `period_relative_return`;
-7. `dragging_incumbents` and health actions;
-8. emerging radar and exact L15 status;
-9. `prior_week_preview_available` — do not demand exact L15 on first V78 run;
-10. recent V72 6/12/18 rows if source artifact exists;
-11. recent Ridge 6/12/18 rows if source artifact exists;
-12. stable web publication;
-13. `live_orders_allowed=false`.
+2. V78 report and actual tactical outputs;
+3. web integration report;
+4. `existing_layout_replaced=false`;
+5. `credentials_or_state_touched=false`;
+6. backup directory exists on first patch;
+7. existing web bridge imports successfully;
+8. approved web remains port 8787;
+9. no NiceGUI/8089 deployment;
+10. `live_orders_allowed=false`.
 
-Do not reinterpret recent evidence as a champion promotion test.
+The first research V78 ZIP at HEAD `a53c7...` validates tactical calculations but predates the approved-web integration correction; a new workstation run is required to verify the final web integration.
 
-## 12. Data gates remain fail-closed
+## 13. Data gates remain fail-closed
 
 Known blockers remain until real evidence closes them:
 
@@ -259,7 +337,7 @@ Known blockers remain until real evidence closes them:
 
 Paper/tactical diagnostics can run while gates are open. Canonical HOSE/promotion/live claims remain false.
 
-## 13. GitHub-first
+## 14. GitHub-first
 
 Any workstation code change:
 
