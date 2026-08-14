@@ -10,6 +10,7 @@ on:
       - 'src/he_thong_dinh_luong/paper_oos_data_lineage_v77_driver.py'
       - 'tests/test_paper_oos_data_lineage_v77.py'
       - 'tests/test_paper_oos_data_lineage_v77_driver.py'
+      - 'tests/test_paper_oos_data_lineage_v77_causal_floor.py'
       - 'scripts/run_v77_paper_oos_lineage_gitbash.sh'
       - '.github/workflows/v77_paper_oos_lineage.yml'
       - 'tai_lieu_dieu_phoi/v77_*'
@@ -32,11 +33,12 @@ jobs:
             src/he_thong_dinh_luong/paper_oos_data_lineage_v77.py \
             src/he_thong_dinh_luong/paper_oos_data_lineage_v77_driver.py \
             tests/test_paper_oos_data_lineage_v77.py \
-            tests/test_paper_oos_data_lineage_v77_driver.py
+            tests/test_paper_oos_data_lineage_v77_driver.py \
+            tests/test_paper_oos_data_lineage_v77_causal_floor.py
       - name: Run V77 causal and end-to-end tests
         env:
           PYTHONPATH: src
-        run: python -m unittest tests.test_paper_oos_data_lineage_v77 tests.test_paper_oos_data_lineage_v77_driver -v
+        run: python -m unittest tests.test_paper_oos_data_lineage_v77 tests.test_paper_oos_data_lineage_v77_driver tests.test_paper_oos_data_lineage_v77_causal_floor -v
       - name: Validate Git Bash runner syntax
         run: bash -n scripts/run_v77_paper_oos_lineage_gitbash.sh
       - name: Validate frozen safety contracts
@@ -45,6 +47,8 @@ jobs:
           grep -Eq 'SHADOW_MODEL[[:space:]]*=[[:space:]]*"V76_RIDGE_RANK"' src/he_thong_dinh_luong/paper_oos_data_lineage_v77.py
           grep -q 'fresh_oos_only_for_promotion_evidence' src/he_thong_dinh_luong/paper_oos_data_lineage_v77.py
           grep -q 'live_orders_allowed' src/he_thong_dinh_luong/paper_oos_data_lineage_v77.py
+          grep -q 'FIRST_MARKET_SESSION_ON_OR_AFTER_CAPTURE_VN_DATE_PLUS_1' src/he_thong_dinh_luong/paper_oos_data_lineage_v77_driver.py
+          grep -q 'V77_RETROACTIVE_FILL_DETECTED' src/he_thong_dinh_luong/paper_oos_data_lineage_v77_driver.py
           grep -q 'set -euo pipefail' scripts/run_v77_paper_oos_lineage_gitbash.sh
           grep -q 'vn_quant_local_system/.venv/Scripts/python.exe' scripts/run_v77_paper_oos_lineage_gitbash.sh
 
@@ -61,8 +65,8 @@ jobs:
         env:
           PYTHONPATH: src
         run: |
-          python -m py_compile src/he_thong_dinh_luong/paper_oos_data_lineage_v77.py src/he_thong_dinh_luong/paper_oos_data_lineage_v77_driver.py tests/test_paper_oos_data_lineage_v77.py tests/test_paper_oos_data_lineage_v77_driver.py
+          python -m py_compile src/he_thong_dinh_luong/paper_oos_data_lineage_v77.py src/he_thong_dinh_luong/paper_oos_data_lineage_v77_driver.py tests/test_paper_oos_data_lineage_v77.py tests/test_paper_oos_data_lineage_v77_driver.py tests/test_paper_oos_data_lineage_v77_causal_floor.py
       - name: Run V77 end-to-end on Windows
         env:
           PYTHONPATH: src
-        run: python -m unittest tests.test_paper_oos_data_lineage_v77 tests.test_paper_oos_data_lineage_v77_driver -v
+        run: python -m unittest tests.test_paper_oos_data_lineage_v77 tests.test_paper_oos_data_lineage_v77_driver tests.test_paper_oos_data_lineage_v77_causal_floor -v
