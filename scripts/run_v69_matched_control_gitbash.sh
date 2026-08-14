@@ -51,6 +51,9 @@ run_all() (
   echo "SIGNFLIP_SAMPLES=10000"
   echo "BOOTSTRAP_SAMPLES_CI_ONLY=5000"
   echo "P_VALUES_NEVER_ZERO=true"
+  echo "PROFIT_REPORT_REQUIRED=true"
+  echo "PROFIT_PORTFOLIO_CONTRACT=MONTHLY_C3_TOP10_EQUAL_WEIGHT_NEXT_OPEN_TO_NEXT_REBALANCE_OPEN"
+  echo "PROFIT_REPORT_GROSS_ONLY=true"
   echo "SOURCE_STORE_MUTATION_ALLOWED=false"
   echo "PROMOTION_AUTHORIZED=false"
   echo
@@ -62,13 +65,16 @@ run_all() (
     src/he_thong_dinh_luong/c3_hose_consolidated_v68.py \
     src/he_thong_dinh_luong/c3_hose_consolidated_v68_safe.py \
     src/he_thong_dinh_luong/c3_matched_control_v69.py \
+    src/he_thong_dinh_luong/c3_portfolio_profit_v69.py \
     tests/test_c3_hose_native_v67.py \
     tests/test_c3_hose_consolidated_v68.py \
-    tests/test_c3_matched_control_v69.py
+    tests/test_c3_matched_control_v69.py \
+    tests/test_c3_matched_control_v69_integration.py
   "$PY" -m unittest \
     tests.test_c3_hose_native_v67 \
     tests.test_c3_hose_consolidated_v68 \
-    tests.test_c3_matched_control_v69 -v
+    tests.test_c3_matched_control_v69 \
+    tests.test_c3_matched_control_v69_integration -v
   echo
 
   echo "===== PHASE 1: V68 C3 + DATA SENSITIVITY ====="
@@ -92,16 +98,28 @@ run_all() (
     --bootstrap-samples 5000
   echo
 
+  echo "===== PHASE 3: MANDATORY PORTFOLIO PROFIT REPORT ====="
+  "$PY" -m he_thong_dinh_luong.c3_portfolio_profit_v69 \
+    --v68-output "$(cygpath -w "$V68_OUT")" \
+    --store "$(cygpath -w "$STORE")" \
+    --output-dir "$(cygpath -w "$V69_OUT")"
+  echo
+
   echo "===== V69 REPORT SUMMARY ====="
-  "$PY" - "$(cygpath -w "$V69_OUT/v69_report.json")" <<'PY'
+  "$PY" - "$(cygpath -w "$V69_OUT/v69_report.json")" "$(cygpath -w "$V69_OUT/v69_profit_report.json")" <<'PY'
 import json, sys
 from pathlib import Path
 r=json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+p=json.loads(Path(sys.argv[2]).read_text(encoding="utf-8"))
 print("status="+str(r.get("status")))
 print("leader_watch_count="+str(len(r.get("leader_diagnostic_watchlist",[]))))
 print("risk_watch_count="+str(len(r.get("risk_diagnostic_watchlist",[]))))
 print("canonical_research_claim_authorized="+str(r.get("canonical_research_claim_authorized")))
 print("promotion_authorized="+str(r.get("promotion_authorized")))
+print("profit_report_status="+str(p.get("status")))
+print("profit_summary_rows="+str(len(p.get("summary",[]))))
+print("profit_gross_only="+str(p.get("gross_only")))
+print("profit_missing_price_period_count="+str(p.get("missing_price_period_count")))
 PY
 )
 
