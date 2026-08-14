@@ -1,0 +1,123 @@
+{
+  "schema_version": "vn_quant_local_workstation_v1_10",
+  "paths": {
+    "market_db": "data/market/dnse_ohlcv.sqlite3",
+    "reference_zip": "data/reference/daily_prediction_input_v22.zip",
+    "state_db": "data/state/workstation.sqlite3",
+    "outputs": "outputs",
+    "logs": "logs",
+    "validation_artifacts": "validation/artifacts",
+    "validation_sources": "validation/source_snapshots"
+  },
+  "bootstrap_sources": {
+    "market_store": "C:/Users/welcome/Documents/vn-quant-data/market-data/dnse_ohlcv_v20.sqlite3",
+    "reference_root": "C:/Users/welcome/Documents/vn-quant-data",
+    "reference_glob": "historical-research-input-v22-*/daily_prediction_input.zip"
+  },
+  "model": {
+    "model_id": "C3_STABLE_3_PAST_IC_SHRUNK",
+    "canonical_frequency": "MONTHLY",
+    "canonical_calendar_rule": "LATEST_COMPLETED_CALENDAR_MONTH",
+    "preview_mode": "LATEST_SESSION_WITH_CANONICAL_WEIGHTS",
+    "preview_purchase_guard_enabled": true,
+    "preview_purchase_guard_top_n": 20,
+    "preview_can_trigger_sell": false,
+    "price_multiplier": 1000.0,
+    "min_adv20_vnd": 5000000000.0,
+    "max_zero_volume_60": 5,
+    "top_k": 10,
+    "symbol_cap": 0.15
+  },
+  "weekly_policy": {
+    "policy_id": "P1_TOP10_UNDERWEIGHT_BUFFER20",
+    "planner_variant": "V47_EVENT_DRIVEN_CANONICAL_PREVIEW_GUARD",
+    "planning_frequency": "ON_DEMAND_WHEN_CAPITAL_IS_AVAILABLE",
+    "cash_semantics": "SPENDABLE_EQUALS_BROKER_AVAILABLE_CASH_PLUS_NEW_CAPITAL_FOR_THIS_CYCLE",
+    "default_contribution_vnd": 250000,
+    "weekly_contribution_is_new_cash": true,
+    "planning_cost_bps": 50.0,
+    "exit_rank": 20,
+    "exit_months": 2,
+    "sell_review_history_months": 3,
+    "sell_gate_uses_latest_completed_months": 2,
+    "sell_history_source": "RECOMPUTED_FROM_LOCAL_MARKET_AND_REFERENCE_HISTORY",
+    "missing_history_cannot_trigger_exit": true,
+    "maximum_buy_orders_per_week": 3,
+    "odd_lot_share_unit": 1,
+    "sell_proceeds_reused_only_after_broker_resync": true
+  },
+  "event_planning": {
+    "mode": "EVENT_DRIVEN_CAPITAL_CYCLE",
+    "not_limited_to_calendar_week": true,
+    "refresh_market_before_plan": true,
+    "refresh_broker_before_plan": true,
+    "ensure_canonical_before_plan": true,
+    "refresh_preview_before_plan": true,
+    "purchase_guard": "CANONICAL_TOP10_AND_PREVIEW_TOP20_ELIGIBLE",
+    "duplicate_guard_seconds": 90
+  },
+  "data_integrity": {
+    "version": "V55_FINAL_EOD_ONLY_VALUATION",
+    "market_working_dates_endpoint": "/market/working-dates",
+    "recent_sessions_refetched_every_run": true,
+    "stale_fetched_ranges_can_suppress_recent_refetch": false,
+    "recent_source_revision_audit_enabled": true,
+    "incomplete_session_quarantine_enabled": true,
+    "eod_ready_time_vn": "15:30:00",
+    "minimum_expected_session_stock_coverage_ratio": 0.75,
+    "broker_account_mode": "ONE_EXPLICIT_SUBACCOUNT",
+    "full_account_number_persisted": false,
+    "position_quantity_source": "OPEN_QUANTITY_PRESERVE_ZERO",
+    "sellable_quantity_source": "TRADE_QUANTITY_PRESERVE_ZERO",
+    "planner_cash_source": "V51_VALIDATED_DNSE_CASH_CONTRACT",
+    "operational_valuation": "LOCAL_FINAL_EOD_CLOSE_ONLY",
+    "broker_market_price_used_for_valuation": false,
+    "broker_reference_price_exposed_to_ui": false,
+    "nav_formula": "VALIDATED_DNSE_TOTAL_CASH_PLUS_LOCAL_FINAL_EOD_POSITION_VALUE"
+  },
+  "performance": {
+    "version": "V48_AUDITABLE_EVENT_CORRECTIONS",
+    "default_legacy_classification": "LEGACY_EXCLUDED",
+    "shadow_plan_selection": "EVERY_CAPITAL_CYCLE_AFTER_OBSERVATORY_START",
+    "shadow_execution": "NEXT_SESSION_OPEN",
+    "shadow_cost_bps": 50.0,
+    "sell_tax_bps": 10.0,
+    "actual_fill_price_source": "USER_CONFIRMED_ONLY",
+    "whole_dnse_source": "DNSE_CASH_AND_QUANTITY_WITH_LOCAL_FINAL_EOD_VALUATION",
+    "benchmark": "VNINDEX_SAME_SHADOW_CASH_FLOWS",
+    "signal_horizons_sessions": [5, 20, 60],
+    "event_ledger": "APPEND_ONLY_WITH_VOID_AND_REPLACEMENT",
+    "direct_event_update_or_delete_allowed": false,
+    "manual_event_corrections_enabled": true,
+    "pending_valuation_enabled": true,
+    "minimum_reasonable_stock_price_vnd": 1000,
+    "accepted_fill_price_units": ["VND", "THOUSAND_VND"],
+    "automatic_live_orders_allowed": false
+  },
+  "market_overview": {
+    "mode": "READ_ONLY_CANONICAL_AND_PREVIEW",
+    "default_limit": 30,
+    "creates_trade_plan": false,
+    "canonical_source": "LATEST_COMPLETED_MONTH_C3",
+    "preview_source": "LATEST_SESSION_WITH_CANONICAL_WEIGHTS"
+  },
+  "validation_archive": {
+    "source_files": [
+      "src/he_thong_dinh_luong/component_breadth_ablation_v27.py",
+      "src/he_thong_dinh_luong/component_breadth_ablation_v27_runner.py",
+      "src/he_thong_dinh_luong/hnx_cross_market_validation_v41.py",
+      "src/he_thong_dinh_luong/weekly_micro_capital_v43.py",
+      "src/he_thong_dinh_luong/weekly_micro_capital_v43_1.py",
+      "tests/test_component_breadth_ablation_v27.py",
+      "tests/test_component_breadth_ablation_v27_runner.py",
+      "tests/test_hnx_cross_market_validation_v41.py",
+      "tests/test_weekly_micro_capital_v43.py",
+      "tests/test_weekly_micro_capital_v43_1.py",
+      "scripts/run_v43_1_weekly_micro_capital_gitbash.sh"
+    ],
+    "artifact_globs": [
+      "UPLOAD_THIS_v42_VN100_CAPACITY-*.zip",
+      "UPLOAD_THIS_v43_1_WEEKLY_MICRO_CAPITAL-*.zip"
+    ]
+  }
+}

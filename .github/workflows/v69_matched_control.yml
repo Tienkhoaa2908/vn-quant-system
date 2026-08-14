@@ -1,0 +1,77 @@
+name: v69_matched_control
+
+on:
+  push:
+    branches:
+      - agent/v69-matched-control-block-robustness
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile V69
+        run: |
+          python -m py_compile \
+            src/he_thong_dinh_luong/c3_hose_consolidated_v68_safe.py \
+            src/he_thong_dinh_luong/c3_matched_control_v69.py \
+            src/he_thong_dinh_luong/c3_portfolio_profit_v69.py \
+            tests/test_c3_matched_control_v69.py \
+            tests/test_c3_matched_control_v69_integration.py
+      - name: Run V69 pure tests
+        env:
+          PYTHONPATH: src
+        run: python -m unittest tests.test_c3_matched_control_v69 -v
+      - name: Run V68-to-V69 integration regression
+        env:
+          PYTHONPATH: src
+        run: python -m unittest tests.test_c3_matched_control_v69_integration -v
+      - name: Validate runner syntax
+        run: bash -n scripts/run_v69_matched_control_gitbash.sh
+      - name: Validate statistical, C3 and profit contracts
+        run: |
+          set -euo pipefail
+          grep -q 'CHAMPION_MODEL = "C3_STABLE_3_PAST_IC_SHRUNK"' src/he_thong_dinh_luong/c3_matched_control_v69.py
+          grep -q 'SAME_WEEK_RAW_EMERGING_TOP5' src/he_thong_dinh_luong/c3_matched_control_v69.py
+          grep -q 'SAME_WEEK_RAW_EMERGING_TOP10' src/he_thong_dinh_luong/c3_matched_control_v69.py
+          grep -q 'SAME_WEEK_UNSIGNALLED_CANONICAL_TOP10' src/he_thong_dinh_luong/c3_matched_control_v69.py
+          grep -q 'extreme + 1.0' src/he_thong_dinh_luong/c3_matched_control_v69.py
+          grep -q 'CONTIGUOUS_TWO_CALENDAR_MONTH' src/he_thong_dinh_luong/c3_matched_control_v69.py
+          grep -q 'cohort_thresholds_changed": False' src/he_thong_dinh_luong/c3_matched_control_v69.py
+          grep -q 'promotion_authorized": False' src/he_thong_dinh_luong/c3_matched_control_v69.py
+          grep -q 'MONTHLY_C3_TOP10_EQUAL_WEIGHT_NEXT_OPEN_TO_NEXT_REBALANCE_OPEN' src/he_thong_dinh_luong/c3_portfolio_profit_v69.py
+          grep -q 'C3_TOP10_RISK_ON_CASH_GROSS' src/he_thong_dinh_luong/c3_portfolio_profit_v69.py
+          grep -q 'costs_included": False' src/he_thong_dinh_luong/c3_portfolio_profit_v69.py
+          grep -q 'PROFIT_REPORT_REQUIRED=true' scripts/run_v69_matched_control_gitbash.sh
+          grep -q 'vn_quant_local_system/.venv/Scripts/python.exe' scripts/run_v69_matched_control_gitbash.sh
+          grep -q 'SIGNFLIP_SAMPLES=10000' scripts/run_v69_matched_control_gitbash.sh
+          if grep -Eiq '(sklearn|lightgbm|xgboost|place_order|create_order|trading_token|otp)' \
+            src/he_thong_dinh_luong/c3_matched_control_v69.py src/he_thong_dinh_luong/c3_portfolio_profit_v69.py; then
+            echo 'V69 must remain frozen-C3, research-only, and challenger-free' >&2
+            exit 1
+          fi
+
+  windows-statistical-contract:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile V69 on Windows
+        run: python -m py_compile src/he_thong_dinh_luong/c3_hose_consolidated_v68_safe.py src/he_thong_dinh_luong/c3_matched_control_v69.py src/he_thong_dinh_luong/c3_portfolio_profit_v69.py tests/test_c3_matched_control_v69.py tests/test_c3_matched_control_v69_integration.py
+      - name: Run V69 pure tests on Windows
+        env:
+          PYTHONPATH: src
+        run: python -m unittest tests.test_c3_matched_control_v69 -v
+      - name: Run V68-to-V69 integration on Windows
+        env:
+          PYTHONPATH: src
+        run: python -m unittest tests.test_c3_matched_control_v69_integration -v

@@ -1,0 +1,84 @@
+{
+  "schema_version": "vn_quant_v36_integrated_release_contract_v2",
+  "recorded_at": "2026-08-03T10:27:00+07:00",
+  "goal": "ONE_DECISION_UNIT_DATA_INTEGRITY_EXACT_SHADOW_LEDGER_AND_EXACT_BENCHMARK",
+  "frozen_policy": {
+    "policy_id": "c3-top10-cap3-c32fe6ec8c2fd4ce",
+    "model": "C3_STABLE_3_PAST_IC_SHRUNK",
+    "breadth": 10,
+    "fixed_voluntary_replacement_cap": 3,
+    "policy_change_allowed": false
+  },
+  "integrated_scope": [
+    "VERIFY_V34_V33_V32_LINEAGE",
+    "REBUILD_ALL_51_CAP3_SELECTIONS",
+    "EXPORT_AND_CLASSIFY_ALL_INVALID_OHLCV_ROWS",
+    "MARK_EXECUTION_CRITICAL_INVALID_ROWS",
+    "VERIFY_PRICE_BASIS_AND_PRICE_UNIT",
+    "VERIFY_POINT_IN_TIME_SECTOR_MASTER",
+    "VERIFY_CORPORATE_ACTION_INVENTORY",
+    "VERIFY_CRYPTOGRAPHIC_DATA_ASSURANCE_V2",
+    "VERIFY_VNINDEX_NEXT_OPEN_SERIES_AND_HASH",
+    "RUN_NEXT_OPEN_LOT100_INVERSE_VOL_CASH_LEDGER_IF_READY",
+    "COMPARE_WITH_VNINDEX_NEXT_OPEN_TO_NEXT_OPEN",
+    "RUN_BASE_AND_STRESS_COST_SCENARIOS",
+    "RUN_FULLY_INVESTED_AND_REGIME_CASH_OVERLAY_DIAGNOSTIC"
+  ],
+  "required_reference_files": [
+    "sector_master_point_in_time.csv",
+    "corporate_actions.csv",
+    "exact_ledger_data_assurance_v2.json",
+    "vnindex_ohlcv.csv"
+  ],
+  "execution_contract": {
+    "signal_to_execution": "NEXT_MARKET_DAY_OPEN",
+    "benchmark_execution_basis": "VNINDEX_NEXT_OPEN_TO_NEXT_OPEN",
+    "initial_capital_vnd": 1000000000,
+    "lot_size": 100,
+    "inverse_volatility_lookback_sessions": 60,
+    "max_symbol_weight": 0.15,
+    "max_sector_weight": 0.25,
+    "risk_on_budget": 0.8,
+    "risk_off_budget": 0.25,
+    "base_slippage_bps_each_side": 5.0,
+    "stress_slippage_bps_each_side": 10.0,
+    "sell_tax_bps": 10.0,
+    "exchange_fee_bps_each_side": 2.7,
+    "transfer_fee_vnd_per_share": 0.3,
+    "final_liquidation_included": true
+  },
+  "fail_closed": {
+    "blocked_audit_is_successful_run": true,
+    "automatic_ohlcv_correction": false,
+    "portfolio_proxy_may_be_relabelled_exact_pnl": false,
+    "proxy_benchmark_may_be_reported_as_exact_vnindex": false,
+    "ledger_runs_without_assurance_v2": false,
+    "ledger_runs_without_exact_vnindex_assurance": false,
+    "unsupported_corporate_action_allowed": false,
+    "execution_critical_invalid_ohlcv_allowed": false
+  },
+  "outputs": [
+    "invalid_ohlcv_rows_v36.csv",
+    "invalid_ohlcv_summary_v36.csv",
+    "selection_lineage_audit_v36.csv",
+    "benchmark_execution_coverage_v36.csv",
+    "readiness_gates_v36.csv",
+    "blockers_v36.csv",
+    "exact_ledger_periods_v36.csv",
+    "exact_ledger_trades_v36.csv",
+    "exact_ledger_holdings_v36.csv",
+    "exact_ledger_summary_v36.csv",
+    "sector_master_template_v36.csv",
+    "corporate_actions_template_v36.csv",
+    "vnindex_ohlcv_template_v36.csv",
+    "data_assurance_template_v36.json",
+    "integrated_data_ledger_v36.json"
+  ],
+  "permissions": {
+    "historical_promotion_allowed": false,
+    "research_eligible": false,
+    "live_capital_approved": false,
+    "automatic_live_orders_allowed": false,
+    "actionable": false
+  }
+}

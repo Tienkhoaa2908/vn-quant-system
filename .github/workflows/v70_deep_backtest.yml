@@ -1,0 +1,74 @@
+name: v70_deep_backtest
+
+on:
+  push:
+    branches:
+      - agent/v70-deep-backtest-research-standard
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux-contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile V68-V70
+        run: |
+          python -m py_compile \
+            src/he_thong_dinh_luong/c3_hose_consolidated_v68_safe.py \
+            src/he_thong_dinh_luong/c3_matched_control_v69.py \
+            src/he_thong_dinh_luong/c3_portfolio_profit_v69.py \
+            src/he_thong_dinh_luong/deep_portfolio_backtest_v70.py \
+            tests/test_c3_matched_control_v69.py \
+            tests/test_c3_matched_control_v69_integration.py \
+            tests/test_deep_portfolio_backtest_v70.py
+      - name: Run V69 and V70 regression
+        env:
+          PYTHONPATH: src
+        run: |
+          python -m unittest \
+            tests.test_c3_matched_control_v69 \
+            tests.test_c3_matched_control_v69_integration \
+            tests.test_deep_portfolio_backtest_v70 -v
+      - name: Validate runner syntax
+        run: bash -n scripts/run_v70_deep_backtest_gitbash.sh
+      - name: Validate research and deep-backtest contracts
+        run: |
+          set -euo pipefail
+          grep -q 'CHAMPION_MODEL="C3_STABLE_3_PAST_IC_SHRUNK"' src/he_thong_dinh_luong/deep_portfolio_backtest_v70.py
+          grep -q 'LOT_SIZE=100' src/he_thong_dinh_luong/deep_portfolio_backtest_v70.py
+          grep -q 'SINGLE_NAME_CAP=0.15' src/he_thong_dinh_luong/deep_portfolio_backtest_v70.py
+          grep -q 'BASE_DNSE' src/he_thong_dinh_luong/deep_portfolio_backtest_v70.py
+          grep -q 'STRESS' src/he_thong_dinh_luong/deep_portfolio_backtest_v70.py
+          grep -q 'SEVERE' src/he_thong_dinh_luong/deep_portfolio_backtest_v70.py
+          grep -q 'T2_NO_ADVANCE' src/he_thong_dinh_luong/deep_portfolio_backtest_v70.py
+          grep -q 'alpha_vs_exposure_matched_benchmark' src/he_thong_dinh_luong/deep_portfolio_backtest_v70.py
+          grep -q 'profit_report_required' src/he_thong_dinh_luong/deep_portfolio_backtest_v70.py
+          grep -q 'promotion_authorized":False' src/he_thong_dinh_luong/deep_portfolio_backtest_v70.py
+          grep -q 'chuan_nghien_cuu_va_backtest.md' tai_lieu_dieu_phoi/prompt_khoi_phuc_chat_moi_c3_hose.md
+          grep -q 'deep portfolio backtest' tai_lieu_dieu_phoi/chuan_nghien_cuu_va_backtest.md
+          grep -q 'vn_quant_local_system/.venv/Scripts/python.exe' scripts/run_v70_deep_backtest_gitbash.sh
+          grep -q 'YEAR_2026=OBSERVED_STRESS_NOT_TUNING' scripts/run_v70_deep_backtest_gitbash.sh
+          if grep -Eiq '(sklearn|lightgbm|xgboost|place_order|create_order|trading_token|otp)' src/he_thong_dinh_luong/deep_portfolio_backtest_v70.py; then
+            echo 'V70 must remain frozen-C3, research-only, and order-free' >&2
+            exit 1
+          fi
+
+  windows-contract:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile on Windows
+        run: python -m py_compile src/he_thong_dinh_luong/c3_hose_consolidated_v68_safe.py src/he_thong_dinh_luong/c3_matched_control_v69.py src/he_thong_dinh_luong/deep_portfolio_backtest_v70.py tests/test_c3_matched_control_v69.py tests/test_c3_matched_control_v69_integration.py tests/test_deep_portfolio_backtest_v70.py
+      - name: Run V69-to-V70 synthetic regression on Windows
+        env:
+          PYTHONPATH: src
+        run: python -m unittest tests.test_c3_matched_control_v69 tests.test_c3_matched_control_v69_integration tests.test_deep_portfolio_backtest_v70 -v
