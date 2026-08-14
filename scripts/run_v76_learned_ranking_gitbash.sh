@@ -24,16 +24,16 @@ OUT="$ART/v76-learned-ranking-$RUN_ID"
 V76="$OUT/v76"
 FRESH_V68="$OUT/v68"
 FRESH_V70="$OUT/v70"
-V68=""
-V70=""
-REUSE_SOURCE=""
 BUNDLE_DIR="$ART/v76-learned-ranking-bundle-$RUN_ID"
 BUNDLE="$ART/UPLOAD_THIS_v76_LEARNED_RANKING-$RUN_ID.zip"
 FAIL_BUNDLE="$ART/UPLOAD_THIS_v76_LEARNED_RANKING_FAILURE-$RUN_ID.zip"
 LOG="$ART/v76-learned-ranking-$RUN_ID.log"
 mkdir -p "$V76" "$BUNDLE_DIR/output/v76" "$BUNDLE_DIR/reference"
-
 CURRENT_STORE_SHA="$(sha256sum "$STORE" | awk '{print $1}')"
+
+V68=""
+V70=""
+REUSE_SOURCE=""
 
 find_reusable_reference(){
   shopt -s nullglob
@@ -68,6 +68,22 @@ PY
     fi
   done
   return 1
+}
+
+copy_reference_provenance(){
+  local source_label="${REUSE_SOURCE:-FRESH_REBUILD}"
+  printf '%s\n' "$source_label" > "$BUNDLE_DIR/reference_source.txt"
+  printf '%s\n' "$V68" > "$BUNDLE_DIR/reference/v68_path.txt"
+  printf '%s\n' "$V70" > "$BUNDLE_DIR/reference/v70_path.txt"
+  if [[ -f "$V68/v68_consolidated_report.json" ]]; then
+    cp "$V68/v68_consolidated_report.json" "$BUNDLE_DIR/reference/" || true
+    cp "$V68/v68_variant_summary.csv" "$BUNDLE_DIR/reference/" 2>/dev/null || true
+    cp "$V68/v68_basis_audit.json" "$BUNDLE_DIR/reference/" 2>/dev/null || true
+  fi
+  if [[ -f "$V70/v70_report.json" ]]; then
+    cp "$V70/v70_report.json" "$BUNDLE_DIR/reference/" || true
+    cp "$V70/v70_backtest_summary.csv" "$BUNDLE_DIR/reference/" 2>/dev/null || true
+  fi
 }
 
 run_all() (
@@ -130,6 +146,7 @@ PY
     V68="$FRESH_V68"
     V70="$FRESH_V70"
   fi
+  copy_reference_provenance
   echo
 
   echo "===== V76: LEARNED RANKING + WINNER CAPTURE + DEEP BACKTEST ====="
@@ -143,8 +160,7 @@ PY
   "$PY" - "$(cygpath -w "$V76/v76_backtest_summary.csv")" "$(cygpath -w "$V76/v76_candidate_inference.csv")" "$(cygpath -w "$V76/v76_winner_capture_summary.csv")" "$(cygpath -w "$V76/v76_rank_ic_summary.csv")" "$(cygpath -w "$V76/v76_2026_shadow.csv")" "$(cygpath -w "$V76/v76_report.json")" <<'PY'
 import csv,json,sys
 from pathlib import Path
-files=sys.argv[1:6]
-for path,label in zip(files,("PNL","INFERENCE","CAPTURE","RANK_IC","Y2026")):
+for path,label in zip(sys.argv[1:6],("PNL","INFERENCE","CAPTURE","RANK_IC","Y2026")):
     with Path(path).open("r",encoding="utf-8-sig",newline="") as f:
         rows=list(csv.DictReader(f))
     for row in rows:
@@ -183,16 +199,7 @@ print(sys.executable)
 print("scikit-learn",sklearn.__version__)
 PY
 [[ -d "$V76" ]] && cp -R "$V76"/. "$BUNDLE_DIR/output/v76/" || true
-if [[ -n "${V68:-}" && -f "$V68/v68_consolidated_report.json" ]]; then
-  cp "$V68/v68_consolidated_report.json" "$BUNDLE_DIR/reference/" || true
-  cp "$V68/v68_variant_summary.csv" "$BUNDLE_DIR/reference/" || true
-  cp "$V68/v68_basis_audit.json" "$BUNDLE_DIR/reference/" || true
-fi
-if [[ -n "${V70:-}" && -f "$V70/v70_report.json" ]]; then
-  cp "$V70/v70_report.json" "$BUNDLE_DIR/reference/" || true
-  cp "$V70/v70_backtest_summary.csv" "$BUNDLE_DIR/reference/" || true
-fi
-printf '%s\n' "${REUSE_SOURCE:-FRESH_REBUILD}" > "$BUNDLE_DIR/reference_source.txt"
+[[ -f "$BUNDLE_DIR/reference_source.txt" ]] || printf '%s\n' "REFERENCE_NOT_RESOLVED" > "$BUNDLE_DIR/reference_source.txt"
 
 TARGET="$BUNDLE"; [[ "$RC" -eq 0 ]] || TARGET="$FAIL_BUNDLE"
 powershell.exe -NoProfile -Command "Compress-Archive -Path '$(cygpath -w "$BUNDLE_DIR")\\*' -DestinationPath '$(cygpath -w "$TARGET")' -Force" || true
