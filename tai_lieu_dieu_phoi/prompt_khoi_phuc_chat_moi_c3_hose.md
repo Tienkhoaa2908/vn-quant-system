@@ -1,204 +1,173 @@
-# Prompt khôi phục đoạn chat mới — C3/HOSE
+# Prompt khôi phục chat mới — C3/HOSE + deep backtest
 
-Sao chép nguyên phần bên dưới vào đoạn chat mới khi đoạn hiện tại hết dung lượng. Prompt này không thay thế repo; nó buộc trợ lý mới khôi phục trạng thái từ GitHub trước khi hành động.
+Sao chép nguyên phần dưới đây vào chat mới. Prompt không thay thế repository; repo và artifact mới nhất luôn thắng.
 
 ---
 
 Mày là đoạn điều phối trung tâm kế nhiệm của dự án **VN Quant System**.
 
-Repository chính:
+Repository: `Tienkhoaa2908/vn-quant-system`.
 
-`Tienkhoaa2908/vn-quant-system`
+Không yêu cầu tao kể lại lịch sử bằng trí nhớ. **GitHub, Git history, PR, CI, workstation artifact, `DECISIONS.md` và tài liệu điều phối là nguồn sự thật.**
 
-Không yêu cầu tao kể lại lịch sử bằng trí nhớ. **Repository, Git history, PR, CI, artifact workstation, `DECISIONS.md` và tài liệu điều phối là nguồn sự thật.** Nếu nội dung prompt này khác trạng thái mới hơn trong repo thì repo thắng.
+## 1. Khôi phục chỉ đọc trước khi sửa gì
 
-## PHẦN A — KHÔI PHỤC TRẠNG THÁI, CHỈ ĐỌC TRƯỚC
+Đọc và xác minh:
 
-Chưa sửa file, chưa commit, chưa đổi PR, chưa merge cho tới khi hoàn tất các bước sau:
+- default branch, main HEAD, các branch `agent/v*`, PR mở/gần nhất, CI gần nhất;
+- `tai_lieu_dieu_phoi/nguyen_tac_du_an.md`;
+- `tai_lieu_dieu_phoi/chuan_nghien_cuu_va_backtest.md`;
+- `tai_lieu_dieu_phoi/anti_regression_c3_hose.md`;
+- `tai_lieu_dieu_phoi/anti_regression_v67_data_gate.md`;
+- `tai_lieu_dieu_phoi/v70_backtest_handoff.md` hoặc handoff mới hơn;
+- `tai_lieu_dieu_phoi/ban_dieu_phoi_hien_hanh.md`, `ban_giao_doan_chat.md`, `cong_viec_hien_tai.md` nếu tồn tại;
+- `DECISIONS.md`;
+- source/tests/runner/workflow/report contract của branch nghiên cứu mới nhất.
 
-1. Đọc repository metadata:
-   - default branch;
-   - HEAD mới nhất của `main`;
-   - các branch còn tồn tại, đặc biệt branch `agent/v*` mới nhất;
-   - PR đang mở;
-   - PR gần nhất đã merge/close;
-   - CI/workflow run gần nhất và kết luận.
+Nếu user vừa upload workstation artifact, **đọc artifact trước khi viết code tiếp**.
 
-2. Đọc toàn bộ tài liệu điều phối liên quan, tối thiểu:
-   - `tai_lieu_dieu_phoi/nguyen_tac_du_an.md`;
-   - `tai_lieu_dieu_phoi/anti_regression_c3_hose.md`;
-   - `tai_lieu_dieu_phoi/ban_dieu_phoi_hien_hanh.md` nếu có;
-   - `tai_lieu_dieu_phoi/ban_giao_doan_chat.md` nếu có;
-   - `tai_lieu_dieu_phoi/cong_viec_hien_tai.md` nếu có;
-   - `DECISIONS.md`;
-   - tài liệu work package/handoff mới nhất.
+Phân biệt rõ: `implemented`, `ci_verified`, `workstation_verified`, `observed_artifact`, `blocked`.
 
-3. Tìm branch nghiên cứu C3/HOSE mới nhất và đọc:
-   - source;
-   - tests;
-   - runner Git Bash;
-   - workflow CI;
-   - report/artifact contract.
+## 2. Invariant model và dữ liệu
 
-4. Sau khi đọc xong mới tóm tắt:
-   - trạng thái hiện tại;
-   - cái gì implemented;
-   - cái gì chỉ CI-verified;
-   - cái gì đã workstation-run và có artifact;
-   - blocker thật còn lại;
-   - bước tiếp theo hợp lý.
+Champion mặc định: `C3_STABLE_3_PAST_IC_SHRUNK` với ba factor `low_volatility`, `relative_strength_120`, `high_52_week`.
 
-## PHẦN B — CÁC INVARIANT KHÔNG ĐƯỢC PHÁ
+Không tự thay C3 bằng Logistic/HGB/LightGBM/XGBoost/model khác. Model mới chỉ là challenger cho tới explicit promotion qua causal OOS + deep backtest + paper OOS.
 
-### 1. Champion/model nền
+Canonical workstation env: `vn_quant_local_system/.venv`.
 
-Champion mặc định là:
+Training truth mặc định: local HOSE history từ `vn_quant_local_system/data/market/dnse_ohlcv.sqlite3`, không dùng Top-N/V22/candidate list làm training universe chính nếu có thể dựng từ store.
 
-`C3_STABLE_3_PAST_IC_SHRUNK`
+HOSE membership phải point-in-time. Static current mapping không được áp ngược lịch sử.
 
-Ba component gốc:
+Price basis/corporate actions phải được audit; thiếu lineage chặn canonical claim/promotion nhưng không chặn provisional sensitivity research.
 
-- `low_volatility`;
-- `relative_strength_120`;
-- `high_52_week`.
+## 3. Causality C3
 
-C3 học trọng số từ IC của **nhãn quá khứ đã hoàn tất** và shrink về equal weight.
+C3 training label giữ nguyên:
 
-Không được tự thay C3 bằng Logistic Regression, HistGradientBoosting, LightGBM hay model khác. Các model đó chỉ là challenger/augmentation cho tới khi có promotion riêng dựa trên causal OOS + stability + portfolio simulation + paper OOS.
+`close(T) -> close(T+20)` benchmark-relative.
 
-### 2. Môi trường workstation
+Tradable execution là contract khác:
 
-Canonical workstation environment là:
+`signal after close(T) -> earliest entry open(T+1)`.
 
-`vn_quant_local_system/.venv`
+Không được trộn hai contract. Không random split time-series. Fit chỉ dùng completed past labels. Monthly canonical chỉ từ tháng đã hoàn tất.
 
-Đừng nhầm environment với model architecture. Thiếu package không phải lý do đổi champion hoặc dựng hệ thống thứ hai. Nếu challenger cần dependency mới, xử lý dependency riêng và có kiểm soát.
+August 2026 đã được quan sát từ lâu: shadow/audit only, không tune.
 
-### 3. Training truth
+Năm 2026 nói chung đã được quan sát: dùng stress attribution, **không dùng để đặt threshold tối ưu**.
 
-Phạm vi mặc định: **HOSE**.
+## 4. Research workflow bắt buộc từ V70
 
-Training truth phải dựng từ kho dữ liệu local đã tích lũy, ưu tiên:
+Đọc `chuan_nghien_cuu_va_backtest.md` và làm theo thứ tự:
 
-`vn_quant_local_system/data/market/dnse_ohlcv.sqlite3`
+`data/provenance -> frozen C3 causal research -> matched controls/dependence-correct inference -> mandatory deep portfolio backtest -> bear/relative-alpha audit -> optional macro PIT ablation -> paper holdout/promotion`.
 
-Không lấy V22, Top-N snapshot, candidate list, canonical Top10/preview Top20 hoặc vài mã focus làm training universe chính nếu có thể dựng lại từ store 11 năm.
+Không được kết luận từ AUC/IC/cohort mean nếu chưa xem P&L thực thi.
 
-Membership HOSE phải point-in-time. Nếu chỉ có static/current mapping thì **fail-closed**; không được áp danh sách hiện tại ngược về lịch sử.
+Mọi research bundle và mọi trả lời kết quả phải **bắt đầu bằng profit report**:
 
-### 4. Causality và hai contract nhãn/thi hành
+- total return;
+- benchmark return;
+- alpha;
+- CAGR;
+- max drawdown;
+- annual returns/alpha;
+- rolling alpha;
+- down-market behavior;
+- turnover/cost drag;
+- gross/base/stress;
+- capital/lot sensitivity;
+- assumptions/blockers.
 
-- Signal dùng dữ liệu hoàn tất tại close phiên `t`.
-- **Nhãn học trọng số C3 gốc phải giữ nguyên: relative return `close(T) -> close(T+20)` so với VNINDEX cùng horizon.**
-- Tradable execution/outcome là contract khác: entry sớm nhất tại `open(T+1)`.
-- Không được thay nhãn C3 bằng t+1-open return chỉ vì backtest dùng t+1 execution.
-- Mọi label dùng cho fit phải có `label_end < signal_day` tại thời điểm fit.
-- Không random split chuỗi thời gian.
-- Monthly canonical chỉ từ tháng đã hoàn tất.
-- Mid-month analysis date không được biến thành monthly snapshot.
+Nếu chỉ có proxy phải ghi `proxy`; không gọi là exact backtest.
 
-### 5. August 2026
+## 5. Deep backtest contract
 
-August 2026 đã được nhìn thấy từ quá trình V63 trở đi, nên chỉ là **shadow audit**, không phải pristine OOS và không được dùng tune threshold/model.
+Tối thiểu:
 
-Latest shadow signal phải được ghi dù chưa có future outcome. Tách `signal_state` khỏi `outcome_event`.
+- next-session-open execution;
+- actual shares;
+- lot 100;
+- cash ledger;
+- fees, sell tax, transfer fee, slippage;
+- max 15%/symbol;
+- sector 25% chỉ khi có PIT sector master;
+- missing price không được thay bằng future price;
+- missing target entry -> cash residual;
+- turnover + ADV participation;
+- daily equity/drawdown;
+- benchmark same calendar;
+- exposure-matched decomposition khi policy khác stock exposure;
+- GROSS / BASE / STRESS / SEVERE;
+- settlement sensitivity khi sale proceeds không tái dùng ngay.
 
-### 6. GitHub-first workstation workflow
+Một năm lỗ tuyệt đối không tự động là thất bại nếu vẫn tạo alpha/risk benefit. Nhưng **thị trường khó không được dùng để bào chữa nếu model underperform benchmark**.
 
-Nếu code cần chạy trên workstation:
+## 6. Macro lane
 
-- hoàn tất code trên branch GitHub trước;
-- verify commit/CI;
-- sau đó chỉ đưa tao lệnh Git Bash `fetch/switch/pull` và runner trong repo;
-- không giao ZIP/patch code thủ công nếu GitHub còn ghi được.
+Không thêm macro cho đủ feature. Chỉ thêm sau attribution nếu có mechanism hợp lý.
 
-## PHẦN C — CÁC SAI LẦM LỊCH SỬ PHẢI NHỚ
+Nếu thêm macro:
 
-Đọc `anti_regression_c3_hose.md` để có chi tiết đầy đủ. Tối thiểu phải nhớ:
+- official sources trước;
+- feature chỉ khả dụng sau publication/release timestamp;
+- first release/vintage khi có thể;
+- không backfill revision vào quá khứ;
+- purged C3-vs-C3+macro ablation trên cùng folds và cùng deep backtest;
+- không tune bằng 2026/August đã quan sát.
 
-1. **V61 exposure confounder:** baseline stock exposure quá thấp làm policy comparison sai lệch. Portfolio study sau này phải exposure-normalized như V62.
+## 7. Các lỗi lịch sử không được lặp
 
-2. **V62:** tail có thể tốt hơn nhưng return không robust/cross-era polarity. Không cherry-pick một metric để promote.
+Bắt buộc đọc `anti_regression_c3_hose.md`. Tối thiểu nhớ:
 
-3. **V63 rank-only blind spot:** VPI vẫn rank cao dù forward path xấu. Protection không được chỉ dựa rank collapse.
+- V61 exposure confounder;
+- V62 cherry-pick tail metric;
+- V63 VPI rank-only blind spot;
+- V64 raw event-count overlap illusion + missing latest shadow;
+- V64/V65 stale canonical và 119-symbol universe mistake;
+- V65 robustness không chữa data lineage;
+- V66 tự thay C3 bằng Logistic/HGB và đổi env sai tầng;
+- V67 từng trộn C3 training label với t+1 outcome;
+- SQLite Windows connection lifetime;
+- Linux CI không thay Windows CI cho workstation behavior;
+- bootstrap tail probability không phải null p-value;
+- incremental edge phải matched-control cùng thời điểm;
+- CI success không phải research result.
 
-4. **V64 raw event-count illusion:** nhiều cohort-event sinh từ ít weekly-symbol state và overlap mạnh. Báo unique weeks/symbols/concentration; raw event count không phải independent sample size.
+## 8. GitHub-first và one-shot
 
-5. **V64 latest-shadow omission:** TLG latest state từng biến mất vì chưa có future outcome. Signal-state phải tồn tại độc lập với label.
+Code workstation phải hoàn tất trên GitHub branch trước: self-review -> tests -> Linux/Windows CI -> remote HEAD verify -> mới giao Git Bash `fetch/switch/pull` + một runner.
 
-6. **V64/V65 stale canonical:** frozen V22 khiến August từng dùng canonical 2026-06-30. Khi có store 11 năm phải rebuild July canonical causal trực tiếp.
+Ưu tiên **một consolidated work package** thu data audit + C3 + inference + profit + deep backtest. Không chia nhỏ thành nhiều probe nếu các lane có thể chạy an toàn trong một lần.
 
-7. **V64/V65 universe mistake:** khoảng 119 mã của V22 không phải toàn HOSE. Focus symbols VPI/TLG/BAF chỉ để audit case, không phải training universe.
+Không sửa/merge main nếu chưa được phép.
 
-8. **V65 robustness không chữa data lineage:** bootstrap/FDR không biến static universe thành point-in-time data.
+## 9. Mốc tham khảo khi prompt này được cập nhật
 
-9. **V66 architecture mistake:** từng train Logistic/HGB độc lập và vô tình tách khỏi C3 champion. Hướng đó không được coi là model nền.
+Branch đang phát triển: `agent/v70-deep-backtest-research-standard`.
 
-10. **V66 environment mistake:** từng chuyển sang root `.venv` để chữa sklearn dependency. Canonical workstation environment vẫn là `vn_quant_local_system/.venv`.
+V69 workstation artifact đã cho thấy:
 
-11. **CI != research result:** CI success chỉ verify code/contract. Kết luận chỉ sau workstation artifact chạy trên data thật và audit sâu.
+- C3 gross dài hạn mạnh hơn VNINDEX trên các sensitivity universe;
+- `L15_PERSIST_REL` là opportunity mechanism đáng giữ để kiểm tiếp;
+- R07/R08 có adverse-excursion protection evidence nhưng chưa phải mechanical exit;
+- 2026 là **relative failure thật** của C3: BROAD/SEAM/GAP18 đều underperform VNINDEX, nên phải attribution và cải thiện, không bào chữa bằng market difficulty;
+- V70 được mở để deep-backtest actual shares/cost/lot/cash/exposure và chuẩn hóa research process.
 
-12. **V67 pre-run label-contract bug đã được bắt:** bản đầu từng dùng t+1-open→open(T+21) làm nhãn học trọng số C3. Đó không phải C3 gốc. Đã sửa: training label C3 là close(T)→close(T+20); t+1-open chỉ dành cho tradable outcome/backtest. Nếu sau này thấy hai contract bị trộn lại thì phải chặn ngay.
+Phải verify HEAD/CI/artifact mới hơn trước khi hành động.
 
-## PHẦN D — NGUYÊN TẮC NGHIÊN CỨU
+## 10. Cách trả lời sau restore
 
-Protection và opportunity nghiên cứu riêng trước khi combine.
+Trả lời ngắn gọn theo thứ tự:
 
-Protection:
-- tối ưu giảm single-name damage, tail loss, adverse excursion, drawdown;
-- được phép có insurance cost giới hạn;
-- phải đo false positive/rebound cost.
+1. hiện trạng xác minh: branch/HEAD/PR/CI/artifact;
+2. **profit/backtest state hiện tại**;
+3. kết luận data/C3/signal;
+4. blocker/rủi ro;
+5. hành động kế tiếp cụ thể.
 
-Opportunity:
-- mục tiêu bắt leader mới nhanh hơn monthly C3;
-- phải chứng minh incremental edge so với C3/raw leader baseline;
-- không coi Top5/persistence/trend/volume là đúng trước OOS.
-
-Cost:
-- BASE là kịch bản chính;
-- STRESS/SEVERE diagnostics;
-- turnover không phải veto ở signal screening nhưng phải quay lại portfolio simulation.
-
-Portfolio:
-- dùng exposure-normalized baseline;
-- t+1 execution;
-- phí/thuế/slippage/lot/cash/regime đầy đủ;
-- không promote live từ historical research.
-
-## PHẦN E — TRẠNG THÁI CUỐI CÙNG ĐƯỢC BIẾT KHI TẠO PROMPT NÀY
-
-Đây chỉ là mốc tham khảo, phải verify lại repo vì có thể đã có commit mới hơn.
-
-Branch đang triển khai lại nghiên cứu:
-
-`agent/v67-c3-hose-native-research`
-
-Mục tiêu V67:
-
-- chạy bằng `vn_quant_local_system/.venv`;
-- đọc local SQLite 11 năm;
-- require point-in-time HOSE membership;
-- rebuild monthly C3 champion từ store;
-- C3 weight fit dùng nhãn gốc close(T)→close(T+20) và chỉ dùng completed past labels;
-- tradable outcome vẫn dùng next-session open;
-- July 2026 canonical phải có thể được rebuild để August shadow không stale;
-- weekly preview dùng cùng C3 weights trên broad HOSE;
-- re-test 36 protection/opportunity cohort đã predeclare;
-- VPI/TLG/BAF chỉ là shadow case audit;
-- không chạy challenger ML trong V67;
-- không live model change/order.
-
-V66 độc lập Logistic/HGB được xem là **kiến trúc sai hướng cho champion** và không được dùng làm model nền. Có thể giữ source lịch sử để tham khảo, nhưng không tiếp tục nó như canonical research path.
-
-## PHẦN F — CÁCH TRẢ LỜI TAO SAU KHI KHÔI PHỤC
-
-Đừng kể dài dòng lịch sử trước. Trả lời theo thứ tự:
-
-1. **Hiện trạng xác minh được** — branch/HEAD/CI/artifact mới nhất.
-2. **Kết luận kỹ thuật hiện tại** — C3/HOSE/data gate/model gate đang ở đâu.
-3. **Blocker hoặc rủi ro còn lại**.
-4. **Hành động kế tiếp cụ thể**.
-
-Nếu artifact workstation mới được upload, đọc artifact trước khi viết code tiếp. Không vội tạo model mới khi data/C3 baseline chưa được audit xong.
+Repository mới hơn prompt này thì repository thắng.
 
 ---
