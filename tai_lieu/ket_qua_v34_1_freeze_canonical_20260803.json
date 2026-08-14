@@ -1,0 +1,82 @@
+{
+  "artifact": {
+    "all_manifest_entries_verified": true,
+    "analysis_manifest_sha256": "93bbf32ac069762ef4ad6a6dbe6abb923f4fbd7c8d348417cf3aca72fe270ab8",
+    "filename": "future-paper-holdout-freeze-v34-1-20260803-094853.zip",
+    "frozen_policy_sha256": "fff87651f9a0140fbbde3fdbdc4c344b5852db4ac0e039d5fccd85add5e57c7c",
+    "manifest_entries_verified": 3,
+    "observation_template_sha256": "a29bc240a5148d2759d35b94c77dfa3aa5bdba62b6c458d0050d142f56ff0517",
+    "report_sha256": "d624bd7faff7d7dda127ea659a7c06b7518cb05cb75a6015544f70185ba914d0",
+    "sha256": "642a19cddadc271a2cffb16261ad9e0a4fceadab884eea308ab8bce88debbf80",
+    "size_bytes": 5031,
+    "status": "SUCCESS"
+  },
+  "holdout_contract": {
+    "historical_observations_counted": false,
+    "holdout_clock_reset_from_historical": false,
+    "holdout_clock_started": true,
+    "known_pre_freeze_signals_excluded_through": "2026-07-31",
+    "label_horizon_sessions": 20,
+    "label_must_be_complete": true,
+    "minimum_completed_monthly_observations": 12,
+    "missing_months_must_not_be_backfilled_with_historical_data": true,
+    "observation_must_be_recorded_after_label_end": true,
+    "pre_freeze_forward_snapshots_counted": false,
+    "signal_timestamp_rule": "STRICTLY_AFTER_FROZEN_AT"
+  },
+  "kill_switch": {
+    "average_net_excess_below": 0.0,
+    "mean_rank_ic_below": 0.0,
+    "minimum_observations": 6,
+    "positive_rank_ic_ratio_below": 0.4,
+    "relative_drawdown_at_or_below": -0.12,
+    "rolling_window": 6,
+    "turnover_above": 0.6,
+    "turnover_consecutive_periods": 3
+  },
+  "known_limitations": {
+    "corporate_actions_complete": false,
+    "exact_cash_ledger_pnl_computed": false,
+    "exact_t1_open_execution_applied": false,
+    "inverse_volatility_allocation_applied": false,
+    "lot_size_100_applied": false,
+    "point_in_time_universe_complete": false,
+    "price_basis_confirmed": false,
+    "sector_cap_25_percent_applied": false,
+    "single_name_cap_15_percent_applied": false,
+    "survivorship_bias_resolved": false
+  },
+  "permissions": {
+    "actionable": false,
+    "automatic_live_orders_allowed": false,
+    "historical_promotion_allowed": false,
+    "live_capital_approved": false,
+    "paper_trading_allowed": true,
+    "paper_watchlist_allowed": true,
+    "research_eligible": false
+  },
+  "policy": {
+    "breadth": 10,
+    "fixed_voluntary_replacement_cap": 3,
+    "frozen_at": "2026-08-03T09:22:00+07:00",
+    "frozen_timezone": "Asia/Ho_Chi_Minh",
+    "model": "C3_STABLE_3_PAST_IC_SHRUNK",
+    "model_retraining_allowed_inside_holdout": false,
+    "policy_id": "c3-top10-cap3-c32fe6ec8c2fd4ce",
+    "policy_id_path_independent": true,
+    "ranking_locked": true,
+    "rebalance_frequency": "MONTHLY",
+    "status": "FROZEN_FOR_FUTURE_PAPER_HOLDOUT"
+  },
+  "recommendation": "START_FUTURE_PAPER_HOLDOUT_NO_HISTORICAL_BACKFILL",
+  "recorded_at": "2026-08-03T09:50:00+07:00",
+  "schema_version": "vn_quant_v34_1_freeze_canonical_registry_v1",
+  "source_v33": {
+    "analysis_manifest_sha256": "6eb25781a80dc2d168bb2daaba21d1676a3eb0d4f2b019170ae220d4ffaac249",
+    "artifact_zip_sha256": "0019679a8108f576b5063e01d493d018148adbd040212cea50fd5fe288f75555",
+    "decision_gates_sha256": "6e59bff9c0b6b018ee45a536273f7a59dc2f5ff4e16bead641fa0f40ce1a2129",
+    "manifest_file_count_excluding_manifest": 6,
+    "report_member": "turnover-policy-stability-v33-20260803-091649/turnover_policy_stability_v33.json",
+    "report_sha256": "b8223c579ade4d23f0c3ce1f1c87d94ff0ae10e28e6e68059e20087e58817070"
+  }
+}

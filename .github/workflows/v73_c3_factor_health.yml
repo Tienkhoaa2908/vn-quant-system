@@ -1,0 +1,71 @@
+name: v73_c3_factor_health
+
+on:
+  push:
+    branches:
+      - agent/v73-c3-factor-health-regime
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHONHASHSEED: '0'
+
+jobs:
+  linux-contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile V73
+        run: |
+          python -m py_compile \
+            src/he_thong_dinh_luong/c3_hose_native_v67.py \
+            src/he_thong_dinh_luong/c3_hose_consolidated_v68_safe.py \
+            src/he_thong_dinh_luong/deep_portfolio_backtest_v70.py \
+            src/he_thong_dinh_luong/c3_adaptive_weight_v71.py \
+            src/he_thong_dinh_luong/c3_factor_health_regime_v73.py \
+            tests/test_c3_factor_health_regime_v73.py
+      - name: Run V73 pure and end-to-end tests
+        env:
+          PYTHONPATH: src
+        run: python -m unittest tests.test_c3_factor_health_regime_v73 -v
+      - name: Validate runner syntax
+        run: bash -n scripts/run_v73_c3_factor_health_gitbash.sh
+      - name: Validate frozen research contracts
+        run: |
+          set -euo pipefail
+          grep -q 'CHAMPION_MODEL = "C3_STABLE_3_PAST_IC_SHRUNK"' src/he_thong_dinh_luong/c3_factor_health_regime_v73.py
+          grep -q 'PRIMARY_SELECTION_END = date(2025, 12, 31)' src/he_thong_dinh_luong/c3_factor_health_regime_v73.py
+          grep -q 'GateSpec("FH_RS3_SOFT50", 3, "RS_ONLY")' src/he_thong_dinh_luong/c3_factor_health_regime_v73.py
+          grep -q 'GateSpec("FH_MOM3_AVG_SOFT50", 3, "MOM_AVG")' src/he_thong_dinh_luong/c3_factor_health_regime_v73.py
+          grep -q 'GateSpec("FH_MOM6_AVG_SOFT50", 6, "MOM_AVG")' src/he_thong_dinh_luong/c3_factor_health_regime_v73.py
+          grep -q 'SOFT_EXPOSURE = 0.50' src/he_thong_dinh_luong/c3_factor_health_regime_v73.py
+          grep -q 'row.label_end < signal_day' src/he_thong_dinh_luong/c3_factor_health_regime_v73.py
+          grep -q 'year_2026_used_for_candidate_selection": False' src/he_thong_dinh_luong/c3_factor_health_regime_v73.py
+          grep -q 'weekly_overlays_combined": False' src/he_thong_dinh_luong/c3_factor_health_regime_v73.py
+          grep -q 'adaptive_weight_combined": False' src/he_thong_dinh_luong/c3_factor_health_regime_v73.py
+          grep -q 'macro_included": False' src/he_thong_dinh_luong/c3_factor_health_regime_v73.py
+          grep -q 'promotion_authorized": False' src/he_thong_dinh_luong/c3_factor_health_regime_v73.py
+          grep -q 'PYTHONHASHSEED=0' scripts/run_v73_c3_factor_health_gitbash.sh
+          if grep -Eiq '(sklearn|lightgbm|xgboost|place_order|create_order|trading_token|otp)' src/he_thong_dinh_luong/c3_factor_health_regime_v73.py; then
+            echo 'V73 must remain frozen-C3 research-only and challenger-ML free' >&2
+            exit 1
+          fi
+
+  windows-contract:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile V73 on Windows
+        run: python -m py_compile src/he_thong_dinh_luong/deep_portfolio_backtest_v70.py src/he_thong_dinh_luong/c3_adaptive_weight_v71.py src/he_thong_dinh_luong/c3_factor_health_regime_v73.py tests/test_c3_factor_health_regime_v73.py
+      - name: Run V73 end-to-end on Windows
+        env:
+          PYTHONPATH: src
+        run: python -m unittest tests.test_c3_factor_health_regime_v73 -v
