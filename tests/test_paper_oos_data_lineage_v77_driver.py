@@ -71,6 +71,24 @@ class TestV77Driver(unittest.TestCase):
             )
             self.assertFalse(result["passes"]["pit_hose_membership"])
 
+    def test_existing_freeze_model_drift_fails_closed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp)
+            freeze = {
+                "schema_version": core.FREEZE_SCHEMA,
+                "champion_model": "WRONG_MODEL",
+                "shadow_model": core.SHADOW_MODEL,
+                "primary_variant": core.PRIMARY_VARIANT,
+                "primary_allocator": core.PRIMARY_ALLOCATOR,
+                "paper_cost_contract": core.PAPER_COST_CONTRACT,
+                "future_model_mutation_allowed": False,
+                "capital_authorized": False,
+                "variant_symbols": [f"S{i:02d}" for i in range(12)],
+            }
+            (state / "freeze_manifest.json").write_text(json.dumps(freeze), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "V77_EXISTING_FREEZE_DEFINITION_DRIFT:champion_model"):
+                driver._validate_existing_freeze(state)
+
 
 if __name__ == "__main__":
     unittest.main()
