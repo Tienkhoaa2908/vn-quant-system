@@ -34,9 +34,12 @@ Tài liệu này là guardrail bắt buộc cho các đoạn chat và work packa
 - Nếu store thiếu exchange history/bar-level venue thì fail-closed và xuất schema/census; không tự đoán danh sách HOSE.
 - Price basis, corporate actions và delisting lineage phải được audit trước live promotion.
 
-## 5. Causality và boundary bắt buộc
+## 5. Causality, label contract và boundary bắt buộc
 
-- Signal chỉ dùng dữ liệu đã hoàn tất tại close phiên `t`; entry sớm nhất ở open phiên kế tiếp `t+1`.
+- Signal chỉ dùng dữ liệu đã hoàn tất tại close phiên `t`.
+- **Nhãn học trọng số C3 gốc là relative return từ `close(T)` đến `close(T+20)` so với VNINDEX cùng horizon.**
+- Tradable execution/outcome là contract khác: entry sớm nhất ở `open(T+1)`.
+- Không được thay training label của C3 bằng next-open return chỉ vì backtest phải t+1.
 - Mọi label dùng để train trọng số/model phải có `label_end < signal_day` tại thời điểm fit.
 - Không random split chuỗi thời gian.
 - Monthly canonical chỉ được tạo từ tháng đã hoàn tất. Analysis end giữa tháng, ví dụ 2026-08-13, không được biến 2026-08-13 thành monthly snapshot.
@@ -107,6 +110,12 @@ Sai lầm: chuyển runner sang root `.venv` để có sklearn, trong khi workst
 
 Sửa: V67 quay lại canonical local environment và không cần sklearn. Dependency của challenger sẽ được xử lý riêng sau.
 
+### V67 pre-run: trộn C3 training label với tradable outcome
+
+Sai lầm đã được bắt trước khi giao workstation: bản V67 đầu tiên dùng `open(T+1) -> open(T+21)` làm nhãn IC cho C3 vì nhầm training target với execution contract.
+
+Sửa: training label C3 giữ nguyên semantics gốc `close(T) -> close(T+20)` benchmark-relative; chỉ tradable outcome/backtest mới dùng t+1 open. Có test bắt buộc khóa hai contract riêng biệt.
+
 ### CI thành công không đồng nghĩa nghiên cứu thành công
 
 Sai lầm tiềm ẩn: xem compile/tests/CI xanh là kết quả research.
@@ -137,8 +146,8 @@ Sau khi từng lane có bằng chứng riêng mới thử combined policy.
 
 1. Census DB + point-in-time HOSE membership.
 2. Rebuild monthly C3 trên toàn lịch sử local.
-3. Xác minh C3 weight history dùng completed labels only.
-4. Đo C3 monthly OOS baseline theo year/era.
+3. Xác minh C3 weight history dùng **close(T)->close(T+20)** completed labels only.
+4. Đo C3 monthly tradable baseline theo year/era bằng next-session-open execution.
 5. Dựng weekly C3 preview trên cùng HOSE universe và cùng C3 weights.
 6. Re-test protection/opportunity hypotheses trên nền C3 native.
 7. Audit overlap, concentration, shadow state, VPI/TLG/BAF chỉ như case audit.
@@ -151,6 +160,7 @@ Sau khi từng lane có bằng chứng riêng mới thử combined policy.
 - Không tự đổi champion.
 - Không tự đổi canonical environment rồi coi như kiến trúc mới.
 - Không dùng current membership làm lịch sử.
+- Không trộn C3 close-to-close training label với t+1 tradable outcome.
 - Không dùng August 2026 để tune.
 - Không dùng focus symbols làm training universe.
 - Không dùng raw event count làm sample size độc lập.
