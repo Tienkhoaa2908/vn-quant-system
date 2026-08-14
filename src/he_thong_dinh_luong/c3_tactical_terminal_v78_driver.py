@@ -1,9 +1,9 @@
 """Safety wrapper for V78 operational tactical output.
 
-The core preview ranks only currently eligible names. This wrapper additionally
-keeps every prior-month C3 Top10 incumbent visible when it loses current
-eligibility, so a falling/illiquid incumbent can never disappear from the health
-screen merely because it failed the new-month eligibility filter.
+Besides fail-closed incumbent visibility, this wrapper computes each prior-month
+Top10 name's gross tradable period return from the first open after the monthly
+signal to the current close, plus same-calendar VNINDEX return/relative return.
+That makes intra-month portfolio drag observable rather than inferred from rank.
 """
 from __future__ import annotations
 
@@ -46,6 +46,58 @@ def _incumbent_fallback_row(
         "volume_ratio_5_20": volume_ratio,
         "ridge_monthly_top10": symbol in ridge_monthly_top10,
     }
+
+
+def _period_performance(
+    market: v70.Market,
+    symbol: str,
+    *,
+    source_signal_day: date,
+    capture_day: date,
+) -> dict[str, object]:
+    entry_day = v70._next(market.cal, source_signal_day)
+    if entry_day is None or entry_day > capture_day:
+        return {
+            "period_entry_day": entry_day.isoformat() if entry_day else None,
+            "period_return": None,
+            "period_benchmark_return": None,
+            "period_relative_return": None,
+        }
+    entry_open = market.so.get((symbol, entry_day))
+    current_close = market.sc.get((symbol, capture_day))
+    bench_open = market.io.get(entry_day)
+    bench_close = market.ic.get(capture_day)
+    if not all(value is not None and float(value) > 0 for value in (entry_open, current_close, bench_open, bench_close)):
+        return {
+            "period_entry_day": entry_day.isoformat(),
+            "period_return": None,
+            "period_benchmark_return": None,
+            "period_relative_return": None,
+        }
+    strategy = float(current_close) / float(entry_open) - 1.0
+    benchmark = float(bench_close) / float(bench_open) - 1.0
+    return {
+        "period_entry_day": entry_day.isoformat(),
+        "period_return": strategy,
+        "period_benchmark_return": benchmark,
+        "period_relative_return": strategy - benchmark,
+    }
+
+
+def _attach_period_performance(
+    market: v70.Market,
+    rows: Sequence[dict[str, object]],
+    *,
+    source_signal_day: date,
+    capture_day: date,
+) -> None:
+    for row in rows:
+        row.update(_period_performance(
+            market,
+            str(row["symbol"]),
+            source_signal_day=source_signal_day,
+            capture_day=capture_day,
+        ))
 
 
 def _ridge_recent_from_file(path: Path) -> list[dict[str, object]]:
@@ -98,6 +150,7 @@ def run(
         wall_date=capture_day,
         month_close_confirmed=False,
     )
+    source_signal_day = date.fromisoformat(str(rank_snapshot["source_signal_day"]))
     monthly_ranking = rank_snapshot["rankings"][core.OPERATIONAL_CHAMPION]
     monthly_map = {str(row["symbol"]): int(row["rank"]) for row in monthly_ranking}
     monthly_top10_symbols = [str(row["symbol"]) for row in monthly_ranking if int(row["rank"]) <= 10]
@@ -121,9 +174,29 @@ def run(
                 capture_day=capture_day,
                 ridge_monthly_top10=ridge_top10,
             ))
+    _attach_period_performance(
+        market,
+        preview,
+        source_signal_day=source_signal_day,
+        capture_day=capture_day,
+    )
 
     prior = core._prior_week_preview(tactical_state_dir, capture_day)
     tactical_rows, swap_pair = core.classify_tactical_rows(preview, prior_preview_rank=prior)
+    for row in tactical_rows:
+        held = core._int(row.get("canonical_rank")) <= 10
+        period_return = core._float(row.get("period_return"))
+        period_relative = core._float(row.get("period_relative_return"))
+        preview_rank = core._int(row.get("preview_rank"))
+        dragging = bool(
+            held
+            and period_return is not None and period_relative is not None
+            and period_return < 0.0 and period_relative < 0.0
+        )
+        row["dragging_current_period"] = dragging
+        if dragging and preview_rank > 10 and row.get("action") == "CORE_HOLD":
+            row["action"] = "WATCH_MONTH_DRAG"
+            row["reason"] = "Top10 tháng trước đang lỗ từ next-open và thua VNINDEX trong kỳ hiện tại; cảnh báo, không auto-sell."
     preview_path = core._persist_preview(tactical_state_dir, capture_day, preview)
 
     artifact_root = Path(artifact_root) if artifact_root else None
@@ -147,11 +220,13 @@ def run(
 
     top10 = [row for row in tactical_rows if core._int(row.get("canonical_rank")) <= 10]
     top10.sort(key=lambda row: core._int(row.get("canonical_rank")))
-    health = [row for row in top10 if row.get("action") in {"WATCH", "RISK_ALERT_R08", "L15_SWAP_OUT_CANDIDATE"}]
+    health_actions = {"WATCH", "WATCH_MONTH_DRAG", "RISK_ALERT_R08", "L15_SWAP_OUT_CANDIDATE"}
+    health = [row for row in top10 if row.get("action") in health_actions or bool(row.get("dragging_current_period"))]
     emerging = [row for row in tactical_rows if row.get("action") in {"L15_SWAP_IN_CANDIDATE", "WATCH_EMERGING", "RIDGE_CONFIRMATION"}]
     emerging.sort(key=lambda row: core._int(row.get("preview_rank")))
     ranked_now = [row for row in tactical_rows if row.get("preview_rank") not in (None, "")]
     ranked_now.sort(key=lambda row: core._int(row.get("preview_rank")))
+    dragging = [row for row in top10 if bool(row.get("dragging_current_period"))]
 
     report = {
         "schema_version": core.SCHEMA_VERSION,
@@ -163,7 +238,9 @@ def run(
         "primary_variant": core.PRIMARY_VARIANT,
         "primary_allocator": core.PRIMARY_ALLOCATOR,
         "capture_day": capture_day.isoformat(),
-        "source_monthly_signal_day": rank_snapshot["source_signal_day"],
+        "source_monthly_signal_day": source_signal_day.isoformat(),
+        "period_execution_start_day": v70._next(market.cal, source_signal_day).isoformat() if v70._next(market.cal, source_signal_day) else None,
+        "period_performance_basis": "NEXT_SESSION_OPEN_AFTER_MONTHLY_SIGNAL_TO_CURRENT_CLOSE_GROSS",
         "risk_on": bool(rank_snapshot["risk_on"]),
         "c3_weights": rank_snapshot["c3_weights"],
         "eligible_now_count": sum(bool(row.get("eligible_now")) for row in tactical_rows),
@@ -171,6 +248,8 @@ def run(
         "current_preview_top10": [str(row["symbol"]) for row in ranked_now[:10]],
         "ridge_monthly_top10": sorted(ridge_top10),
         "incumbent_health_alert_count": len(health),
+        "dragging_incumbent_count": len(dragging),
+        "dragging_incumbents": [str(row["symbol"]) for row in dragging],
         "emerging_radar_count": len(emerging),
         "l15_swap_pair": swap_pair,
         "preview_state_path": str(preview_path),
@@ -179,6 +258,7 @@ def run(
         "tactical_semantics": {
             "monthly_c3_top10_remains_core": True,
             "prior_month_top10_never_hidden_by_current_eligibility_failure": True,
+            "incumbent_period_drag_measured_from_tradable_next_open": True,
             "r07_r08_are_advisory_health_alerts": True,
             "r07_r08_auto_sell": False,
             "l15_exact_trigger_required_for_swap_advice": True,
@@ -240,6 +320,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         "monthly_top10": report["monthly_top10"],
         "current_preview_top10": report["current_preview_top10"],
         "incumbent_health_alert_count": report["incumbent_health_alert_count"],
+        "dragging_incumbent_count": report["dragging_incumbent_count"],
+        "dragging_incumbents": report["dragging_incumbents"],
         "emerging_radar_count": report["emerging_radar_count"],
         "l15_swap_pair": report["l15_swap_pair"],
         "recent_v72_rows": len(report["recent_regime_evidence"]["v72"]),
