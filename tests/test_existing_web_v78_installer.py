@@ -17,6 +17,7 @@ INDEX_FIXTURE = '''<!doctype html>
 </body></html>
 '''
 
+# Keep the nesting/indentation of the approved vn_quant_local.webapp handler.
 WEBAPP_FIXTURE = '''from __future__ import annotations
 from urllib.parse import parse_qs, urlparse
 
@@ -39,16 +40,19 @@ def _refresh_market_signals() -> dict[str, object]:
 class Handler:
     def do_GET(self):
         path = ""
-        if path in {
+        try:
+            if path in {
                 "/performance_v51.css",
-        }:
+            }:
+                pass
+            elif path == "/api/status":
+                value = {}
+                value["signal_refresh"] = signal_refresh_status()
+                self._send_json(value)
+            elif path == "/api/performance":
+                self._send_json(performance_status())
+        except Exception:
             pass
-        elif path == "/api/status":
-            value = {}
-            value["signal_refresh"] = signal_refresh_status()
-            self._send_json(value)
-        elif path == "/api/performance":
-            self._send_json(performance_status())
 
     def do_POST(self):
         actions = {
