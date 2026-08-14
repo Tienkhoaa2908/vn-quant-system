@@ -42,7 +42,7 @@ class TestV77Driver(unittest.TestCase):
             )
         self.assertEqual(seen["analysis_end"].isoformat(), "2026-09-01")
         self.assertEqual(result["capture_wall_date_vn"], "2026-09-01")
-        self.assertEqual(result["wall_date_contract"], "ASIA_HO_CHI_MINH")
+        self.assertEqual(result["wall_date_contract"], "ASIA_HO_CHI_MINH_UTC_PLUS_07")
 
     def test_existing_pit_membership_interval_v2_is_recognized_fail_closed(self):
         with tempfile.TemporaryDirectory() as tmp:
