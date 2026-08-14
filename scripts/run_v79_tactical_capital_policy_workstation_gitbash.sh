@@ -12,7 +12,8 @@ git diff --cached --quiet || fail "staging area co thay doi; khong tu dong che t
 
 WEBAPP="vn_quant_local_system/src/vn_quant_local/webapp.py"
 INDEX="vn_quant_local_system/web/index.html"
-RUNNER="scripts/run_v79_tactical_capital_policy_gitbash.sh"
+RUNNER="${V79_INNER_RUNNER:-scripts/run_v79_tactical_capital_policy_gitbash.sh}"
+[[ -f "$RUNNER" ]] || fail "khong tim thay inner runner: $RUNNER"
 
 mapfile -t DIRTY_TRACKED < <(git diff --name-only --)
 if [[ "${#DIRTY_TRACKED[@]}" -eq 0 ]]; then
