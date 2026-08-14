@@ -1,20 +1,96 @@
-"""Vietnam-time boundary-safe entry point for V77.
+"""Vietnam-time and evidence-contract-safe entry point for V77.
 
 The core V77 package is intentionally deterministic around a captured timestamp.
 This driver makes the monthly-completion decision from Asia/Ho_Chi_Minh calendar
-semantics regardless of the timezone/host running the command.
+semantics and recognizes the repository's existing PIT membership coverage contract
+without relaxing any research-eligibility requirement.
 """
 from __future__ import annotations
 
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Sequence
+from typing import Mapping, Sequence
 from zoneinfo import ZoneInfo
 
 from . import paper_oos_data_lineage_v77 as core
 
 VN_TZ = ZoneInfo("Asia/Ho_Chi_Minh")
+PIT_MEMBERSHIP_CONTRACTS = {
+    "pit_membership_interval_v2",
+    "pit_hose_membership_v1",
+    "hose_membership_interval_v1",
+}
+
+
+def _scan_evidence_once(
+    search_roots: Sequence[Path], *, target_day, store_sha: str
+) -> dict[str, object]:
+    paths = core._candidate_json_files(search_roots)
+    candidates: list[dict[str, object]] = []
+    passes = {
+        "pit_hose_membership": False,
+        "corporate_actions": False,
+        "pit_sector_master": False,
+        "price_basis_certificate": False,
+    }
+    for path in paths:
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8-sig"))
+        except Exception:
+            continue
+        for record in core._walk_dicts(payload):
+            if not isinstance(record, Mapping):
+                continue
+            contract = str(record.get("contract_version") or record.get("schema_version") or "")
+            matched: list[str] = []
+            nonfixture = record.get("is_fixture") is False
+            research = record.get("research_eligible") is True
+            complete = record.get("complete") is True or record.get("inventory_complete") is True
+            gaps = record.get("gaps") or []
+            conflicts = record.get("conflicts") or []
+            covers = core._date_covers(record, target_day)
+
+            if contract in PIT_MEMBERSHIP_CONTRACTS:
+                matched.append("pit_hose_membership")
+                if nonfixture and research and complete and not gaps and not conflicts and covers:
+                    passes["pit_hose_membership"] = True
+
+            if contract == "pit_sector_master_v1":
+                matched.append("pit_sector_master")
+                if nonfixture and research and complete and not gaps and not conflicts and covers:
+                    passes["pit_sector_master"] = True
+
+            if "inventory_complete" in record and "research_eligible" in record and "is_fixture" in record:
+                matched.append("corporate_actions")
+                if nonfixture and research and record.get("inventory_complete") is True and not conflicts and covers:
+                    passes["corporate_actions"] = True
+
+            if contract == "price_basis_certificate_v1":
+                matched.append("price_basis_certificate")
+                bound_sha = str(record.get("store_sha256") or "")
+                basis = str(record.get("price_basis") or "").upper()
+                if (
+                    nonfixture
+                    and research
+                    and record.get("confirmed") is True
+                    and bound_sha == store_sha
+                    and basis in {"ADJUSTED", "UNADJUSTED"}
+                    and not conflicts
+                ):
+                    passes["price_basis_certificate"] = True
+
+            if matched:
+                candidates.append({
+                    "path": str(path),
+                    "sha256": core._sha_file(path),
+                    "contract": contract,
+                    "matched_gates": matched,
+                    "research_eligible": record.get("research_eligible"),
+                    "is_fixture": record.get("is_fixture"),
+                    "covers_target_day": covers,
+                })
+    return {"passes": passes, "candidates": candidates, "files_scanned": len(paths)}
 
 
 def run(
@@ -31,12 +107,14 @@ def run(
     if captured.tzinfo is None or captured.utcoffset() is None:
         raise ValueError("V77_CAPTURE_TIME_MUST_HAVE_TIMEZONE")
     vn_wall_day = captured.astimezone(VN_TZ).date()
-    original = core._analysis_end_for_capture
+    original_boundary = core._analysis_end_for_capture
+    original_scan = core._scan_evidence
 
     def vietnam_boundary(capture_day, _host_wall_day, confirmed):
-        return original(capture_day, vn_wall_day, confirmed)
+        return original_boundary(capture_day, vn_wall_day, confirmed)
 
     core._analysis_end_for_capture = vietnam_boundary
+    core._scan_evidence = _scan_evidence_once
     try:
         report = core.run(
             store=store,
@@ -48,9 +126,11 @@ def run(
             month_close_confirmed=month_close_confirmed,
         )
     finally:
-        core._analysis_end_for_capture = original
+        core._analysis_end_for_capture = original_boundary
+        core._scan_evidence = original_scan
     report["wall_date_contract"] = "ASIA_HO_CHI_MINH"
     report["capture_wall_date_vn"] = vn_wall_day.isoformat()
+    report["pit_membership_contracts_recognized"] = sorted(PIT_MEMBERSHIP_CONTRACTS)
     (Path(output_dir) / "v77_report.json").write_text(core._json_text(report), encoding="utf-8")
     return report
 
