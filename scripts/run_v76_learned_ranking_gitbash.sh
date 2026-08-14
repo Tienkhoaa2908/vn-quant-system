@@ -35,6 +35,27 @@ V68=""
 V70=""
 REUSE_SOURCE=""
 
+ensure_sklearn(){
+  if "$PY" - <<'PY' >/dev/null 2>&1
+import sklearn
+raise SystemExit(0 if sklearn.__version__ == "1.9.0" else 1)
+PY
+  then
+    echo "SKLEARN_BOOTSTRAP=already_satisfied"
+    return 0
+  fi
+
+  echo "===== BOOTSTRAP CANONICAL ML DEPENDENCY ====="
+  echo "SKLEARN_BOOTSTRAP=installing_scikit_learn_1_9_0_into_canonical_venv"
+  "$PY" -m pip install --disable-pip-version-check --only-binary=:all: --upgrade "scikit-learn==1.9.0"
+  "$PY" - <<'PY'
+import sklearn
+assert sklearn.__version__ == "1.9.0", sklearn.__version__
+print("SKLEARN_BOOTSTRAP=verified")
+print("SKLEARN_VERSION=" + sklearn.__version__)
+PY
+}
+
 find_reusable_reference(){
   shopt -s nullglob
   local dirs=("$ART"/v75-consolidated-selection-bundle-*)
@@ -108,6 +129,9 @@ run_all() (
   echo "PROFIT_REPORT_REQUIRED=true"
   echo "STORE_MUTATION_ALLOWED=false"
   echo "PROMOTION_AUTHORIZED=false"
+  echo
+
+  ensure_sklearn
   echo
 
   echo "===== COMPILE + REGRESSION ====="
