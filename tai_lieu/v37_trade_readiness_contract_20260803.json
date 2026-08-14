@@ -1,0 +1,60 @@
+{
+  "schema_version": "vn_quant_trade_readiness_v37_contract_v1",
+  "recorded_at": "2026-08-03T11:29:00+07:00",
+  "objective": "EVIDENCE_SUFFICIENT_FOR_CONTROLLED_REAL_CAPITAL_REVIEW",
+  "single_runner": "scripts/run_v37_trade_readiness_integrated_gitbash.sh",
+  "frozen_policy": {
+    "policy_id": "c3-top10-cap3-c32fe6ec8c2fd4ce",
+    "model": "C3_STABLE_3_PAST_IC_SHRUNK",
+    "breadth": 10,
+    "fixed_voluntary_replacement_cap": 3,
+    "retraining_allowed_in_this_workstream": false,
+    "retuning_allowed_in_this_workstream": false
+  },
+  "integrated_pipeline": [
+    "RUN_V36_DATA_INTEGRITY_AND_EXACT_LEDGER",
+    "VERIFY_EXACT_VNINDEX_NEXT_OPEN_COMPARISON",
+    "READ_OR_INITIALIZE_FUTURE_PAPER_OBSERVATIONS",
+    "CHECK_OPERATIONAL_CONTROLS",
+    "COMPUTE_ONE_CAPITAL_STAGE_DECISION",
+    "BUNDLE_V36_AND_V37_ARTIFACTS"
+  ],
+  "capital_stages": [
+    "NO_GO_MODEL",
+    "DATA_BLOCKED",
+    "PAPER_ONLY",
+    "PAPER_ONLY_OPERATIONS",
+    "MANUAL_MICRO_LIVE_REVIEW_ELIGIBLE"
+  ],
+  "manual_micro_live_review_minimum_gates": {
+    "frozen_policy_exact": true,
+    "selection_lineage_51_of_51": true,
+    "authoritative_data_assurance": true,
+    "exact_cash_ledger_computed": true,
+    "exact_vnindex_comparison_computed": true,
+    "minimum_future_observations": 12,
+    "future_mean_net_excess_positive": true,
+    "future_positive_net_excess_ratio_minimum": 0.55,
+    "future_worst_drawdown_minimum": -0.25,
+    "future_contract_violation_count": 0,
+    "operational_controls_all_pass": true
+  },
+  "operational_controls": [
+    "data_freshness_fail_closed",
+    "idempotent_daily_run_verified",
+    "kill_switch_tested",
+    "manual_order_confirmation_required",
+    "account_sync_verified",
+    "position_reconciliation_verified",
+    "stale_signal_rejected",
+    "duplicate_order_prevention_tested",
+    "no_automatic_live_orders"
+  ],
+  "governance": {
+    "manual_micro_live_review_is_live_approval": false,
+    "automatic_live_orders_allowed": false,
+    "historical_backfill_counts_as_future_holdout": false,
+    "calendar_time_can_be_accelerated": false,
+    "pr_may_be_merged_automatically": false
+  }
+}

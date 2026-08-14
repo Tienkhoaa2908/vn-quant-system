@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VN Quant Local Workstation</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/sell_review_v44_5.css">
+  <link rel="stylesheet" href="/performance_v45.css">
+  <link rel="stylesheet" href="/signal_v47.css">
+  <link rel="stylesheet" href="/source_integrity_v49.css">
+  <link rel="stylesheet" href="/performance_v51.css">
+</head>
+<body>
+  <header class="site-header">
+    <div>
+      <p class="eyebrow">LOCAL RESEARCH WORKSTATION</p>
+      <h1>VN Quant System</h1>
+      <p class="subtitle">C3 monthly ranking · DNSE read-only portfolio · event-driven capital planner</p>
+    </div>
+    <button id="refresh" class="secondary">Làm mới</button>
+  </header>
+
+  <nav class="tabs-nav">
+    <button data-tab="dashboard" class="active">Tổng quan</button>
+    <button data-tab="data">Dữ liệu & API</button>
+    <button data-tab="model">Model</button>
+    <button data-tab="plan">Kế hoạch vốn</button>
+    <button data-tab="account">Nhập tay</button>
+    <button data-tab="docs">Tài liệu</button>
+  </nav>
+
+  <main>
+    <section id="dashboard" class="tab active">
+      <div class="hero-grid">
+        <div class="panel budget-panel">
+          <div class="section-head compact">
+            <div>
+              <p class="eyebrow">PLANNING CYCLE</p>
+              <h2>Tiền mới cho lần này</h2>
+              <p>Chỉ nhập phần tiền chưa xuất hiện trong DNSE. Nhập 0 khi tiền đã nằm trong số dư DNSE.</p>
+            </div>
+          </div>
+          <div class="budget-row">
+            <label>Tiền mới chưa nằm trong DNSE (VND)
+              <input id="dashboard-budget" type="number" min="0" step="1000" value="0">
+            </label>
+            <label>Số mã mua tối đa
+              <select id="dashboard-max-orders">
+                <option value="1">1 mã — baseline V43.1</option>
+                <option value="2">Tối đa 2 mã</option>
+                <option value="3">Tối đa 3 mã</option>
+                <option value="4">Tối đa 4 mã</option>
+                <option value="5" selected>Tối đa 5 mã</option>
+              </select>
+            </label>
+          </div>
+          <div class="inline-actions">
+            <button id="save-budget">Lưu mặc định</button>
+            <button data-action="plan">Tạo kế hoạch ngay</button>
+          </div>
+          <div class="research-note">Có thể giải ngân = tiền mặt DNSE đã được kiểm tra contract + tiền mới chưa nằm trong DNSE. Không cần nhập 1 đồng để chạy; giá trị 0 là hợp lệ.</div>
+        </div>
+
+        <div class="panel broker-quick-panel">
+          <p class="eyebrow">DANH MỤC THỰC TẾ</p>
+          <h2>DNSE Portfolio</h2>
+          <p id="broker-summary-text">Chưa đồng bộ danh mục.</p>
+          <div class="inline-actions">
+            <button data-action="sync-broker">Đồng bộ danh mục DNSE</button>
+            <button data-tab-jump="data" class="secondary">Cấu hình API</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel quick-actions-panel">
+        <div>
+          <p class="eyebrow">THAO TÁC NHANH</p>
+          <h2>Chạy trực tiếp tại trang Tổng quan</h2>
+          <p>Kết quả của từng thao tác sẽ hiện ngay bên dưới, không tự chuyển sang tab khác.</p>
+        </div>
+        <div class="inline-actions dashboard-actions">
+          <button data-action="sync">Đồng bộ dữ liệu giá</button>
+          <button data-action="sync-broker">Đồng bộ danh mục DNSE</button>
+          <button data-action="model">Chạy C3</button>
+          <button data-action="plan">Tạo kế hoạch ngay</button>
+        </div>
+      </div>
+
+      <div id="notice" class="notice">Sẵn sàng.</div>
+      <div id="dashboard-action-result" class="result-box dashboard-result">Chưa chạy thao tác mới.</div>
+      <div id="cards" class="cards"></div>
+
+      <section id="portfolio-section" class="dashboard-output-section">
+        <div class="section-head">
+          <div>
+            <h2>Danh mục đang nắm giữ</h2>
+            <p>Số lượng và tiền từ DNSE; định giá chỉ dùng close EOD chính thức trong kho local.</p>
+          </div>
+          <span id="portfolio-source-badge" class="badge muted">Chưa có dữ liệu</span>
+        </div>
+        <div id="portfolio-grid" class="security-grid"></div>
+      </section>
+
+      <section id="dashboard-model-section" class="dashboard-output-section">
+        <div class="section-head">
+          <div>
+            <h2>Top C3 tháng gần nhất</h2>
+            <p>Bấm Chạy C3 ở trên, danh sách mới sẽ hiện ngay tại đây và vẫn được giữ trong tab Model.</p>
+          </div>
+          <button data-action="model" class="secondary">Chạy lại C3</button>
+        </div>
+        <div id="dashboard-model-meta" class="notice compact-notice"></div>
+        <div id="dashboard-ranking-grid" class="security-grid"></div>
+      </section>
+
+      <section id="dashboard-plan-section" class="dashboard-output-section">
+        <div class="section-head">
+          <div>
+            <h2>Kế hoạch vốn gần nhất</h2>
+            <p>Mua dựa trên Top-10 C3, danh mục thực tế, tiền DNSE hợp lệ và khoản tiền mới chưa nằm trong DNSE.</p>
+          </div>
+          <button data-action="plan" class="secondary">Tạo kế hoạch mới</button>
+        </div>
+        <div id="dashboard-plan"></div>
+      </section>
+
+      <section id="coverage-section" class="dashboard-output-section">
+        <div class="section-head">
+          <div>
+            <h2>Coverage dữ liệu</h2>
+            <p>Kết quả đồng bộ giá sẽ cập nhật ngay tại đây.</p>
+          </div>
+        </div>
+        <div id="coverage" class="coverage-grid"></div>
+      </section>
+    </section>
+
+    <section id="data" class="tab">
+      <div class="section-head">
+        <div>
+          <h2>Nguồn dữ liệu thị trường và DNSE</h2>
+          <p>Credentials chỉ lưu trong máy local. API Secret không được trả lại trình duyệt.</p>
+        </div>
+        <button id="refresh-data-source" class="secondary">Kiểm tra trạng thái</button>
+      </div>
+      <div id="data-source-status" class="cards"></div>
+
+      <div class="panel">
+        <h3>DNSE OpenAPI</h3>
+        <p class="help">API Key/Secret dùng HMAC cho DNSE OpenAPI. Workstation chỉ gọi endpoint đọc dữ liệu, tài khoản, số dư và vị thế.</p>
+        <div class="form-grid">
+          <label>API Key<input id="dnse-api-key" type="password" autocomplete="off" spellcheck="false" placeholder="Nhập API Key"></label>
+          <label>API Secret<input id="dnse-api-secret" type="password" autocomplete="new-password" spellcheck="false" placeholder="Nhập API Secret"></label>
+        </div>
+        <div class="inline-actions">
+          <button id="save-credentials">Lưu credentials local</button>
+          <button id="test-credentials">Kiểm tra kết nối</button>
+          <button id="install-sdk">Cài/Sửa DNSE runtime</button>
+          <button id="clear-credentials" class="danger">Xóa credentials local</button>
+          <button data-action="sync">Đồng bộ giá</button>
+          <button data-action="sync-broker">Đồng bộ danh mục</button>
+        </div>
+        <div id="credential-result" class="result-box">Chưa thao tác.</div>
+      </div>
+
+      <div class="panel">
+        <h3>Nhập CSV thủ công</h3>
+        <p class="help">Dùng khi API chưa hoạt động. File được kiểm tra xung đột và lưu bản gốc để audit.</p>
+        <div class="form-grid">
+          <label>File CSV<input id="manual-csv-file" type="file" accept=".csv,text/csv"></label>
+          <label>Đơn vị giá cổ phiếu
+            <select id="manual-price-unit">
+              <option value="THOUSAND_VND">Nghìn đồng — giống kho hiện tại</option>
+              <option value="VND">Đồng — tự chia 1.000</option>
+            </select>
+          </label>
+        </div>
+        <div class="inline-actions"><button id="import-manual-csv">Import CSV</button></div>
+        <div id="manual-import-result" class="result-box">Chưa import.</div>
+      </div>
+    </section>
+
+    <section id="model" class="tab">
+      <div class="section-head">
+        <div>
+          <h2>Top cổ phiếu C3</h2>
+          <p>Ranking tháng là tín hiệu chính. Mỗi mã hiển thị score, tỷ trọng mục tiêu và trạng thái danh mục.</p>
+        </div>
+        <button data-action="model">Chạy lại model</button>
+      </div>
+      <div id="model-meta" class="notice"></div>
+      <div id="ranking-grid" class="security-grid"></div>
+    </section>
+
+    <section id="plan" class="tab">
+      <div class="section-head">
+        <div>
+          <h2>Kế hoạch mua và rà soát bán</h2>
+          <p>Tiền mua bằng tiền mặt DNSE hợp lệ cộng phần tiền mới chưa nằm trong DNSE. Không tự gửi lệnh.</p>
+        </div>
+        <button data-action="plan">Tạo kế hoạch mới</button>
+      </div>
+      <div id="plan-content"></div>
+    </section>
+
+    <section id="account" class="tab">
+      <div class="section-head">
+        <div>
+          <h2>Nhập tay khi DNSE API chưa dùng được</h2>
+          <p>Dữ liệu DNSE sẽ ghi đè phần tiền mặt và holdings ở lần đồng bộ danh mục tiếp theo.</p>
+        </div>
+      </div>
+      <div class="form-grid">
+        <label>Tiền mặt hiện có (VND)<input id="cash" type="number" min="0" step="1000"></label>
+        <label>Tiền mới mặc định (VND)<input id="contribution" type="number" min="0" step="1000"></label>
+      </div>
+      <div class="section-head compact">
+        <h3>Danh sách holdings</h3>
+        <button id="add-holding" class="secondary">Thêm mã</button>
+      </div>
+      <div id="holdings-editor" class="holdings-editor"></div>
+      <button id="save-account">Lưu dữ liệu nhập tay</button>
+      <div id="account-result" class="result-box"></div>
+    </section>
+
+    <section id="docs" class="tab"><h2>Tài liệu hệ thống</h2><div id="docs-content"></div></section>
+  </main>
+
+  <footer>
+    <span>research_only=true</span>
+    <span>live_capital_approved=false</span>
+    <span>automatic_live_orders_allowed=false</span>
+  </footer>
+  <script src="/app.js"></script>
+  <script src="/sell_review_v44_5.js"></script>
+  <script src="/performance_v45.js"></script>
+  <script src="/signal_v47.js"></script>
+  <script src="/source_integrity_v49.js"></script>
+  <script src="/planning_v46.js"></script>
+  <script src="/performance_v51.js"></script>
+</body>
+</html>

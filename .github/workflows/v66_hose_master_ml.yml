@@ -1,0 +1,48 @@
+name: v66_hose_master_ml
+
+on:
+  push:
+    branches:
+      - agent/v66-hose-master-panel-walkforward-ml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pure-contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned ML dependency
+        run: python -m pip install --disable-pip-version-check scikit-learn==1.9.0
+      - name: Compile V66
+        run: |
+          python -m py_compile \
+            src/he_thong_dinh_luong/hose_master_panel_v66.py \
+            src/he_thong_dinh_luong/hose_walkforward_ml_v66.py \
+            tests/test_hose_master_ml_v66.py
+      - name: Run V66 pure tests
+        env:
+          PYTHONPATH: src
+        run: python -m unittest tests.test_hose_master_ml_v66 -v
+      - name: Validate runner syntax
+        run: bash -n scripts/run_v66_hose_master_ml_gitbash.sh
+      - name: Validate research and data contracts
+        run: |
+          set -euo pipefail
+          grep -q 'master_panel_is_primary_ml_input' src/he_thong_dinh_luong/hose_master_panel_v66.py
+          grep -q 'v22_used_as_training_input.*False' src/he_thong_dinh_luong/hose_master_panel_v66.py
+          grep -q 'EXPANDING_PURGED_BY_LABEL_END' src/he_thong_dinh_luong/hose_walkforward_ml_v66.py
+          grep -q 'random_cross_validation_used.*False' src/he_thong_dinh_luong/hose_walkforward_ml_v66.py
+          grep -q 'STATIC_EXCHANGE_METADATA_NOT_ACCEPTED' src/he_thong_dinh_luong/hose_master_panel_v66.py
+          grep -q '30. Phạm vi nghiên cứu và học máy mặc định tập trung vào cổ phiếu HOSE' tai_lieu_dieu_phoi/nguyen_tac_du_an.md
+          if grep -Eiq '(place_order|create_order|trading_token|otp)' \
+            src/he_thong_dinh_luong/hose_master_panel_v66.py \
+            src/he_thong_dinh_luong/hose_walkforward_ml_v66.py; then
+            echo 'V66 source must remain research-only' >&2
+            exit 1
+          fi
