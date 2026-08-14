@@ -1,0 +1,59 @@
+{
+  "authoritative_sources": {
+    "corporate_actions": [
+      "VSDC",
+      "HOSE",
+      "HNX"
+    ],
+    "price_basis": [
+      "HOSE",
+      "DNSE"
+    ],
+    "sector": [
+      "HOSE",
+      "HNX"
+    ]
+  },
+  "decision_surface_scope": {
+    "corporate_action_windows_expected": 510,
+    "execution_dates_expected": 52,
+    "historical_periods": 51,
+    "rule": "Only data that can change the frozen exact ledger must be authoritative; no whole-universe full-history requirement is imposed by V38.",
+    "sector_keys_expected": 510
+  },
+  "frozen_policy": {
+    "breadth": 10,
+    "fixed_voluntary_replacement_cap": 3,
+    "model": "C3_STABLE_3_PAST_IC_SHRUNK",
+    "policy_id": "c3-top10-cap3-c32fe6ec8c2fd4ce",
+    "retraining_allowed": false,
+    "retuning_allowed": false
+  },
+  "governance": {
+    "automatic_live_orders_allowed": false,
+    "empty_corporate_action_file_is_not_completeness": true,
+    "future_holdout_backfill_forbidden": true,
+    "live_capital_approved": false,
+    "sector_inference_from_ticker_forbidden": true,
+    "source_registry_is_not_assurance": true
+  },
+  "objective": "SHRINK_AND_PARALLELIZE_REMAINING_TRADE_EVIDENCE",
+  "operational_dry_run": {
+    "automated_controls": [
+      "data_freshness_fail_closed",
+      "idempotent_daily_run_verified",
+      "kill_switch_tested",
+      "manual_order_confirmation_required",
+      "stale_signal_rejected",
+      "duplicate_order_prevention_tested",
+      "no_automatic_live_orders"
+    ],
+    "workstation_controls": [
+      "account_sync_verified",
+      "position_reconciliation_verified"
+    ]
+  },
+  "recorded_at": "2026-08-03T11:46:00+07:00",
+  "schema_version": "vn_quant_trade_evidence_accelerator_v38_contract_v1",
+  "single_runner": "scripts/run_v38_trade_evidence_accelerator_gitbash.sh"
+}

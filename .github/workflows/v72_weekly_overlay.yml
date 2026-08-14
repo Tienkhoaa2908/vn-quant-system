@@ -1,0 +1,65 @@
+name: v72_weekly_overlay
+
+on:
+  push:
+    branches:
+      - agent/v72-weekly-overlay-deep-backtest
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux-contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile V72
+        run: |
+          python -m py_compile \
+            src/he_thong_dinh_luong/c3_hose_native_v67.py \
+            src/he_thong_dinh_luong/c3_hose_consolidated_v68_safe.py \
+            src/he_thong_dinh_luong/deep_portfolio_backtest_v70.py \
+            src/he_thong_dinh_luong/weekly_overlay_backtest_v72.py \
+            tests/test_weekly_overlay_backtest_v72.py
+      - name: Run V72 pure and end-to-end tests
+        env:
+          PYTHONPATH: src
+        run: python -m unittest tests.test_weekly_overlay_backtest_v72 -v
+      - name: Validate runner syntax
+        run: bash -n scripts/run_v72_weekly_overlay_gitbash.sh
+      - name: Validate research contracts
+        run: |
+          set -euo pipefail
+          grep -q 'CHAMPION_MODEL = "C3_STABLE_3_PAST_IC_SHRUNK"' src/he_thong_dinh_luong/weekly_overlay_backtest_v72.py
+          grep -q 'OverlayPolicy("R07_TRIM50_CASH", "RISK_TRIM", "R07_DD20_08", 0.50)' src/he_thong_dinh_luong/weekly_overlay_backtest_v72.py
+          grep -q 'OverlayPolicy("R08_TRIM50_CASH", "RISK_TRIM", "R08_DD60_12", 0.50)' src/he_thong_dinh_luong/weekly_overlay_backtest_v72.py
+          grep -q 'OverlayPolicy("L15_SWAP50_WORST", "LEADER_SWAP", "L15_PERSIST_REL", 0.50)' src/he_thong_dinh_luong/weekly_overlay_backtest_v72.py
+          grep -q 'PRIMARY_SELECTION_END = date(2025, 12, 31)' src/he_thong_dinh_luong/weekly_overlay_backtest_v72.py
+          grep -q '"policies_combined": False' src/he_thong_dinh_luong/weekly_overlay_backtest_v72.py
+          grep -q '"adaptive_weight_combined": False' src/he_thong_dinh_luong/weekly_overlay_backtest_v72.py
+          grep -q '"macro_included": False' src/he_thong_dinh_luong/weekly_overlay_backtest_v72.py
+          grep -q '"promotion_authorized": False' src/he_thong_dinh_luong/weekly_overlay_backtest_v72.py
+          grep -q 'YEAR_2026_USED_FOR_SELECTION=false' scripts/run_v72_weekly_overlay_gitbash.sh
+          grep -q 'POST_SELECTED_MECHANISM_AUDIT=true' scripts/run_v72_weekly_overlay_gitbash.sh
+          if grep -Eiq '(sklearn|lightgbm|xgboost|place_order|create_order|trading_token|otp)' src/he_thong_dinh_luong/weekly_overlay_backtest_v72.py; then
+            echo 'V72 must remain frozen-C3 research-only with no challenger ML or broker orders' >&2
+            exit 1
+          fi
+
+  windows-contract:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile V72 on Windows
+        run: python -m py_compile src/he_thong_dinh_luong/deep_portfolio_backtest_v70.py src/he_thong_dinh_luong/weekly_overlay_backtest_v72.py tests/test_weekly_overlay_backtest_v72.py
+      - name: Run V72 end-to-end on Windows
+        env:
+          PYTHONPATH: src
+        run: python -m unittest tests.test_weekly_overlay_backtest_v72 -v

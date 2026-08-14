@@ -1,0 +1,17 @@
+V32.1 replaces the original V32 workstation runner after the canonical run at 2026-08-03 08:37 +07 failed because the 57-month eligible universe had a minimum of 13 symbols while requested breadths included 15, 20, and 30.
+
+Official command:
+
+bash scripts/run_v32_1_canonical_11y_gitbash.sh
+
+Policy:
+- preserve all 57 OOS months;
+- evaluate only breadths feasible in every month;
+- expected full-horizon breadth: Top-10;
+- record Top-15/20/30 as INFEASIBLE_FULL_HORIZON;
+- never dynamically shrink K;
+- never drop sparse months;
+- output breadth_feasibility_v32.csv;
+- results remain modeled-cost return proxies, not exact cash-ledger P&L;
+- research_eligible=false;
+- live_capital_approved=false.

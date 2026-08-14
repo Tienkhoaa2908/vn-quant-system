@@ -1,0 +1,52 @@
+name: v64_multisignal_cohorts
+
+on:
+  push:
+    branches:
+      - agent/v64-multisignal-weekly-gate-research
+    paths:
+      - "src/he_thong_dinh_luong/_v64_cohort_contract.py"
+      - "src/he_thong_dinh_luong/c3_cohort_matrix_v64.py"
+      - "tests/test_c3_multisignal_gates_v64.py"
+      - "scripts/run_v64_multisignal_cohorts_gitbash.sh"
+      - "docs/V64_MULTISIGNAL_WEEKLY_GATES_RESEARCH.md"
+      - ".github/workflows/v64_multisignal_cohorts.yml"
+  pull_request:
+    paths:
+      - "src/he_thong_dinh_luong/_v64_cohort_contract.py"
+      - "src/he_thong_dinh_luong/c3_cohort_matrix_v64.py"
+      - "tests/test_c3_multisignal_gates_v64.py"
+      - "scripts/run_v64_multisignal_cohorts_gitbash.sh"
+      - "docs/V64_MULTISIGNAL_WEEKLY_GATES_RESEARCH.md"
+      - ".github/workflows/v64_multisignal_cohorts.yml"
+
+jobs:
+  pure-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile V64
+        run: python -m py_compile src/he_thong_dinh_luong/_v64_cohort_contract.py src/he_thong_dinh_luong/c3_cohort_matrix_v64.py tests/test_c3_multisignal_gates_v64.py
+      - name: Run V64 pure tests
+        env:
+          PYTHONPATH: src
+        run: python -m unittest tests.test_c3_multisignal_gates_v64 -v
+      - name: Validate runner syntax
+        run: bash -n scripts/run_v64_multisignal_cohorts_gitbash.sh
+      - name: Validate research-only contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'SELECTION_END_DEFAULT = date(2026, 7, 31)' src/he_thong_dinh_luong/_v64_cohort_contract.py
+          grep -q 'ANALYSIS_END_DEFAULT = date(2026, 8, 13)' src/he_thong_dinh_luong/_v64_cohort_contract.py
+          grep -q 'TURNOVER_IS_VETO = False' src/he_thong_dinh_luong/_v64_cohort_contract.py
+          grep -q 'LIVE_MODEL_CHANGE_AUTHORIZED = False' src/he_thong_dinh_luong/_v64_cohort_contract.py
+          grep -q 'thresholds_predeclared_before_workstation_run' src/he_thong_dinh_luong/c3_cohort_matrix_v64.py
+          grep -q 'cost_role": "DEFERRED_TO_PORTFOLIO_STAGE"' src/he_thong_dinh_luong/c3_cohort_matrix_v64.py
+          if grep -Eiq '(place_order|create_order|trading_token|otp)' src/he_thong_dinh_luong/_v64_cohort_contract.py src/he_thong_dinh_luong/c3_cohort_matrix_v64.py; then
+            echo "V64 source must remain research-only" >&2
+            exit 1
+          fi
