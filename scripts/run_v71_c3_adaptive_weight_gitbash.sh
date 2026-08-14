@@ -48,6 +48,8 @@ run_all() (
   echo "ALLOCATORS=EQUAL,INVOL60"
   echo "COST_SCENARIOS=GROSS,BASE_DNSE,STRESS,SEVERE"
   echo "PROFIT_REPORT_REQUIRED=true"
+  echo "ANNUAL_REPORTING_REBUILT_FROM_MONTHLY=true"
+  echo "ADAPTIVE_2026_SHADOW_REQUIRED=true"
   echo "MACRO_INCLUDED=false"
   echo "WEEKLY_OVERLAY_INTEGRATION=false"
   echo "PROMOTION_AUTHORIZED=false"
@@ -62,8 +64,10 @@ run_all() (
     src/he_thong_dinh_luong/deep_portfolio_backtest_v70.py \
     src/he_thong_dinh_luong/c3_adaptive_weight_v71.py \
     src/he_thong_dinh_luong/c3_adaptive_weight_v71_safe.py \
-    tests/test_c3_adaptive_weight_v71.py
-  "$PY" -m unittest tests.test_c3_adaptive_weight_v71 -v
+    src/he_thong_dinh_luong/c3_adaptive_weight_v71_reportfix.py \
+    tests/test_c3_adaptive_weight_v71.py \
+    tests/test_c3_adaptive_weight_v71_reporting.py
+  "$PY" -m unittest tests.test_c3_adaptive_weight_v71 tests.test_c3_adaptive_weight_v71_reporting -v
   echo
 
   echo "===== PHASE 1 V68: DATA + FROZEN C3 + COHORTS ====="
@@ -90,7 +94,7 @@ run_all() (
   echo
 
   echo "===== PHASE 4 V71: CAUSAL ADAPTIVE-WEIGHT ABLATION ====="
-  "$PY" -m he_thong_dinh_luong.c3_adaptive_weight_v71_safe \
+  "$PY" -m he_thong_dinh_luong.c3_adaptive_weight_v71_reportfix \
     --v68-output "$(cygpath -w "$V68")" --v70-output "$(cygpath -w "$V70")" \
     --store "$(cygpath -w "$STORE")" --output-dir "$(cygpath -w "$V71")" \
     --signflip-samples 10000 --bootstrap-samples 5000
@@ -121,6 +125,7 @@ with Path(sys.argv[3]).open("r",encoding="utf-8-sig",newline="") as f:
                   "delta_vs_frozen="+row["candidate_minus_frozen_2026_return"],
                   "april_delta="+row["april_2026_candidate_minus_frozen"],"used_for_selection="+row["used_for_selection"])
 print("WATCHLIST_COUNT="+str(report["diagnostic_watchlist_count"]))
+print("ADAPTIVE_2026_SHADOW_INCLUDED="+str(report["adaptive_2026_shadow_included"]))
 print("PROMOTION_AUTHORIZED="+str(report["promotion_authorized"]))
 PY
 )
