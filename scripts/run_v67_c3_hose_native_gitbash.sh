@@ -29,7 +29,7 @@ LOG="$ART/v67-c3-hose-native-$RUN_ID.log"
 mkdir -p "$ART" "$OUT" "$BUNDLE_DIR"
 
 # Always capture schema before research so a fail-closed HOSE-lineage blocker is diagnosable.
-"$PY" - "$(cygpath -w "$STORE")" "$BUNDLE_DIR/store_schema.json" <<'PY'
+"$PY" - "$(cygpath -w "$STORE")" "$(cygpath -w "$BUNDLE_DIR/store_schema.json")" <<'PY'
 import json, sqlite3, sys
 from pathlib import Path
 store = Path(sys.argv[1])
@@ -51,6 +51,8 @@ run_all(){
   echo "TRAINING_SOURCE=LOCAL_POINT_IN_TIME_HOSE_MARKET_STORE"
   echo "V22_USED_AS_TRAINING_INPUT=false"
   echo "CHALLENGER_ML_RUN=false"
+  echo "C3_TRAINING_LABEL=CLOSE_T_TO_CLOSE_T_PLUS_20"
+  echo "TRADABLE_OUTCOME=NEXT_SESSION_OPEN_TO_FUTURE_OPEN"
   echo "HISTORICAL_END=2026-07-31"
   echo "ANALYSIS_END=2026-08-13"
   echo "AUGUST_2026_SHADOW_ONLY=true"
