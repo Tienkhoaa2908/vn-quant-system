@@ -40,6 +40,7 @@ dữ liệu → kiểm tra chất lượng → tập cổ phiếu theo từng th
 27. Trước khi push phải tự kiểm scope, contract, negative tests, boundary dates, look-ahead, survivorship, stable ordering, finite values, hash/manifest, cross-platform và backward compatibility.
 28. Mọi claim phải phân biệt rõ `implemented`, `locally_verified`, `ci_verified`, `observed_external`, `reported_not_verified` và `blocked`.
 29. Khi work package có code cần chạy trên workstation, trợ lý phải hoàn tất code trên nhánh GitHub trước; người vận hành chỉ nhận lệnh Git Bash để `fetch/switch/pull` nhánh rồi chạy runner trong repo. Không dùng ZIP/patch thủ công hoặc yêu cầu giải nén code nếu GitHub vẫn ghi được. Nếu connector GitHub bị chặn, phải nói rõ blocker và chỉ dùng action kit như fallback cuối cùng.
+30. Phạm vi nghiên cứu và học máy mặc định tập trung vào cổ phiếu HOSE. Dữ liệu huấn luyện chuẩn phải được dựng từ kho dữ liệu local đã tích lũy thành master panel HOSE tổng hợp theo thời gian; không dùng candidate list, Top-N snapshot hoặc V22 làm nguồn huấn luyện chính nếu bài toán có thể dựng lại từ kho tổng hợp. Membership HOSE phải point-in-time khi đánh giá lịch sử; nếu chỉ có mapping hiện tại thì phải đánh dấu survivorship blocker thay vì âm thầm dùng.
 
 Chi tiết thực thi nằm tại:
 
