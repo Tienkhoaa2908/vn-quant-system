@@ -1,11 +1,10 @@
 """Vietnam-time and evidence-contract-safe entry point for V77.
 
 Vietnam has no daylight-saving transition in the project period, so this driver
-uses an explicit UTC+07:00 timezone instead of depending on host tzdata. It also
-recognizes the repository's existing PIT membership coverage contract, refuses
-to continue a paper experiment whose frozen definition drifts, and verifies that
-an already-captured monthly signal still recomputes identically before treating a
-rerun as idempotent.
+uses an explicit UTC+07:00 timezone instead of depending on host tzdata. Generic
+PIT membership evidence can close the HOSE gate only when its venue scope explicitly
+says HOSE. Existing paper definitions and monthly signals are revalidated before an
+idempotent rerun is accepted.
 """
 from __future__ import annotations
 
@@ -25,6 +24,13 @@ PIT_MEMBERSHIP_CONTRACTS = {
 }
 
 
+def _explicit_hose_scope(record: Mapping[str, object], contract: str) -> bool:
+    if contract in {"pit_hose_membership_v1", "hose_membership_interval_v1"}:
+        return True
+    raw = record.get("venue_scope") or record.get("exchange") or record.get("market") or ""
+    return str(raw).strip().upper() == "HOSE"
+
+
 def _scan_evidence_once(
     search_roots: Sequence[Path], *, target_day, store_sha: str
 ) -> dict[str, object]:
@@ -41,6 +47,7 @@ def _scan_evidence_once(
             payload = json.loads(path.read_text(encoding="utf-8-sig"))
         except Exception:
             continue
+        path_name = path.name.lower()
         for record in core._walk_dicts(payload):
             if not isinstance(record, Mapping):
                 continue
@@ -52,10 +59,11 @@ def _scan_evidence_once(
             gaps = record.get("gaps") or []
             conflicts = record.get("conflicts") or []
             covers = core._date_covers(record, target_day)
+            hose_scope = _explicit_hose_scope(record, contract)
 
             if contract in PIT_MEMBERSHIP_CONTRACTS:
                 matched.append("pit_hose_membership")
-                if nonfixture and research and complete and not gaps and not conflicts and covers:
+                if nonfixture and research and complete and not gaps and not conflicts and covers and hose_scope:
                     passes["pit_hose_membership"] = True
 
             if contract == "pit_sector_master_v1":
@@ -63,7 +71,13 @@ def _scan_evidence_once(
                 if nonfixture and research and complete and not gaps and not conflicts and covers:
                     passes["pit_sector_master"] = True
 
-            if "inventory_complete" in record and "research_eligible" in record and "is_fixture" in record:
+            is_corporate_path = "corporate" in path_name or "hanh_dong" in path_name
+            if (
+                is_corporate_path
+                and "inventory_complete" in record
+                and "research_eligible" in record
+                and "is_fixture" in record
+            ):
                 matched.append("corporate_actions")
                 if nonfixture and research and record.get("inventory_complete") is True and not conflicts and covers:
                     passes["corporate_actions"] = True
@@ -91,6 +105,7 @@ def _scan_evidence_once(
                     "research_eligible": record.get("research_eligible"),
                     "is_fixture": record.get("is_fixture"),
                     "covers_target_day": covers,
+                    "explicit_hose_scope": hose_scope if "pit_hose_membership" in matched else None,
                 })
     return {"passes": passes, "candidates": candidates, "files_scanned": len(paths)}
 
@@ -198,6 +213,7 @@ def run(
     report["wall_date_contract"] = "ASIA_HO_CHI_MINH_UTC_PLUS_07"
     report["capture_wall_date_vn"] = vn_wall_day.isoformat()
     report["pit_membership_contracts_recognized"] = sorted(PIT_MEMBERSHIP_CONTRACTS)
+    report["generic_membership_requires_explicit_hose_scope"] = True
     report["existing_freeze_definition_verified"] = True
     report["existing_source_signal_recompute_verified"] = True
     report["paper_execution_limitations"] = {
