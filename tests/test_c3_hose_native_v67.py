@@ -55,6 +55,20 @@ class TestC3HoseNativeV67(unittest.TestCase):
         ranking, _ = v67.score_states(states, {"low_volatility": 1 / 3, "relative_strength_120": 1 / 3, "high_52_week": 1 / 3})
         self.assertEqual(ranking, ("AAA", "BBB", "CCC"))
 
+    def test_c3_training_label_is_close_to_close_t_plus_h(self) -> None:
+        days = tuple(date(2026, 1, 1) + timedelta(days=i) for i in range(5))
+        stock_open = {("AAA", day): value for day, value in zip(days, [10.0, 50.0, 60.0, 70.0, 80.0])}
+        stock_close = {("AAA", day): value for day, value in zip(days, [100.0, 110.0, 121.0, 133.1, 146.41])}
+        stock_volume = {("AAA", day): 1000 for day in days}
+        index_open = {day: value for day, value in zip(days, [1000.0, 2000.0, 2100.0, 2200.0, 2300.0])}
+        index_close = {day: value for day, value in zip(days, [1000.0, 1000.0, 1000.0, 1000.0, 1000.0])}
+        source = v67.VenueSource("BAR_LEVEL", "bars", "symbol", "exchange")
+        market = v67.Market(days, index_open, index_close, stock_open, stock_close, stock_volume, ("AAA",), source)
+        label = v67._c3_training_label(market=market, symbol="AAA", signal_day=days[0], calendar_index={day: i for i, day in enumerate(days)}, horizon=2)
+        self.assertIsNotNone(label)
+        self.assertAlmostEqual(float(label["relative_return"]), 0.21, places=12)
+        self.assertEqual(label["label_end"], days[2])
+
     def test_forward_outcome_enters_next_session_open(self) -> None:
         days = tuple(date(2026, 1, 1) + timedelta(days=i) for i in range(8))
         stock_open = {("AAA", day): 100.0 + i for i, day in enumerate(days)}
