@@ -66,6 +66,7 @@ run_all() (
   echo "PAPER_CAPITAL_AUTHORIZED=false"
   echo "LIVE_ORDERS_ALLOWED=false"
   echo "HISTORICAL_MODEL_FISHING_ALLOWED=false"
+  echo "EXECUTION_FLOOR_CONTRACT=FIRST_MARKET_SESSION_ON_OR_AFTER_CAPTURE_VN_DATE_PLUS_1"
   echo "PERSISTENT_STATE=$STATE"
   echo
 
@@ -78,10 +79,12 @@ run_all() (
     src/he_thong_dinh_luong/paper_oos_data_lineage_v77.py \
     src/he_thong_dinh_luong/paper_oos_data_lineage_v77_driver.py \
     tests/test_paper_oos_data_lineage_v77.py \
-    tests/test_paper_oos_data_lineage_v77_driver.py
+    tests/test_paper_oos_data_lineage_v77_driver.py \
+    tests/test_paper_oos_data_lineage_v77_causal_floor.py
   "$PY" -m unittest \
     tests.test_paper_oos_data_lineage_v77 \
-    tests.test_paper_oos_data_lineage_v77_driver -v
+    tests.test_paper_oos_data_lineage_v77_driver \
+    tests.test_paper_oos_data_lineage_v77_causal_floor -v
   echo
 
   ARGS=(
@@ -115,6 +118,7 @@ print("FREEZE_MARKET_DAY="+str(r["freeze"]["freeze_market_day"]))
 print("CAPTURE_MARKET_DAY="+str(r["capture_market_day"]))
 print("SOURCE_SIGNAL_DAY="+str(r["source_signal_day"]))
 print("CAPTURE_WALL_DATE_VN="+str(r.get("capture_wall_date_vn")))
+print("CAUSAL_EXECUTION_FLOOR_VERIFIED="+str(r.get("causal_execution_floor_verified")))
 for model,p in r["paper_results"].items():
     print("PAPER",model,
           "status="+str(p.get("status")),
@@ -123,7 +127,9 @@ for model,p in r["paper_results"].items():
           "fills="+str(p.get("fill_count",0)),
           "return="+str(p.get("total_return")),
           "mdd="+str(p.get("max_drawdown")),
-          "nav_vnd="+str(p.get("latest_nav_vnd")))
+          "nav_vnd="+str(p.get("latest_nav_vnd")),
+          "earliest_floor="+str(p.get("earliest_execution_floor_date")),
+          "retroactive_fills="+str(p.get("retroactive_fill_count")))
 print("SHADOW_MINUS_CHAMPION="+str(r["paper_comparison"].get("shadow_minus_champion_total_return")))
 print("DATA_GATE_BLOCKERS="+json.dumps(r["data_lineage"]["blockers"],ensure_ascii=False))
 print("CANONICAL_DATA_GATES_PASSED="+str(r["canonical_data_gates_passed"]))
