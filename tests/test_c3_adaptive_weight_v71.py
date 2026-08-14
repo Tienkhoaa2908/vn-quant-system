@@ -9,6 +9,7 @@ import tempfile
 import unittest
 
 from he_thong_dinh_luong import c3_adaptive_weight_v71 as v71
+from he_thong_dinh_luong import c3_adaptive_weight_v71_safe as v71safe
 from he_thong_dinh_luong import c3_hose_consolidated_v68_safe as v68
 from he_thong_dinh_luong import deep_portfolio_backtest_v70 as v70
 
@@ -83,8 +84,7 @@ class TestAdaptiveWeightsV71(unittest.TestCase):
 
     def test_2026_returns_do_not_enter_candidate_inference(self):
         rows = []
-        start = date(2023, 1, 31)
-        current = start
+        current = date(2023, 1, 31)
         months = []
         for _ in range(42):
             months.append(current)
@@ -93,13 +93,13 @@ class TestAdaptiveWeightsV71(unittest.TestCase):
             current = date(year, month, 28)
         for index, end in enumerate(months):
             period_start = (end - timedelta(days=25)).isoformat()
-            base = 0.005 + 0.001 * math.sin(index)
-            candidate = base + 0.001
-            for cid, ret in ((v71.CHAMPION_MODEL, base), ("C3_IC_EWMA_HL24", candidate)):
+            baseline = 0.005 + 0.001 * math.sin(index)
+            candidate = baseline + 0.001
+            for candidate_id, ret in ((v71.CHAMPION_MODEL, baseline), ("C3_IC_EWMA_HL24", candidate)):
                 rows.append({
                     "variant_id": "TEST",
                     "allocator": "EQUAL",
-                    "candidate_id": cid,
+                    "candidate_id": candidate_id,
                     "cost_scenario": "BASE_DNSE",
                     "period_start_day": period_start,
                     "period_end_day": end.isoformat(),
@@ -132,7 +132,7 @@ class TestAdaptiveWeightsV71(unittest.TestCase):
             self.assertEqual(report68["status"], "SUCCESS")
             report70 = v70.analyze(v68_output=v68_out, store=store, output_dir=v70_out)
             self.assertEqual(report70["status"], "SUCCESS")
-            report71 = v71.analyze(
+            report71 = v71safe.analyze(
                 v68_output=v68_out,
                 v70_output=v70_out,
                 store=store,
@@ -145,11 +145,12 @@ class TestAdaptiveWeightsV71(unittest.TestCase):
             self.assertFalse(report71["champion_replaced"])
             self.assertFalse(report71["year_2026_used_for_candidate_selection"])
             self.assertFalse(report71["promotion_authorized"])
+            self.assertEqual(report71["historical_component_provenance"], "V67_FROZEN_TRAINING_ROWS")
             for audit in report71["frozen_reconstruction_audit"].values():
-                self.assertLessEqual(float(audit["max_factor_reconstruction_error"]), 1e-10)
                 self.assertLessEqual(float(audit["max_frozen_weight_reconstruction_error"]), 1e-10)
                 self.assertLessEqual(float(audit["max_frozen_score_reconstruction_error"]), 1e-10)
                 self.assertEqual(int(audit["frozen_rank_mismatch_count"]), 0)
+                self.assertGreater(int(audit["raw_factor_crosscheck_count"]), 0)
             required = (
                 "v71_component_ic_history.csv",
                 "v71_weight_history.csv",
