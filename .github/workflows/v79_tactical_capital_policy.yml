@@ -9,6 +9,7 @@ on:
       - 'src/he_thong_dinh_luong/tactical_capital_policy_v79.py'
       - 'tests/test_tactical_capital_policy_v79.py'
       - 'scripts/run_v79_tactical_capital_policy_gitbash.sh'
+      - 'scripts/run_v79_tactical_capital_policy_workstation_gitbash.sh'
       - '.github/workflows/v79_tactical_capital_policy.yml'
       - 'tai_lieu_dieu_phoi/v79_*'
 
@@ -36,8 +37,10 @@ jobs:
         env:
           PYTHONPATH: src
         run: python -m unittest tests.test_weekly_overlay_backtest_v72 tests.test_tactical_capital_policy_v79 -v
-      - name: Validate Git Bash runner
-        run: bash -n scripts/run_v79_tactical_capital_policy_gitbash.sh
+      - name: Validate Git Bash runners
+        run: |
+          bash -n scripts/run_v79_tactical_capital_policy_gitbash.sh
+          bash -n scripts/run_v79_tactical_capital_policy_workstation_gitbash.sh
       - name: Guard frozen architecture and causal contracts
         run: |
           grep -q 'CHAMPION_MODEL = "C3_STABLE_3_PAST_IC_SHRUNK"' src/he_thong_dinh_luong/tactical_capital_policy_v79.py
@@ -52,6 +55,10 @@ jobs:
           grep -q '"automatic_live_orders_allowed": False' src/he_thong_dinh_luong/tactical_capital_policy_v79.py
           grep -q 'YEAR_2026_USED_FOR_SELECTION=false' scripts/run_v79_tactical_capital_policy_gitbash.sh
           grep -q 'set -euo pipefail' scripts/run_v79_tactical_capital_policy_gitbash.sh
+          grep -q 'V78_TACTICAL_BRIDGE_IMPORT' scripts/run_v79_tactical_capital_policy_workstation_gitbash.sh
+          grep -q 'V78_TACTICAL_EXISTING_WEB' scripts/run_v79_tactical_capital_policy_workstation_gitbash.sh
+          grep -q 'git restore --worktree -- "$WEBAPP" "$INDEX"' scripts/run_v79_tactical_capital_policy_workstation_gitbash.sh
+          grep -q 'git apply --whitespace=nowarn "$PATCH"' scripts/run_v79_tactical_capital_policy_workstation_gitbash.sh
           if grep -Eiq 'send_order|place_order|submit_order|broker_order' src/he_thong_dinh_luong/tactical_capital_policy_v79.py; then exit 1; fi
 
   windows-contract:
