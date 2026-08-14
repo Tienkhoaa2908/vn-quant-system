@@ -1,4 +1,4 @@
-# Prompt khôi phục chat mới — VN Quant System / C3 HOSE
+# Prompt khôi phục chat mới — VN Quant System / C3 Tactical
 
 Sao chép phần dưới vào chat mới. Repository/artifact mới nhất luôn thắng prompt này.
 
@@ -19,216 +19,254 @@ Không yêu cầu user kể lại lịch sử bằng trí nhớ. **GitHub, Git h
 - `tai_lieu_dieu_phoi/chuan_nghien_cuu_va_backtest.md`;
 - `tai_lieu_dieu_phoi/anti_regression_c3_hose.md`;
 - `tai_lieu_dieu_phoi/anti_regression_v67_data_gate.md`;
-- workstation results V70→V77, đặc biệt `v77_workstation_result_20260814.md`;
-- `tai_lieu_dieu_phoi/v76_learned_ranking_contract.md`;
-- `tai_lieu_dieu_phoi/v77_paper_oos_data_lineage_contract.md`;
-- `tai_lieu_dieu_phoi/v77_handoff.md`;
-- V77 core/safe driver/tests/runner/workflow;
+- workstation results V70→V77, đặc biệt V76/V77;
+- `tai_lieu_dieu_phoi/v78_c3_tactical_terminal_contract.md`;
+- `tai_lieu_dieu_phoi/v78_handoff.md`;
+- V78 source/driver/tests/runner/workflow/web;
 - `DECISIONS.md`.
 
 Nếu user vừa upload artifact thì **đọc artifact trước khi viết code tiếp**.
 
 Phân biệt rõ `implemented`, `ci_verified`, `workstation_verified`, `observed_artifact`, `blocked`.
 
-## 2. Frozen model state
+## 2. Operational model is finalized
 
-Champion vẫn `C3_STABLE_3_PAST_IC_SHRUNK` với `low_volatility`, `relative_strength_120`, `high_52_week`.
+Mô hình chính vận hành đã chốt:
 
-C3 label: `close(T) -> close(T+20)` benchmark-relative.
+`C3_STABLE_3_PAST_IC_SHRUNK`
 
-Execution research contract khác: `signal after close(T) -> earliest executable open after target capture`. Không trộn label horizon với execution.
+Components:
 
-`V76_RIDGE_RANK` là **zero-capital shadow**, không phải champion.
+- `low_volatility`;
+- `relative_strength_120`;
+- `high_52_week`.
 
-Không tự mở LightGBM/XGBoost/model mới trên cùng historical sample. V76 đã kích hoạt stop-rule chống historical model fishing.
+C3 training label vẫn `close(T) -> close(T+20)` benchmark-relative. Tradable execution là earliest causal next open; không trộn label horizon với execution.
+
+`V76_RIDGE_RANK` chỉ là **secondary shadow / confirmation / emergence radar**. Không tự thay C3 và không có vốn riêng.
+
+Không tự mở LightGBM/XGBoost/model/hyperparameter search mới trên cùng historical sample. V76 đã kích hoạt stop-rule chống historical model fishing.
 
 Canonical workstation env: `vn_quant_local_system/.venv`.
 
-## 3. Durable empirical state trước paper OOS
+## 3. Durable empirical state
 
-Frozen V70 `GAP18_CLEAN / Equal / BASE_DNSE`:
+V70 `GAP18_CLEAN / Equal / BASE_DNSE / 1bn`:
 
 - total return khoảng `+372.55%`;
 - CAGR `18.64%`;
 - MDD `-38.10%`;
 - same-calendar VNINDEX khoảng `+124.53%`.
 
-2026 frozen GAP18 Equal khoảng `-12.38%` trong khi VNINDEX khoảng `+2.71%`.
+2026 frozen C3 GAP18 Equal khoảng `-12.38%` vs VNINDEX `+2.71%`. Root cause chính là cross-sectional / momentum-regime lag, không phải riêng PNJ.
 
-V71 adaptive weights: 0/12 gates pass.
-V72 L15/R08 overlay: 0/18 return gates pass.
-V73 factor-health: bắt 2026 nhưng phá return dài hạn.
-V74 macro standalone: IIP coverage thiếu; không có standalone macro P&L.
+V71 adaptive: 0/12 gates pass.
+V72 weekly overlays: 0/18 return gates pass. L15 directionally helpful; R07/R08 useful as risk diagnostics but not robust auto exits.
+V73 factor-health: catches 2026 but hurts long-run return.
+V74 standalone macro blocked by IIP coverage.
 V75 fixed blends/macro: 42 tests, 0 watchlist.
 
-V76 learned ranking real workstation:
+V76 learned ranking:
 
 - 24 inference tests, 0 watchlist, 0 robust progression;
-- GAP18 Equal BASE: frozen `+372.55%`, Ridge `+305.88%`;
-- pre-2026 compounded: frozen khoảng `+439.32%`, Ridge `+282.35%`;
-- pre-2026 winner capture frozen khoảng `34.04%`, Ridge `32.42%`;
-- 2026 shadow Ridge khoảng `+6.15%` vs frozen `-12.38%` và VNINDEX `+2.71%`;
-- 2026 clue chỉ shadow-log, không support promotion.
+- GAP18 Equal BASE: C3 `+372.55%`, Ridge `+305.88%`;
+- pre-2026 compounded: C3 `+439.32%`, Ridge `+282.35%`;
+- winner capture pre-2026 C3 ~34.04%, Ridge ~32.42%;
+- 2026 shadow Ridge ~`+6.15%` vs C3 `-12.38%`;
+- Ridge's 2026 strength is a secondary clue only.
 
-Kết luận V76: **dừng historical architecture/factor/threshold fishing trên sample đã quan sát**.
+Decision: **C3 is operational main model; stop historical champion fishing.**
 
-## 4. V77 current phase — fresh paper OOS + data lineage
+## 4. V77 paper-OOS state must remain intact
 
-Branch: `agent/v77-paper-oos-data-lineage`.
+Persistent state:
 
-V77 không phải model-research vòng mới. Nó:
+`du_lieu/v77-paper-oos-state/`
 
-1. freeze experiment boundary tại first real workstation run;
-2. giữ C3 champion + Ridge shadow;
-3. capture monthly Top10 targets bất biến;
-4. paper execution causal, không retroactive;
-5. tích lũy only-future fresh OOS;
-6. audit data-lineage gates trên local evidence.
+**Do not delete/reset it.**
 
-Persistent state: `du_lieu/v77-paper-oos-state/`.
+First real freeze:
 
-**Không xóa/reset state.** First freeze đã xảy ra và chưa có fill; state đó phải được giữ để paper evidence chain liên tục.
-
-Primary diagnostic universe là GAP18_CLEAN symbol set frozen tại first run; vẫn không phải canonical HOSE truth. Primary allocator Equal Top10.
-
-Experiment state fail-closed: frozen model/variant/allocator/cost definition giữ nguyên; rerun cùng source month phải recompute cùng Top10/rank/score/risk-on.
-
-Monthly-completion calendar dùng Việt Nam UTC+07:00.
-
-## 5. First real V77 workstation artifact — observed 2026-08-14
-
-Đọc `tai_lieu_dieu_phoi/v77_workstation_result_20260814.md` trước khi xử lý V77 tiếp.
-
-Observed:
-
-- artifact HEAD `2aa8c143312fc689e90f042e3f1dd892bf22cc6d`;
-- store SHA `2959f8cce0c11e8e4186fcb49ae75bf7babf86b84afe64ca3b843a7470d58b1a` unchanged;
-- freeze/capture market day `2026-08-13`;
-- actual Vietnam capture wall date `2026-08-14`;
 - source monthly signal `2026-07-31`;
-- fixed GAP18 set 111 symbols;
-- C3/Ridge: 0 fills, 0 fresh sessions, NAV 1bn, `PENDING_FIRST_EXECUTION`;
-- 4 data gates remain closed.
+- freeze market day `2026-08-13`;
+- capture Vietnam wall date `2026-08-14`;
+- C3 Top10 `VPI, MSB, HCM, VIC, GMD, LPB, STB, BAF, DHC, ACB`;
+- Ridge Top10 `BSR, VPI, GMD, BAF, LPB, NAB, BMP, ACB, MSB, VNM`;
+- 0 fills / 0 fresh sessions at first freeze.
 
-C3 first-freeze Top10:
-
-`VPI, MSB, HCM, VIC, GMD, LPB, STB, BAF, DHC, ACB`.
-
-Ridge first-freeze Top10:
-
-`BSR, VPI, GMD, BAF, LPB, NAB, BMP, ACB, MSB, VNM`.
-
-Overlap 6/10. No performance inference yet.
-
-## 6. Critical causal execution fix discovered from artifact
-
-Artifact review found a bug **before any fill**:
-
-- target capture happened evening 2026-08-14 Vietnam time;
-- local store still ended 2026-08-13;
-- old replay could later sync 2026-08-14 and incorrectly fill at open 2026-08-14, which occurred before target capture.
-
-Do not count such a fill as fresh OOS.
-
-Current safe-driver contract:
+Causal execution floor patch is mandatory:
 
 `FIRST_MARKET_SESSION_ON_OR_AFTER_CAPTURE_VN_DATE_PLUS_1`
 
-For the existing first signal, `captured_at` implies causal floor date `2026-08-15`. The first allowed fill is the first actual market session on or after that floor. 2026-08-14 is forbidden even if those bars later appear.
+For first freeze floor date is `2026-08-15`; retroactive fills before floor are forbidden. Latest rerun verified persistent state/signals unchanged and `retroactive_fill_count=0`.
 
-The bugfix preserves the existing frozen target/state because no fill occurred. It does not modify model semantics or reselect targets.
+## 5. Current operating phase — V78 C3 tactical terminal
 
-Every V77 result after the patch must show:
+Current branch when this prompt was written:
 
-- `causal_execution_floor_verified=true`;
-- per-model `retroactive_fill_count=0`;
-- `execution_floor_contract` set to the contract above;
-- fresh session count excludes market days that occurred before the execution floor.
+`agent/v78-c3-tactical-terminal`
 
-Tests explicitly cover stale-store retroactive-session rejection and later legal fill.
+V78 is **not** a new champion research lane. It makes C3 operationally flexible intra-month.
 
-## 7. V77 paper execution contract
+Primary goals:
 
-Comparative C3/Ridge contract:
+1. keep monthly C3 Top10 as core;
+2. identify emerging leaders before month-end;
+3. detect prior-month Top10 names that are currently damaging the portfolio;
+4. use Ridge only as confirmation;
+5. show fixed recent 6/12/18-month evidence for secondary overlays/models;
+6. redeploy the localhost web terminal around these decisions.
 
-- 1bn VND;
-- Equal Top10;
-- lot100;
-- buy/sell 2.7bps;
-- sell tax 10bps;
-- slippage 5bps/side;
-- causal execution floor from actual `captured_at`.
+## 6. V78 current preview
 
-Label: `V70_BASE_APPROX_NO_TRANSFER_FEE`.
+Current preview uses the exact C3 components and the current completed-month C3 weights.
 
-**Không gọi exact V70 BASE** vì M3 paper engine hiện:
+Current eligibility:
 
-- immediate cash reuse, không phải T+2/no-advance;
-- chưa model transfer fee 0.3 VND/share;
-- chưa enforce PIT sector 25% cap khi sector gate còn mở.
+- close >= MA250;
+- ADV20 >= 5bn VND;
+- zero-volume60 <=5.
 
-## 8. Data gates — first V77 observation
+Important fail-closed rule: **every prior-month C3 Top10 stays visible even if it loses current eligibility**. A bad incumbent cannot disappear from the health screen just because it fails MA250/liquidity.
 
-All four blockers remain:
+Persistent tactical preview state:
 
-- `PIT_HOSE_MEMBERSHIP_LINEAGE_INCOMPLETE`;
-- `PRICE_BASIS_UNCONFIRMED`;
-- `CORPORATE_ACTION_INVENTORY_INCOMPLETE`;
-- `PIT_SECTOR_MASTER_INCOMPLETE`.
+`du_lieu/v78-tactical-state/previews/`
 
-Observed store first freeze:
+Do not delete if exact L15 persistence is being evaluated.
 
-- 300,541 bars;
-- 121 stocks;
-- 2015-06-29→2026-08-13;
-- all rows `price_basis=CHUA_XAC_NHAN`;
-- no exchange lineage column;
-- 40 basis-gap events;
-- evidence scan: 0 candidate JSON files.
+## 7. Prior-month Top10 health and actual period drag
 
-Paper OOS được phép chạy khi gate mở, nhưng canonical/promotion/live auth false.
+V78 uses previous V72 health semantics:
 
-Dedicated `pit_hose_membership_v1` / `hose_membership_interval_v1` có thể chứng minh HOSE nếu đủ fail-closed fields. Generic `pit_membership_interval_v2` chỉ được coi là HOSE proof nếu explicit `venue_scope`, `exchange` hoặc `market = HOSE`.
+- R07: prior-month Top10 + drawdown20 <= -8%;
+- R08: prior-month Top10 + drawdown60 <= -12%;
+- current preview rank >15 or relative5 <= -2% also yields WATCH.
 
-Price-basis external certificate phải bind exact store SHA256. Sector cap canonical chỉ enforce khi có PIT sector master thật.
+**R07/R08 are advisory only; no auto-sell.**
 
-## 9. Khi artifact V77 tiếp theo đến
+V78 additionally measures each prior-month Top10 name directly from the tradable path:
 
-Đọc theo thứ tự:
+- entry = first market open after the monthly signal;
+- mark = current close;
+- `period_return = current close / entry open - 1`;
+- benchmark = VNINDEX entry open -> current close;
+- `period_relative_return = period_return - benchmark_return`.
 
-1. provenance branch/head/store SHA before/after;
-2. `v77_report.json`;
-3. freeze manifest + persistent signal snapshot;
-4. `causal_execution_floor_verified` và per-model floor mapping;
-5. reject nếu `retroactive_fill_count != 0`;
-6. source/capture dates và signal idempotency;
-7. C3/Ridge P&L **fresh sessions only**;
-8. fills/orders — execution date phải >= causal floor;
-9. data-lineage blockers/evidence;
-10. promotion/live flags false.
+Contract:
 
-Nếu store chỉ mới có 2026-08-14 sau first freeze, expected là vẫn **0 fill / 0 fresh session** vì phiên đó đã xảy ra trước capture wall time. Không coi đây là lỗi.
+`NEXT_SESSION_OPEN_AFTER_MONTHLY_SIGNAL_TO_CURRENT_CLOSE_GROSS`
 
-Không dùng historical V76 P&L như fresh OOS.
+`dragging_current_period=true` only when both absolute return and benchmark-relative return are negative. If the name also falls outside current preview Top10 it can become `WATCH_MONTH_DRAG`. Still no auto-sell.
 
-## 10. Research/backtest discipline
+This is the required direct check for “mã top tháng trước tháng này đang kéo danh mục xuống hay không”.
 
-Không mở lại historical model search chỉ vì fresh paper còn ít observations.
+## 8. Emerging leader / exact L15
 
-Next legitimate work:
+Exact L15 trigger remains V72's predeclared semantics:
 
-- tiếp tục tích lũy fresh OOS bằng cùng frozen state + causal floor;
-- đóng data gate bằng bằng chứng thật;
-- hoặc review promotion riêng khi genuinely unseen evidence đủ và data truth adequate.
+- prior-month canonical rank >10;
+- current preview rank <=5;
+- prior-week preview rank <=10;
+- relative5 >= +2%;
+- volume ratio 5/20 >=1.
 
-No live orders. No automatic promotion. No canonical HOSE claim khi gate chưa đóng.
+If prior-week persistence is missing, label only `WATCH_EMERGING`.
 
-## 11. GitHub-first
+If exact L15 is active, show advisory pair:
 
-Mọi code workstation: GitHub branch -> self-review -> tests -> Linux/Windows CI -> verify remote HEAD -> mới giao user `git fetch/switch/pull` + một in-repo runner.
+`weakest current incumbent -> strongest L15 leader`, fraction 50%.
 
-CI success không phải workstation result.
+No live order. No fake persistence. A first V78 run can legitimately have zero exact L15 because it is only seeding the first V78 preview week.
 
-Repository mới hơn prompt này thì repository thắng.
+## 9. Recent regime evidence
+
+V78 does not open a new optimization search. It discovers existing V72/V76 monthly-return artifacts and reports fixed windows:
+
+- 6 months;
+- 12 months;
+- 18 months.
+
+V72 recent comparison: GAP18_CLEAN / Equal / BASE_DNSE / immediate, `NO_OVERLAY` vs `L15_SWAP50_WORST` and `R08_TRIM50_CASH`.
+
+V76 recent comparison: GAP18_CLEAN / Equal / BASE_DNSE, `C3_BASELINE` vs `V76_RIDGE_RANK`.
+
+These windows are regime evidence only. They never replace C3 as operational main model.
+
+If old artifact files do not exist locally, report recent evidence as unavailable; do not invent P&L.
+
+## 10. V78 web
+
+Module:
+
+`src/he_thong_dinh_luong/web_console_app_v78.py`
+
+Routes:
+
+- `/` = C3 tactical operating screen;
+- `/terminal` = inherited full V5 terminal;
+- `/api/v78/tactical` = read-only tactical report;
+- `/healthz` = health metadata.
+
+Default V78 runner launches localhost port `8089` and leaves possible old 8088 terminal alone.
+
+Root screen shows:
+
+- C3 MAIN status;
+- monthly rank vs current preview rank;
+- incumbent P&L kỳ and Alpha kỳ;
+- marker names currently dragging the period;
+- R07/R08/period-drag alerts;
+- emerging leader radar;
+- L15 advisory pair if exact trigger exists;
+- Ridge confirmation;
+- recent 6/12/18 evidence.
+
+Stable web snapshot:
+
+`vn_quant_local_system/data/v78-c3-tactical/`
+
+No broker order endpoint. `live_orders_allowed=false`.
+
+## 11. V78 workstation artifact review order
+
+When `UPLOAD_THIS_v78_C3_TACTICAL_TERMINAL-*.zip` arrives:
+
+1. branch/head/store SHA before/after;
+2. tests and status;
+3. `operational_champion` must be C3 and `operational_champion_finalized=true`;
+4. source monthly signal, `period_execution_start_day`, capture day;
+5. monthly Top10 + current preview Top10;
+6. per-incumbent `period_return` and `period_relative_return`;
+7. `dragging_incumbents` and health actions;
+8. emerging radar and exact L15 status;
+9. `prior_week_preview_available` — do not demand exact L15 on first V78 run;
+10. recent V72 6/12/18 rows if source artifact exists;
+11. recent Ridge 6/12/18 rows if source artifact exists;
+12. stable web publication;
+13. `live_orders_allowed=false`.
+
+Do not reinterpret recent evidence as a champion promotion test.
+
+## 12. Data gates remain fail-closed
+
+Known blockers remain until real evidence closes them:
+
+- PIT HOSE membership lineage;
+- price basis;
+- corporate-action inventory;
+- PIT sector master.
+
+Paper/tactical diagnostics can run while gates are open. Canonical HOSE/promotion/live claims remain false.
+
+## 13. GitHub-first
+
+Any workstation code change:
+
+GitHub branch -> self-review -> tests -> Linux/Windows CI -> verify remote HEAD -> then give user only `git fetch/switch/pull` + in-repo runner.
+
+CI success is not workstation result.
+
+Repository/artifact newer than this prompt wins.
 
 ---
