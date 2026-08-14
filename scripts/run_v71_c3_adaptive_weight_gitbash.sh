@@ -38,6 +38,8 @@ run_all() (
   echo "CHAMPION_REPLACED=false"
   echo "CANDIDATES=C3_IC_EWMA_HL24,C3_IC_ROLLING60"
   echo "COMPONENTS_CHANGED=false"
+  echo "HISTORICAL_COMPONENT_SOURCE=V67_FROZEN_TRAINING_ROWS"
+  echo "RAW_FACTOR_RECONSTRUCTION=AUDIT_ONLY_WHEN_FROZEN_EXISTS"
   echo "C3_TRAINING_LABEL=CLOSE_T_TO_CLOSE_T_PLUS_20_BENCHMARK_RELATIVE"
   echo "PRIMARY_SELECTION_END=2025-12-31"
   echo "YEAR_2026_USED_FOR_SELECTION=false"
@@ -59,6 +61,7 @@ run_all() (
     src/he_thong_dinh_luong/c3_portfolio_profit_v69.py \
     src/he_thong_dinh_luong/deep_portfolio_backtest_v70.py \
     src/he_thong_dinh_luong/c3_adaptive_weight_v71.py \
+    src/he_thong_dinh_luong/c3_adaptive_weight_v71_safe.py \
     tests/test_c3_adaptive_weight_v71.py
   "$PY" -m unittest tests.test_c3_adaptive_weight_v71 -v
   echo
@@ -87,7 +90,7 @@ run_all() (
   echo
 
   echo "===== PHASE 4 V71: CAUSAL ADAPTIVE-WEIGHT ABLATION ====="
-  "$PY" -m he_thong_dinh_luong.c3_adaptive_weight_v71 \
+  "$PY" -m he_thong_dinh_luong.c3_adaptive_weight_v71_safe \
     --v68-output "$(cygpath -w "$V68")" --v70-output "$(cygpath -w "$V70")" \
     --store "$(cygpath -w "$STORE")" --output-dir "$(cygpath -w "$V71")" \
     --signflip-samples 10000 --bootstrap-samples 5000
@@ -98,8 +101,7 @@ run_all() (
 import csv,json,sys
 from pathlib import Path
 report=json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
-profit=report["profit_reporting"]["base_cost_profit_table"]
-for row in sorted(profit,key=lambda x:(x["variant_id"],x["allocator"],x["candidate_id"])):
+for row in sorted(report["profit_reporting"]["base_cost_profit_table"],key=lambda x:(x["variant_id"],x["allocator"],x["candidate_id"])):
     if row["variant_id"] in {"BROAD_PROVISIONAL","GAP18_CLEAN"}:
         print("PNL",row["variant_id"],row["allocator"],row["candidate_id"],
               "return="+str(row["total_return"]),"benchmark="+str(row["benchmark_total_return"]),
