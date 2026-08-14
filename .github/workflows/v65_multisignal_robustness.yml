@@ -1,0 +1,48 @@
+name: v65_multisignal_robustness
+
+on:
+  push:
+    branches:
+      - agent/v65-multisignal-robustness-audit
+    paths:
+      - "src/he_thong_dinh_luong/c3_multisignal_robustness_v65.py"
+      - "tests/test_c3_multisignal_robustness_v65.py"
+      - "scripts/run_v65_multisignal_robustness_gitbash.sh"
+      - "docs/V65_MULTISIGNAL_ROBUSTNESS_AUDIT.md"
+      - ".github/workflows/v65_multisignal_robustness.yml"
+  pull_request:
+    paths:
+      - "src/he_thong_dinh_luong/c3_multisignal_robustness_v65.py"
+      - "tests/test_c3_multisignal_robustness_v65.py"
+      - "scripts/run_v65_multisignal_robustness_gitbash.sh"
+      - "docs/V65_MULTISIGNAL_ROBUSTNESS_AUDIT.md"
+      - ".github/workflows/v65_multisignal_robustness.yml"
+
+jobs:
+  pure-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile V65
+        run: python -m py_compile src/he_thong_dinh_luong/c3_multisignal_robustness_v65.py tests/test_c3_multisignal_robustness_v65.py
+      - name: Run V65 pure tests
+        env:
+          PYTHONPATH: src
+        run: python -m unittest tests.test_c3_multisignal_robustness_v65 -v
+      - name: Validate runner syntax
+        run: bash -n scripts/run_v65_multisignal_robustness_gitbash.sh
+      - name: Validate research-only contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'BOOTSTRAP_REPS_DEFAULT = 10000' src/he_thong_dinh_luong/c3_multisignal_robustness_v65.py
+          grep -q 'LIVE_MODEL_CHANGE_AUTHORIZED = False' src/he_thong_dinh_luong/c3_multisignal_robustness_v65.py
+          grep -q 'AUTOMATIC_LIVE_ORDERS_ALLOWED = False' src/he_thong_dinh_luong/c3_multisignal_robustness_v65.py
+          grep -q 'BH_FDR_WITHIN_KIND_ON_WEEK_CLUSTER_SIGNFLIP_P' src/he_thong_dinh_luong/c3_multisignal_robustness_v65.py
+          if grep -Eiq '(place_order|create_order|trading_token|otp)' src/he_thong_dinh_luong/c3_multisignal_robustness_v65.py; then
+            echo "V65 must remain research-only" >&2
+            exit 1
+          fi

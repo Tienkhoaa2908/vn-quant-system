@@ -1,0 +1,58 @@
+name: v55_local_workstation
+
+on:
+  push:
+    branches:
+      - agent/v55-eod-only-valuation
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile workstation
+        env:
+          PYTHONPATH: vn_quant_local_system/src:src
+        run: >-
+          python -m compileall -q
+          vn_quant_local_system/src
+          vn_quant_local_system/tests
+      - name: Run workstation tests
+        env:
+          PYTHONPATH: vn_quant_local_system/src:src
+        run: >-
+          python -m unittest discover
+          -s vn_quant_local_system/tests
+          -p 'test_*.py'
+          -v
+      - name: Check JavaScript syntax
+        run: |
+          node --check vn_quant_local_system/web/app.js
+          node --check vn_quant_local_system/web/sell_review_v44_5.js
+          node --check vn_quant_local_system/web/performance_v45.js
+          node --check vn_quant_local_system/web/signal_v47.js
+          node --check vn_quant_local_system/web/source_integrity_v49.js
+          node --check vn_quant_local_system/web/planning_v46.js
+          node --check vn_quant_local_system/web/performance_v51.js
+      - name: Verify V55 contracts
+        run: |
+          grep -q 'V55_FINAL_EOD_ONLY_VALUATION' vn_quant_local_system/src/vn_quant_local/v55_eod_only.py
+          grep -q 'LOCAL_FINAL_EOD_CLOSE_ONLY' vn_quant_local_system/src/vn_quant_local/v55_eod_only.py
+          grep -q 'broker_market_price_used.*False' vn_quant_local_system/src/vn_quant_local/v55_eod_only.py
+          grep -q 'official_eod_nav_vnd' vn_quant_local_system/web/planning_v46.js
+          grep -q 'P&L EOD' vn_quant_local_system/web/planning_v46.js
+          grep -q 'Giá đóng cửa EOD chính thức' vn_quant_local_system/web/planning_v46.js
+          grep -q '/planning_v46.js' vn_quant_local_system/web/index.html
+          grep -q 'V55_FINAL_EOD_ONLY_VALUATION' vn_quant_local_system/config.json
+          grep -q 'V54_RESEARCH_SCOPE_SELLABILITY' vn_quant_local_system/src/vn_quant_local/v54_research_scope.py
+          grep -q 'WAIT_SELLABLE_AT_PLAN' vn_quant_local_system/web/performance_v51.js
+          if grep -q 'Broker NAV' vn_quant_local_system/web/planning_v46.js; then exit 2; fi
+          if grep -q 'Broker snapshot' vn_quant_local_system/web/planning_v46.js; then exit 2; fi
+          if grep -q 'MutationObserver' vn_quant_local_system/web/performance_v51.js; then exit 2; fi
+          if grep -q 'buying_power_v50' vn_quant_local_system/src/vn_quant_local/__init__.py; then exit 2; fi

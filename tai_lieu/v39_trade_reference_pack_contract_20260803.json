@@ -1,0 +1,42 @@
+{
+  "schema_version": "vn_quant_trade_reference_pack_v39_contract_v1",
+  "recorded_at": "2026-08-03T12:17:00+07:00",
+  "objective": "AUTHORITATIVE_DECISION_SURFACE_TO_EXACT_LEDGER",
+  "frozen_policy": {
+    "policy_id": "c3-top10-cap3-c32fe6ec8c2fd4ce",
+    "model": "C3_STABLE_3_PAST_IC_SHRUNK",
+    "breadth": 10,
+    "fixed_voluntary_replacement_cap": 3,
+    "retraining_allowed": false,
+    "retuning_allowed": false
+  },
+  "single_runner": "scripts/run_v39_trade_reference_to_exact_ledger_gitbash.sh",
+  "persistent_workspace": "/c/Users/welcome/Documents/vn-quant-data/reference/v39-decision-surface",
+  "two_mode_execution": {
+    "incomplete_workspace": "seed_or_validate_510_sector_keys_510_action_windows_52_price_dates_and_stop_fail_closed",
+    "complete_workspace": "compile_reference_pack_run_exact_v36_run_v37_and_print_one_capital_stage"
+  },
+  "required_surface": {
+    "sector_keys": 510,
+    "corporate_action_windows": 510,
+    "price_execution_dates": 52,
+    "operational_controls": 9
+  },
+  "source_evidence_rules": {
+    "raw_files_local_only": true,
+    "source_sha256_required": true,
+    "source_file_hash_recomputed": true,
+    "sector_inference_forbidden": true,
+    "empty_corporate_action_file_alone_is_not_completeness": true,
+    "zero_event_inventory_allowed_only_after_all_510_windows_verified": true,
+    "automatic_network_download": false
+  },
+  "assurance_schema": "exact_ledger_decision_surface_assurance_v39",
+  "governance": {
+    "future_holdout_backfill_forbidden": true,
+    "research_eligible": false,
+    "live_capital_approved": false,
+    "automatic_live_orders_allowed": false,
+    "maximum_stage_after_exact_ledger_before_holdout": "PAPER_ONLY"
+  }
+}

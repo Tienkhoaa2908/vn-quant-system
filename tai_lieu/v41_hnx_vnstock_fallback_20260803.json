@@ -1,0 +1,31 @@
+{
+  "schema_version": "v41_hnx_vnstock_fallback_contract",
+  "created_date": "2026-08-03",
+  "trigger": "DNSE_CREDENTIALS_MISSING",
+  "routing": {
+    "when_dnse_api_key_and_secret_exist": "DNSE_OPENAPI",
+    "when_dnse_credentials_are_missing": "VNSTOCK_FREE_FALLBACK"
+  },
+  "fallback": {
+    "library": "vnstock==4.0.4",
+    "interface": "Unified UI Market.equity/index.ohlcv",
+    "maximum_requested_daily_history": "8 years",
+    "price_unit_contract": "equity OHLC values expressed in thousands of VND; V41 multiplier remains 1000",
+    "indices": ["HNXINDEX", "HNX30"],
+    "source_is_secondary_research_only": true
+  },
+  "unchanged_model_contract": {
+    "model": "C3_STABLE_3_PAST_IC_SHRUNK",
+    "selection_breadth": 10,
+    "universe_size": 70,
+    "allocation": "inverse volatility 60 sessions",
+    "maximum_symbol_weight": 0.15,
+    "hyperparameter_selection_on_hnx": false
+  },
+  "permissions": {
+    "live_capital_approved": false,
+    "automatic_live_orders_allowed": false,
+    "strict_cross_market_approval_possible_from_fallback_alone": false,
+    "merge_approved": false
+  }
+}

@@ -1,0 +1,173 @@
+{
+  "schema_version": "v31_canonical_11y_result_registry_v1",
+  "run_id": "all-history-protocol-v31-canonical-11y-v2-20260803-000838",
+  "artifact": {
+    "file_name": "all-history-protocol-v31-canonical-11y-v2-20260803-000838.zip",
+    "sha256": "6634060e33e21552b60749ad4fd5492e0f771197ead309da927fc34aab444759",
+    "size_bytes": 1244272,
+    "status": "SUCCESS",
+    "manifest_file_count_excluding_manifest": 15,
+    "manifest_all_files_verified": true
+  },
+  "input": {
+    "sqlite_sha256": "7b6f2274d43c12a311f83aa71952ef2abcfca04e2f5204c2f0e9a36a6c144549",
+    "sqlite_row_count": 299466,
+    "sqlite_first_day": "2015-06-29",
+    "sqlite_last_day": "2026-07-31",
+    "sqlite_distinct_days": 2775,
+    "sqlite_distinct_symbols": 122,
+    "sqlite_conflict_row_count": 0,
+    "v22_input_zip_sha256": "66f4dd6699026289501b260949237772f832ac716e700fa686f8b0b8accd38e5",
+    "v22_report_sha256": "bb6d882444211005b7b0c47323ec2c17266c1ad97efcfa4a6665d7c86682f9a1",
+    "boolean_compatibility_fix": "V22_BOOLEAN_FEATURE_TRUE_FALSE_PARSED_AS_1_0"
+  },
+  "coverage": {
+    "raw_feature_row_count": 16214,
+    "raw_first_signal_date": "2015-06-30",
+    "raw_last_signal_date": "2026-07-31",
+    "raw_signal_month_count": 134,
+    "model_trainable_row_count": 12130,
+    "model_trainable_first_signal_date": "2016-06-30",
+    "model_trainable_last_signal_date": "2026-06-30",
+    "model_trainable_signal_month_count": 121,
+    "portfolio_eligible_trainable_row_count": 7048,
+    "non_portfolio_eligible_trainable_row_count": 5082,
+    "above_ma250_trainable_row_count": 7050,
+    "below_or_not_above_ma250_trainable_row_count": 5080,
+    "exclusion_reason_counts": {
+      "FEATURE_NOT_COMPLETE": 3960,
+      "LABEL_INCOMPLETE": 124
+    },
+    "invalid_model_field_counts": {},
+    "portfolio_eligibility_used_as_training_filter": false,
+    "below_ma250_rows_allowed_in_training": true,
+    "liquidity_filter_used_as_training_filter": false,
+    "open_t1_filter_used_as_training_filter": false
+  },
+  "primary_protocol": {
+    "name": "EXPANDING_PURGED_WALK_FORWARD_ALL_TRAINABLE_HISTORY",
+    "role": "PRIMARY_DEPLOYMENT_STYLE_RESEARCH_PROTOCOL",
+    "fold_count": 57,
+    "first_test_date": "2021-10-29",
+    "last_test_date": "2026-06-30",
+    "future_rows_used_for_past_prediction": false,
+    "test_rows_used_for_fit": false,
+    "all_rows_permitted_by_purge_used_in_every_fold": true,
+    "recommendation": "NO_CHALLENGER_PASSED_REDESIGN_FEATURES_OR_WAIT_FOR_NEW_DATA",
+    "models": [
+      {
+        "model": "C3_STABLE_3_PAST_IC_SHRUNK",
+        "mean_rank_ic": 0.0047865052449121,
+        "median_rank_ic": 0.0042584425495021,
+        "positive_rank_ic_ratio": 0.5087719298245614,
+        "bootstrap_probability_mean_positive": 0.5675,
+        "leave_best_3_mean_rank_ic": -0.0267066463862734,
+        "first_half_mean_rank_ic": -0.0256034972144484,
+        "second_half_mean_rank_ic": 0.0341285765849844,
+        "risk_on_mean_rank_ic": 0.0227085263171468,
+        "risk_off_mean_rank_ic": -0.0373829561015223
+      },
+      {
+        "model": "V29_RIDGE_MONTHLY_RANK",
+        "mean_rank_ic": -0.002854348540386,
+        "median_rank_ic": 0.0070682850743524,
+        "positive_rank_ic_ratio": 0.543859649122807,
+        "bootstrap_probability_mean_positive": 0.43,
+        "leave_best_3_mean_rank_ic": -0.0192324832279945,
+        "first_half_mean_rank_ic": -0.0165623059278014,
+        "second_half_mean_rank_ic": 0.0103809206612564,
+        "risk_on_mean_rank_ic": 0.0112236937647668,
+        "risk_off_mean_rank_ic": -0.0359791539642752,
+        "predictive_challenger_gate_passed": false
+      },
+      {
+        "model": "V29_RIDGE_RANK_REGIME_INTERACTION",
+        "mean_rank_ic": 0.0311778932538822,
+        "median_rank_ic": 0.0200946511306033,
+        "positive_rank_ic_ratio": 0.631578947368421,
+        "bootstrap_probability_mean_positive": 0.898,
+        "leave_best_3_mean_rank_ic": 0.0135494545030071,
+        "first_half_mean_rank_ic": -0.0181379645948094,
+        "second_half_mean_rank_ic": 0.0787932042802053,
+        "risk_on_mean_rank_ic": 0.040805532896439,
+        "risk_off_mean_rank_ic": 0.0085246235066898,
+        "mean_rank_ic_delta_vs_c3": 0.0263913880089701,
+        "delta_bootstrap_probability_positive": 0.7595,
+        "predictive_challenger_gate_passed": false,
+        "failed_gate": "paired_delta_bootstrap_probability_at_least_080"
+      },
+      {
+        "model": "V29_LOGIT_BOTTOM20_SAFE",
+        "mean_rank_ic": 0.0390711034710729,
+        "median_rank_ic": 0.1102777872689377,
+        "positive_rank_ic_ratio": 0.6140350877192983,
+        "bootstrap_probability_mean_positive": 0.866,
+        "leave_best_3_mean_rank_ic": 0.0192295805411023,
+        "first_half_mean_rank_ic": -0.0368383538238526,
+        "second_half_mean_rank_ic": 0.11236299327307,
+        "risk_on_mean_rank_ic": 0.1053589861945148,
+        "risk_off_mean_rank_ic": -0.1169003852899667,
+        "mean_rank_ic_delta_vs_c3": 0.0342845982261608,
+        "delta_bootstrap_probability_positive": 0.877,
+        "predictive_challenger_gate_passed": false,
+        "failed_gate": "risk_off_not_worse_than_frozen_by_01"
+      },
+      {
+        "model": "V29_HYBRID_RANK_AND_BOTTOM_SAFE",
+        "mean_rank_ic": 0.0191299197840042,
+        "median_rank_ic": 0.0112657578282309,
+        "positive_rank_ic_ratio": 0.543859649122807,
+        "bootstrap_probability_mean_positive": 0.78,
+        "leave_best_3_mean_rank_ic": 0.0020309331163088,
+        "first_half_mean_rank_ic": -0.0375973589623125,
+        "second_half_mean_rank_ic": 0.0739010854701032,
+        "risk_on_mean_rank_ic": 0.0673407465782022,
+        "risk_off_mean_rank_ic": -0.0943073197317557,
+        "mean_rank_ic_delta_vs_c3": 0.0143434145390921,
+        "delta_bootstrap_probability_positive": 0.731,
+        "predictive_challenger_gate_passed": false
+      }
+    ]
+  },
+  "pooled_protocol": {
+    "name": "POOLED_7_MONTH_6_TRAIN_1_TEST_SINGLE_FIT_DIAGNOSTIC",
+    "role": "SECONDARY_NON_CHRONOLOGICAL_ROBUSTNESS_BENCHMARK",
+    "complete_block_count": 17,
+    "final_train_month_count_after_refit": 104,
+    "locked_test_month_count": 17,
+    "test_first_date": "2016-12-30",
+    "test_last_date": "2026-04-29",
+    "remainder_month_count_assigned_to_final_train": 2,
+    "all_input_months_used_exactly_once_in_final_train_or_test": true,
+    "single_fit_after_hyperparameter_selection": true,
+    "future_relative_to_some_test_months_can_exist_in_train": true,
+    "chronological_deployment_simulation": false,
+    "deployable_historical_pnl_claim": false,
+    "recommendation": "NO_CHALLENGER_PASSED_REDESIGN_FEATURES_OR_WAIT_FOR_NEW_DATA",
+    "mean_rank_ic": {
+      "C3_STABLE_3_PAST_IC_SHRUNK": 0.1118299824528717,
+      "V29_RIDGE_MONTHLY_RANK": 0.0470206262965198,
+      "V29_RIDGE_RANK_REGIME_INTERACTION": 0.1099361970158157,
+      "V29_LOGIT_BOTTOM20_SAFE": 0.1065590553978894,
+      "V29_HYBRID_RANK_AND_BOTTOM_SAFE": 0.0810335352513834
+    },
+    "challenger_gate_passed_count": 0
+  },
+  "final": {
+    "status": "SUCCESS",
+    "recommendation": "USE_EXPANDING_WALK_FORWARD_AS_PRIMARY_AND_KEEP_POOLED_7M_AS_SECONDARY_DIAGNOSTIC",
+    "primary_protocol_is_selection_authority": true,
+    "pooled_protocol_can_override_primary": false,
+    "portfolio_pnl_after_costs_computed": false,
+    "portfolio_pnl_reason": "V31 compares predictive data-split protocols; portfolio P&L must be evaluated in a subsequent fixed policy ablation.",
+    "research_eligible": false,
+    "live_capital_approved": false,
+    "automatic_live_orders_allowed": false,
+    "data_blockers_unchanged": [
+      "PRICE_BASIS_CHUA_XAC_NHAN",
+      "CORPORATE_ACTIONS_CHUA_DAY_DU",
+      "CANDIDATE_UNION_IS_NOT_POINT_IN_TIME",
+      "SURVIVORSHIP_BIAS_NOT_RESOLVED"
+    ]
+  }
+}
