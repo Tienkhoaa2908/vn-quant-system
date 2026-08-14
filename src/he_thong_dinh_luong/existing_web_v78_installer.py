@@ -33,24 +33,24 @@ def replace_once(text: str, old: str, new: str, label: str) -> str:
 
 
 def patch_index(text: str) -> str:
-    if f"<!-- {HTML_MARK} -->" in text:
-        return text
-    text = replace_once(
-        text,
-        '  <link rel="stylesheet" href="/performance_v51.css">',
-        '  <link rel="stylesheet" href="/performance_v51.css">\n'
-        '  <!-- V78_TACTICAL_EXISTING_WEB -->\n'
-        '  <link rel="stylesheet" href="/tactical_v78.css">',
-        "INDEX_CSS",
-    )
-    text = replace_once(
-        text,
-        '  <script src="/performance_v51.js"></script>',
-        '  <script src="/performance_v51.js"></script>\n'
-        '  <!-- V78_TACTICAL_EXISTING_WEB -->\n'
-        '  <script src="/tactical_v78.js"></script>',
-        "INDEX_JS",
-    )
+    if 'href="/tactical_v78.css"' not in text:
+        text = replace_once(
+            text,
+            '  <link rel="stylesheet" href="/performance_v51.css">',
+            '  <link rel="stylesheet" href="/performance_v51.css">\n'
+            '  <!-- V78_TACTICAL_EXISTING_WEB -->\n'
+            '  <link rel="stylesheet" href="/tactical_v78.css">',
+            "INDEX_CSS",
+        )
+    if 'src="/tactical_v78.js"' not in text:
+        text = replace_once(
+            text,
+            '  <script src="/performance_v51.js"></script>',
+            '  <script src="/performance_v51.js"></script>\n'
+            '  <!-- V78_TACTICAL_EXISTING_WEB -->\n'
+            '  <script src="/tactical_v78.js"></script>',
+            "INDEX_JS",
+        )
     return text
 
 
@@ -152,7 +152,7 @@ def install(system_root: Path, assets_root: Path) -> dict[str, object]:
     backup: Path | None = None
 
     if changed:
-        stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+        stamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
         backup = root / "validation" / "v78_web_backup" / stamp
         backup.mkdir(parents=True, exist_ok=False)
         shutil.copy2(index, backup / "index.html")
