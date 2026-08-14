@@ -41,8 +41,8 @@ jobs:
         run: bash -n scripts/run_v77_paper_oos_lineage_gitbash.sh
       - name: Validate frozen safety contracts
         run: |
-          grep -q 'CHAMPION_MODEL="C3_STABLE_3_PAST_IC_SHRUNK"' src/he_thong_dinh_luong/paper_oos_data_lineage_v77.py
-          grep -q 'SHADOW_MODEL="V76_RIDGE_RANK"' src/he_thong_dinh_luong/paper_oos_data_lineage_v77.py
+          grep -Eq 'CHAMPION_MODEL[[:space:]]*=[[:space:]]*"C3_STABLE_3_PAST_IC_SHRUNK"' src/he_thong_dinh_luong/paper_oos_data_lineage_v77.py
+          grep -Eq 'SHADOW_MODEL[[:space:]]*=[[:space:]]*"V76_RIDGE_RANK"' src/he_thong_dinh_luong/paper_oos_data_lineage_v77.py
           grep -q 'fresh_oos_only_for_promotion_evidence' src/he_thong_dinh_luong/paper_oos_data_lineage_v77.py
           grep -q 'live_orders_allowed' src/he_thong_dinh_luong/paper_oos_data_lineage_v77.py
           grep -q 'set -euo pipefail' scripts/run_v77_paper_oos_lineage_gitbash.sh
