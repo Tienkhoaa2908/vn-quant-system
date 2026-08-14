@@ -32,6 +32,23 @@ class TestC3TacticalTerminalV78Driver(unittest.TestCase):
         self.assertEqual(decorated[0]["action"], "RISK_ALERT_R08")
         self.assertEqual(decorated[0]["symbol"], "OLD")
 
+    def test_period_performance_uses_next_open_to_current_close(self):
+        entry = date(2026, 8, 3); current = date(2026, 8, 13)
+        market = SimpleNamespace(
+            cal=[entry, current],
+            so={("AAA", entry): 100.0},
+            sc={("AAA", current): 90.0},
+            io={entry: 1000.0},
+            ic={current: 1020.0},
+        )
+        perf = driver._period_performance(
+            market, "AAA", source_signal_day=date(2026, 7, 31), capture_day=current,
+        )
+        self.assertEqual(perf["period_entry_day"], "2026-08-03")
+        self.assertAlmostEqual(perf["period_return"], -0.10)
+        self.assertAlmostEqual(perf["period_benchmark_return"], 0.02)
+        self.assertAlmostEqual(perf["period_relative_return"], -0.12)
+
     def test_end_to_end_preserves_core_and_emits_operational_report(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -67,7 +84,14 @@ class TestC3TacticalTerminalV78Driver(unittest.TestCase):
                     "drawdown_20": 0.0, "drawdown_60": 0.0,
                     "volume_ratio_5_20": 1.0, "ridge_monthly_top10": False,
                 })
-            fake_market = SimpleNamespace(cal=[date(2026, 8, 13)])
+            entry = date(2026, 8, 13)
+            fake_market = SimpleNamespace(
+                cal=[entry],
+                so={(symbol, entry): 100.0 for symbol in symbols},
+                sc={(symbol, entry): (90.0 if symbol == "S00" else 101.0) for symbol in symbols},
+                io={entry: 1000.0},
+                ic={entry: 1005.0},
+            )
             with patch.object(driver.v70, "load_market", return_value=fake_market), \
                  patch.object(driver.v77, "_build_rank_snapshot", return_value=rank_snapshot), \
                  patch.object(driver.core, "_build_preview", return_value=preview):
@@ -81,6 +105,7 @@ class TestC3TacticalTerminalV78Driver(unittest.TestCase):
             self.assertTrue(report["operational_champion_finalized"])
             self.assertFalse(report["live_orders_allowed"])
             self.assertTrue(report["incumbent_visibility_fail_closed"])
+            self.assertIn("S00", report["dragging_incumbents"])
             self.assertTrue((output / "v78_report.json").is_file())
             self.assertTrue((output / "v78_tactical_rows.csv").is_file())
             self.assertTrue((tactical_state / "previews" / "2026-08-13.csv").is_file())
