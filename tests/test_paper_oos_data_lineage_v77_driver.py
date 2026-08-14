@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import json
 import tempfile
 import unittest
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
 
@@ -42,6 +43,33 @@ class TestV77Driver(unittest.TestCase):
         self.assertEqual(seen["analysis_end"].isoformat(), "2026-09-01")
         self.assertEqual(result["capture_wall_date_vn"], "2026-09-01")
         self.assertEqual(result["wall_date_contract"], "ASIA_HO_CHI_MINH")
+
+    def test_existing_pit_membership_interval_v2_is_recognized_fail_closed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            path = root / "membership_coverage.json"
+            record = {
+                "contract_version": "pit_membership_interval_v2",
+                "range_start": "2020-01-01",
+                "range_end": "2030-01-01",
+                "complete": True,
+                "gaps": [],
+                "conflicts": [],
+                "research_eligible": True,
+                "is_fixture": False,
+                "source_document_ids": ["official-1"],
+            }
+            path.write_text(json.dumps(record), encoding="utf-8")
+            result = driver._scan_evidence_once(
+                [root], target_day=date(2026, 8, 14), store_sha="0" * 64
+            )
+            self.assertTrue(result["passes"]["pit_hose_membership"])
+            record["is_fixture"] = True
+            path.write_text(json.dumps(record), encoding="utf-8")
+            result = driver._scan_evidence_once(
+                [root], target_day=date(2026, 8, 14), store_sha="0" * 64
+            )
+            self.assertFalse(result["passes"]["pit_hose_membership"])
 
 
 if __name__ == "__main__":
