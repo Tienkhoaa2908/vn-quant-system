@@ -10,10 +10,16 @@ cd "$REPO_ROOT"
 git diff --quiet || fail "tracked files da bi sua"
 git diff --cached --quiet || fail "staging area co thay doi"
 
-PY="$PWD/vn_quant_local_system/.venv/Scripts/python.exe"
 STORE="$PWD/vn_quant_local_system/data/market/dnse_ohlcv.sqlite3"
-[[ -f "$PY" ]] || fail "khong tim thay workstation Python"
 [[ -f "$STORE" ]] || fail "khong tim thay market DB"
+command -v uv >/dev/null 2>&1 || fail "khong tim thay uv tren PATH"
+
+# V66 must use the repository's frozen ML environment, not the local-terminal venv.
+# This prevents workstation drift and guarantees dependencies come from uv.lock.
+echo "===== BOOTSTRAP FROZEN PROJECT ENVIRONMENT ====="
+uv sync --frozen
+PY="$PWD/.venv/Scripts/python.exe"
+[[ -f "$PY" ]] || fail "uv sync khong tao duoc project Python .venv"
 
 export PYTHONPATH="$PWD/src:$PWD/vn_quant_local_system/src${PYTHONPATH:+:$PYTHONPATH}"
 export PYTHONUTF8=1
@@ -35,6 +41,7 @@ run_all(){
   echo "BRANCH=$BRANCH"
   echo "HEAD=$(git rev-parse HEAD)"
   echo "STORE=$STORE"
+  echo "PYTHON_ENV=REPO_UV_LOCK_FROZEN"
   echo "TRAINING_SOURCE=LOCAL_11Y_HOSE_MASTER_PANEL"
   echo "V22_USED_AS_TRAINING_INPUT=false"
   echo "POINT_IN_TIME_EXCHANGE_REQUIRED=true"
@@ -45,7 +52,8 @@ run_all(){
 
   echo "===== ENVIRONMENT ====="
   "$PY" - <<'PY'
-import sklearn, numpy
+import sys, sklearn, numpy
+print("python=" + sys.version.replace("\n", " "))
 print("sklearn=" + sklearn.__version__)
 print("numpy=" + numpy.__version__)
 PY
