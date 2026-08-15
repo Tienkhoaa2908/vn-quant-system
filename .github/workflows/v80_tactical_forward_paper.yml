@@ -22,7 +22,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install frozen dependency surface
-        run: python -m pip install --disable-pip-version-check scikit-learn==1.9.0
+        run: python -m pip install --disable-pip-version-check scikit-learn==1.9.0 tzdata==2025.2
       - name: Compile V78 V79 V80
         env:
           PYTHONPATH: src
@@ -85,7 +85,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install frozen dependency surface
-        run: python -m pip install --disable-pip-version-check scikit-learn==1.9.0
+        run: python -m pip install --disable-pip-version-check scikit-learn==1.9.0 tzdata==2025.2
       - name: Compile V80 on Windows
         env:
           PYTHONPATH: src
