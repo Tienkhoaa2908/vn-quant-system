@@ -7,7 +7,9 @@ on:
   pull_request:
     paths:
       - 'src/he_thong_dinh_luong/tactical_forward_paper_v80.py'
+      - 'src/he_thong_dinh_luong/tactical_forward_paper_v80_driver.py'
       - 'tests/test_tactical_forward_paper_v80.py'
+      - 'tests/test_tactical_forward_paper_v80_driver.py'
       - 'scripts/run_v80_tactical_forward_paper_gitbash.sh'
       - 'scripts/run_v80_tactical_forward_paper_workstation_gitbash.sh'
       - '.github/workflows/v80_tactical_forward_paper.yml'
@@ -33,11 +35,13 @@ jobs:
             src/he_thong_dinh_luong/tactical_capital_policy_v79.py \
             src/he_thong_dinh_luong/sqlite_market_fingerprint_v79.py \
             src/he_thong_dinh_luong/tactical_forward_paper_v80.py \
-            tests/test_tactical_forward_paper_v80.py
+            src/he_thong_dinh_luong/tactical_forward_paper_v80_driver.py \
+            tests/test_tactical_forward_paper_v80.py \
+            tests/test_tactical_forward_paper_v80_driver.py
       - name: Run frozen tactical forward-paper contracts
         env:
           PYTHONPATH: src
-        run: python -m unittest tests.test_tactical_forward_paper_v80 tests.test_sqlite_market_fingerprint_v79 -v
+        run: python -m unittest tests.test_tactical_forward_paper_v80 tests.test_tactical_forward_paper_v80_driver tests.test_sqlite_market_fingerprint_v79 -v
       - name: Validate Git Bash runners
         run: |
           bash -n scripts/run_v80_tactical_forward_paper_gitbash.sh
@@ -72,10 +76,12 @@ jobs:
           grep -q 'FIRST_MARKET_SESSION_ON_OR_AFTER_CAPTURE_VN_DATE_PLUS_1' src/he_thong_dinh_luong/tactical_forward_paper_v80.py
           grep -q 'incumbent_health_can_trigger_trade' src/he_thong_dinh_luong/tactical_forward_paper_v80.py
           grep -q 'live_orders_allowed' src/he_thong_dinh_luong/tactical_forward_paper_v80.py
+          grep -q 'rows.json' src/he_thong_dinh_luong/tactical_forward_paper_v80_driver.py
+          grep -q 'tactical_forward_paper_v80_driver' scripts/run_v80_tactical_forward_paper_gitbash.sh
           grep -q 'sqlite_market_fingerprint_v79' scripts/run_v80_tactical_forward_paper_gitbash.sh
           grep -q 'V77_STATE_DIGEST_AFTER' scripts/run_v80_tactical_forward_paper_gitbash.sh
           grep -q 'set -euo pipefail' scripts/run_v80_tactical_forward_paper_gitbash.sh
-          if grep -Eiq 'send_order|place_order|submit_order|broker_order|rm -rf.*v80-tactical-paper-state' src/he_thong_dinh_luong/tactical_forward_paper_v80.py scripts/run_v80_tactical_forward_paper_gitbash.sh; then exit 1; fi
+          if grep -Eiq 'send_order|place_order|submit_order|broker_order|rm -rf.*v80-tactical-paper-state' src/he_thong_dinh_luong/tactical_forward_paper_v80.py src/he_thong_dinh_luong/tactical_forward_paper_v80_driver.py scripts/run_v80_tactical_forward_paper_gitbash.sh; then exit 1; fi
 
   windows-contract:
     runs-on: windows-latest
@@ -89,8 +95,8 @@ jobs:
       - name: Compile V80 on Windows
         env:
           PYTHONPATH: src
-        run: python -m py_compile src/he_thong_dinh_luong/tactical_forward_paper_v80.py tests/test_tactical_forward_paper_v80.py
+        run: python -m py_compile src/he_thong_dinh_luong/tactical_forward_paper_v80.py src/he_thong_dinh_luong/tactical_forward_paper_v80_driver.py tests/test_tactical_forward_paper_v80.py tests/test_tactical_forward_paper_v80_driver.py
       - name: Run V80 and WAL contracts on Windows
         env:
           PYTHONPATH: src
-        run: python -m unittest tests.test_tactical_forward_paper_v80 tests.test_sqlite_market_fingerprint_v79 -v
+        run: python -m unittest tests.test_tactical_forward_paper_v80 tests.test_tactical_forward_paper_v80_driver tests.test_sqlite_market_fingerprint_v79 -v
