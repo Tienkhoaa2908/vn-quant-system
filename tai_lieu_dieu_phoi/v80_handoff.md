@@ -18,6 +18,23 @@ Champion remains `C3_STABLE_3_PAST_IC_SHRUNK`.
 
 Never delete/reset this directory to rerun an observation. Same-observation target drift must fail closed. V77 state at `du_lieu/v77-paper-oos-state/` is read-only from the V80 runner and must remain byte-identical.
 
+The first real workstation observation has now been created and audited. See:
+
+`tai_lieu_dieu_phoi/v80_workstation_result_20260815.md`
+
+Observed first V80 state:
+
+- observation ID: `2026-07-31__2026-08-14`;
+- capture wall time VN: `2026-08-15T11:41:16.090493+07:00`;
+- execution floor date: `2026-08-16`;
+- exact L15 active: `false`;
+- three policy statuses: `NO_ACTION_NO_EXACT_L15`;
+- observation count: `1`;
+- outcome count: `0`;
+- promotion/live authorization: `false`.
+
+This is a valid forward observation, not a failed run. It verifies the real no-action path and registry initialization. A real exact-L15 next-open paper fill is still `not_yet_observed`.
+
 ## Workstation flow
 
 Canonical entrypoint:
@@ -43,6 +60,12 @@ Expected artifact:
 
 No exact L15 => no action, regardless of how bad an incumbent looks.
 
+The first real observation materially exercised this rule: `VIC` was a severe incumbent health alert (`R07=true`, `R08=true`) but did not create a sell because health is advisory and exact L15 was inactive.
+
 Exact L15 => V80 records independent SWAP25/SWAP50 counterfactuals. CASH_ADD25 additionally requires risk-on and real simulated idle-cash capacity.
 
 All outputs are paper/counterfactual evidence only. No live or promotion decision is authorized by V80.
+
+## Next operating rule
+
+Do not reset V80 state and do not tune the policy matrix after observing future outcomes. Future workstation runs only append/advance fresh observations and legal H5/H10/H20/monthly outcomes under the frozen contract.
