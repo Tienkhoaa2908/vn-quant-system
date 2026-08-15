@@ -89,17 +89,20 @@ run_all() (
     src/he_thong_dinh_luong/tactical_capital_policy_v79.py \
     src/he_thong_dinh_luong/sqlite_market_fingerprint_v79.py \
     src/he_thong_dinh_luong/tactical_forward_paper_v80.py \
+    src/he_thong_dinh_luong/tactical_forward_paper_v80_driver.py \
     tests/test_c3_tactical_terminal_v78.py \
     tests/test_c3_tactical_terminal_v78_driver.py \
     tests/test_tactical_capital_policy_v79.py \
     tests/test_sqlite_market_fingerprint_v79.py \
-    tests/test_tactical_forward_paper_v80.py
+    tests/test_tactical_forward_paper_v80.py \
+    tests/test_tactical_forward_paper_v80_driver.py
   "$PY" -m unittest \
     tests.test_c3_tactical_terminal_v78 \
     tests.test_c3_tactical_terminal_v78_driver \
     tests.test_tactical_capital_policy_v79 \
     tests.test_sqlite_market_fingerprint_v79 \
-    tests.test_tactical_forward_paper_v80 -v
+    tests.test_tactical_forward_paper_v80 \
+    tests.test_tactical_forward_paper_v80_driver -v
   echo
 
   echo "===== REFRESH CURRENT V78 TACTICAL OBSERVATION WITHOUT WEB MUTATION ====="
@@ -119,7 +122,7 @@ run_all() (
   echo
 
   echo "===== CAPTURE/ADVANCE V80 IMMUTABLE FORWARD PAPER ====="
-  "$PY" -m he_thong_dinh_luong.tactical_forward_paper_v80 \
+  "$PY" -m he_thong_dinh_luong.tactical_forward_paper_v80_driver \
     --store "$(cygpath -w "$STORE")" \
     --v78-report "$(cygpath -w "$V78_OUT/v78_report.json")" \
     --v78-tactical-rows "$(cygpath -w "$V78_OUT/v78_tactical_rows.csv")" \
