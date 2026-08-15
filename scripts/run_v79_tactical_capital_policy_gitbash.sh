@@ -28,6 +28,8 @@ FAIL_BUNDLE="$ART/UPLOAD_THIS_v79_TACTICAL_CAPITAL_POLICY_FAILURE-$RUN_ID.zip"
 LOG="$ART/v79-tactical-capital-policy-$RUN_ID.log"
 mkdir -p "$V68" "$V70" "$V79" "$BUNDLE_DIR"
 STORE_SHA_BEFORE="$(sha256sum "$STORE" | awk '{print $1}')"
+STORE_LOGICAL_BEFORE="$("$PY" -m he_thong_dinh_luong.sqlite_market_fingerprint_v79 --store "$(cygpath -w "$STORE")")"
+printf '%s\n' "$STORE_LOGICAL_BEFORE" > "$BUNDLE_DIR/store_logical_bars_before.json"
 
 run_all() (
   set -euo pipefail
@@ -57,7 +59,8 @@ run_all() (
   echo "PROFIT_REPORT_REQUIRED=true"
   echo "PROMOTION_AUTHORIZED=false"
   echo "AUTOMATIC_LIVE_ORDERS_ALLOWED=false"
-  echo "STORE_SHA_BEFORE=$STORE_SHA_BEFORE"
+  echo "STORE_PHYSICAL_SHA_BEFORE=$STORE_SHA_BEFORE"
+  echo "STORE_LOGICAL_BARS_BEFORE=$STORE_LOGICAL_BEFORE"
   echo
 
   echo "===== COMPILE + REGRESSION ====="
@@ -67,9 +70,14 @@ run_all() (
     src/he_thong_dinh_luong/deep_portfolio_backtest_v70.py \
     src/he_thong_dinh_luong/weekly_overlay_backtest_v72.py \
     src/he_thong_dinh_luong/tactical_capital_policy_v79.py \
+    src/he_thong_dinh_luong/sqlite_market_fingerprint_v79.py \
     tests/test_weekly_overlay_backtest_v72.py \
-    tests/test_tactical_capital_policy_v79.py
-  "$PY" -m unittest tests.test_weekly_overlay_backtest_v72 tests.test_tactical_capital_policy_v79 -v
+    tests/test_tactical_capital_policy_v79.py \
+    tests/test_sqlite_market_fingerprint_v79.py
+  "$PY" -m unittest \
+    tests.test_weekly_overlay_backtest_v72 \
+    tests.test_tactical_capital_policy_v79 \
+    tests.test_sqlite_market_fingerprint_v79 -v
   echo
 
   echo "===== PHASE 1: REBUILD V68 CAUSAL WEEKLY SIGNAL STATES ====="
@@ -141,8 +149,17 @@ print("AUTOMATIC_LIVE_ORDERS_ALLOWED="+str(report["automatic_live_orders_allowed
 PY
 
   STORE_SHA_AFTER="$(sha256sum "$STORE" | awk '{print $1}')"
-  echo "STORE_SHA_AFTER=$STORE_SHA_AFTER"
-  [[ "$STORE_SHA_AFTER" == "$STORE_SHA_BEFORE" ]] || fail "market store changed during research run"
+  STORE_LOGICAL_AFTER="$("$PY" -m he_thong_dinh_luong.sqlite_market_fingerprint_v79 --store "$(cygpath -w "$STORE")")"
+  printf '%s\n' "$STORE_LOGICAL_AFTER" > "$BUNDLE_DIR/store_logical_bars_after.json"
+  echo "STORE_PHYSICAL_SHA_AFTER=$STORE_SHA_AFTER"
+  echo "STORE_LOGICAL_BARS_AFTER=$STORE_LOGICAL_AFTER"
+  [[ "$STORE_LOGICAL_AFTER" == "$STORE_LOGICAL_BEFORE" ]] || fail "logical market bars changed during research run"
+  if [[ "$STORE_SHA_AFTER" != "$STORE_SHA_BEFORE" ]]; then
+    echo "STORE_PHYSICAL_SHA_CHANGED_LOGICAL_BARS_STABLE=true"
+    echo "STORE_PHYSICAL_CHANGE_INTERPRETATION=SQLITE_WAL_CHECKPOINT_OR_PAGE_LAYOUT_CHANGE_NOT_LOGICAL_BARS_MUTATION"
+  else
+    echo "STORE_PHYSICAL_SHA_CHANGED_LOGICAL_BARS_STABLE=false"
+  fi
 )
 
 set +e
@@ -151,11 +168,14 @@ RC=${PIPESTATUS[0]}
 set -e
 
 STORE_SHA_AFTER="$(sha256sum "$STORE" | awk '{print $1}')"
+STORE_LOGICAL_AFTER="$("$PY" -m he_thong_dinh_luong.sqlite_market_fingerprint_v79 --store "$(cygpath -w "$STORE")" 2>/dev/null || true)"
 cp "$LOG" "$BUNDLE_DIR/run.log" || true
 git branch --show-current > "$BUNDLE_DIR/git_branch.txt"
 git rev-parse HEAD > "$BUNDLE_DIR/git_head.txt"
 printf '%s\n' "$STORE_SHA_BEFORE" > "$BUNDLE_DIR/store_sha256_before.txt"
 printf '%s\n' "$STORE_SHA_AFTER" > "$BUNDLE_DIR/store_sha256_after.txt"
+printf '%s\n' "$STORE_LOGICAL_BEFORE" > "$BUNDLE_DIR/store_logical_bars_before.json"
+printf '%s\n' "$STORE_LOGICAL_AFTER" > "$BUNDLE_DIR/store_logical_bars_after.json"
 "$PY" - <<'PY' > "$BUNDLE_DIR/python_version.txt" 2>&1 || true
 import sys
 print(sys.version.replace("\n"," "))
