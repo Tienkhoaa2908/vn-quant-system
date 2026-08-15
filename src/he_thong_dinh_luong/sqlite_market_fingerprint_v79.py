@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from contextlib import closing
 import hashlib
 import json
 import sqlite3
@@ -23,7 +24,7 @@ def fingerprint_bars(store: Path) -> dict[str, object]:
     first_day: str | None = None
     last_day: str | None = None
 
-    with sqlite3.connect(uri, uri=True) as db:
+    with closing(sqlite3.connect(uri, uri=True)) as db:
         db.execute("BEGIN")
         columns = [str(row[1]) for row in db.execute('PRAGMA table_info("bars")')]
         if not columns:
