@@ -1,60 +1,62 @@
-# V79 handoff — tactical capital-action policy
+# V79 handoff — unified tactical capital-action policy research
 
 ## Current phase
 
-V79 is the approved research phase after V78 tactical observability.
+V79 is the consolidated research package for intra-month capital actions on top of frozen C3.
 
-- parent branch: `agent/v78-c3-tactical-terminal`;
-- parent HEAD at creation: `36b9234e90d4d92a9146390a33704ef51dd4cd4d`;
-- V79 branch: `agent/v79-c3-tactical-capital-policy`.
+Champion remains `C3_STABLE_3_PAST_IC_SHRUNK`. No model search, champion replacement, promotion, live order or broker mutation is authorized.
 
-V79 stays stacked on V78 until V78 integration lineage is resolved. Do not reopen a model-search lane.
+## Workstation result
 
-## User intent
+Read `tai_lieu_dieu_phoi/v79_workstation_result_20260815.md` first.
 
-Solve two mid-month operational gaps without recalculating/refitting C3 daily:
+Observed workstation artifact at HEAD `479f9b6a53fba33ecbfac1ab6a89a26facec2d3d` completed all V68/V70/V79 calculations and regression tests. The original runner exited only at its final physical SQLite SHA check.
 
-1. trim/cut C3 incumbents that strongly and persistently drag portfolio P&L;
-2. admit strong non-Top10 leaders only when they cross a frozen causal gate.
+That check was found invalid under SQLite WAL semantics. The artifact already saw logical bars through `2026-08-14` while the main `.sqlite3` file still had the older physical SHA, which is consistent with uncheckpointed WAL state. A dedicated regression reproduces physical-SHA drift across checkpoint with identical logical bars.
 
-The user explicitly wants all directions consolidated into one workstation run, not fragmented into many reruns.
+Current V79 code therefore uses a deterministic read-only logical `bars` fingerprint for the mutation invariant and keeps physical SHA as audit metadata only.
 
-## Approved scope
+No workstation rerun is required merely to reproduce the already-completed policy P&L. Future workstation runs should use the WAL-safe guard.
 
-Read `tai_lieu_dieu_phoi/v79_tactical_capital_policy_contract.md`.
+## Research decision
 
-The one-shot matrix includes incumbent trim25/trim50/severe-exit research, exact-L15 swap/cash-add, rotate25/rotate50, combined policy, V72 anchors, EQUAL/INVOL60, four cost scenarios, T2 sensitivity, 100M/1B/10B sensitivity, pre-2026 inference/BH-FDR and 2026 shadow.
+Do not continue threshold fishing for an autonomous incumbent sell rule on the same historical sample.
 
-## Frozen invariants
+Rejected as autonomous action rules:
 
-- champion stays `C3_STABLE_3_PAST_IC_SHRUNK`;
-- historical model/hyperparameter search remains stopped;
-- V72 exact L15 is reused, not retuned;
-- weekly close -> next-session-open execution;
-- monthly rebalance precedence;
-- no live orders;
-- no promotion;
-- data-lineage gates remain fail-closed.
+- `DRAG_PERSIST_TRIM25_CASH`;
+- `DRAG_PERSIST_TRIM50_CASH`;
+- `SEVERE_DRAG_EXIT100_CASH`;
+- drag-trigger-dependent rotation/combined as an operational rule.
 
-## Most recent local-data evidence before V79
+Reason: pre-2026 paired evidence is negative/weak, and the new incumbent-cut family reduces return across the main sensitivity combinations.
 
-The workstation pipeline artifact uploaded 2026-08-14 reported:
+Keep as forward-paper opportunity challengers:
 
-- source freshness `CURRENT_FINAL_EOD`;
-- expected final session `2026-08-14`;
-- latest stock day `2026-08-14`;
-- latest VNINDEX day `2026-08-14`;
-- expected stock count 119;
-- symbol error count 0.
+1. `L15_SWAP50_WORST` — strongest economic replacement challenger;
+2. `L15_SWAP25_WORST` — lower-intensity replacement challenger;
+3. `L15_CASH_ADD25_SLOT` — idle-cash admission challenger and the only formal V79 diagnostic watchlist row in one BROAD_PROVISIONAL/INVOL60 configuration.
 
-Do not request another standalone pipeline run merely to prove 2026-08-14 EOD freshness before V79. V79 still checks that the local market-store SHA is unchanged by the research run.
+Interpretation: cutting because an incumbent is bad is not supported; replacing a weak incumbent when an independently qualified exact-L15 leader exists is the promising mechanism.
 
-## Awaiting evidence
+## Operational architecture after V79
 
-V79 is incomplete until the real Windows one-shot workstation ZIP is uploaded and audited.
+- monthly C3 Top10 stays core;
+- incumbent drag/health remains warning and replacement-priority information;
+- no autonomous sell from R07/R08/DRAG_PERSIST/SEVERE_DRAG;
+- exact L15 stays frozen from V72;
+- tactical replacement should be opportunity-conditioned, not loss-conditioned;
+- current exact-L15 challengers remain advisory/paper only until genuinely fresh forward evidence exists.
 
-Expected artifact:
+## Important caveats
 
-`UPLOAD_THIS_v79_TACTICAL_CAPITAL_POLICY-*.zip`
+- 2026 is shadow only and not used for selection;
+- V79's 2026 deep-backtest period ends at `2026-08-03`; it does not validate the later VPI/VIC/TLG state around 13–14 August;
+- GAP18_CLEAN is still a provisional non-PIT sensitivity and can drift when newly observed future price gaps alter the excluded-symbol set;
+- PIT HOSE, price basis, corporate actions and PIT sector master remain fail-closed;
+- 10bn capital sensitivity is not operationally credible where modeled ADV20 participation exceeds 100%;
+- no live/promotion claim.
 
-Until then V79 outcomes are implementation/CI evidence only, not observed workstation research results.
+## Next research mode
+
+Do not open another historical threshold matrix. Move the frozen tactical opportunity challengers into forward paper logging against current V78 tactical observations and next-session-open hypothetical execution, while continuing the existing V77 fresh-OOS discipline and preserving persistent states.
