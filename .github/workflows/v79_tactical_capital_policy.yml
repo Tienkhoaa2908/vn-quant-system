@@ -7,7 +7,9 @@ on:
   pull_request:
     paths:
       - 'src/he_thong_dinh_luong/tactical_capital_policy_v79.py'
+      - 'src/he_thong_dinh_luong/sqlite_market_fingerprint_v79.py'
       - 'tests/test_tactical_capital_policy_v79.py'
+      - 'tests/test_sqlite_market_fingerprint_v79.py'
       - 'scripts/run_v79_tactical_capital_policy_gitbash.sh'
       - 'scripts/run_v79_tactical_capital_policy_workstation_gitbash.sh'
       - '.github/workflows/v79_tactical_capital_policy.yml'
@@ -31,12 +33,14 @@ jobs:
             src/he_thong_dinh_luong/deep_portfolio_backtest_v70.py \
             src/he_thong_dinh_luong/weekly_overlay_backtest_v72.py \
             src/he_thong_dinh_luong/tactical_capital_policy_v79.py \
+            src/he_thong_dinh_luong/sqlite_market_fingerprint_v79.py \
             tests/test_weekly_overlay_backtest_v72.py \
-            tests/test_tactical_capital_policy_v79.py
-      - name: Run V72 anchors and V79 contracts
+            tests/test_tactical_capital_policy_v79.py \
+            tests/test_sqlite_market_fingerprint_v79.py
+      - name: Run V72 anchors V79 contracts and WAL fingerprint regression
         env:
           PYTHONPATH: src
-        run: python -m unittest tests.test_weekly_overlay_backtest_v72 tests.test_tactical_capital_policy_v79 -v
+        run: python -m unittest tests.test_weekly_overlay_backtest_v72 tests.test_tactical_capital_policy_v79 tests.test_sqlite_market_fingerprint_v79 -v
       - name: Validate Git Bash runners
         run: |
           bash -n scripts/run_v79_tactical_capital_policy_gitbash.sh
@@ -64,7 +68,7 @@ jobs:
           grep -q 'V78_TACTICAL_EXISTING_WEB' "$INDEX"
           git restore --worktree -- "$WEBAPP" "$INDEX"
           git diff --quiet
-      - name: Guard frozen architecture and causal contracts
+      - name: Guard frozen architecture causal contracts and WAL-safe store gate
         run: |
           grep -q 'CHAMPION_MODEL = "C3_STABLE_3_PAST_IC_SHRUNK"' src/he_thong_dinh_luong/tactical_capital_policy_v79.py
           grep -q 'PRIMARY_SELECTION_END = date(2025, 12, 31)' src/he_thong_dinh_luong/tactical_capital_policy_v79.py
@@ -77,6 +81,9 @@ jobs:
           grep -q '"historical_model_search_reopened": False' src/he_thong_dinh_luong/tactical_capital_policy_v79.py
           grep -q '"automatic_live_orders_allowed": False' src/he_thong_dinh_luong/tactical_capital_policy_v79.py
           grep -q 'YEAR_2026_USED_FOR_SELECTION=false' scripts/run_v79_tactical_capital_policy_gitbash.sh
+          grep -q 'STORE_LOGICAL_BARS_BEFORE' scripts/run_v79_tactical_capital_policy_gitbash.sh
+          grep -q 'STORE_PHYSICAL_SHA_CHANGED_LOGICAL_BARS_STABLE' scripts/run_v79_tactical_capital_policy_gitbash.sh
+          grep -q 'logical market bars changed during research run' scripts/run_v79_tactical_capital_policy_gitbash.sh
           grep -q 'set -euo pipefail' scripts/run_v79_tactical_capital_policy_gitbash.sh
           grep -q 'V78_TACTICAL_BRIDGE_IMPORT' scripts/run_v79_tactical_capital_policy_workstation_gitbash.sh
           grep -q 'V78_TACTICAL_EXISTING_WEB' scripts/run_v79_tactical_capital_policy_workstation_gitbash.sh
@@ -96,8 +103,8 @@ jobs:
       - name: Compile V79 on Windows
         env:
           PYTHONPATH: src
-        run: python -m py_compile src/he_thong_dinh_luong/deep_portfolio_backtest_v70.py src/he_thong_dinh_luong/weekly_overlay_backtest_v72.py src/he_thong_dinh_luong/tactical_capital_policy_v79.py tests/test_weekly_overlay_backtest_v72.py tests/test_tactical_capital_policy_v79.py
-      - name: Run V72 anchors and V79 contracts on Windows
+        run: python -m py_compile src/he_thong_dinh_luong/deep_portfolio_backtest_v70.py src/he_thong_dinh_luong/weekly_overlay_backtest_v72.py src/he_thong_dinh_luong/tactical_capital_policy_v79.py src/he_thong_dinh_luong/sqlite_market_fingerprint_v79.py tests/test_weekly_overlay_backtest_v72.py tests/test_tactical_capital_policy_v79.py tests/test_sqlite_market_fingerprint_v79.py
+      - name: Run V72 anchors V79 contracts and WAL fingerprint regression on Windows
         env:
           PYTHONPATH: src
-        run: python -m unittest tests.test_weekly_overlay_backtest_v72 tests.test_tactical_capital_policy_v79 -v
+        run: python -m unittest tests.test_weekly_overlay_backtest_v72 tests.test_tactical_capital_policy_v79 tests.test_sqlite_market_fingerprint_v79 -v
