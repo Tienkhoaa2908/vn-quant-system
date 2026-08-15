@@ -1,0 +1,110 @@
+name: v79_tactical_capital_policy
+
+on:
+  push:
+    branches:
+      - agent/v79-c3-tactical-capital-policy
+  pull_request:
+    paths:
+      - 'src/he_thong_dinh_luong/tactical_capital_policy_v79.py'
+      - 'src/he_thong_dinh_luong/sqlite_market_fingerprint_v79.py'
+      - 'tests/test_tactical_capital_policy_v79.py'
+      - 'tests/test_sqlite_market_fingerprint_v79.py'
+      - 'scripts/run_v79_tactical_capital_policy_gitbash.sh'
+      - 'scripts/run_v79_tactical_capital_policy_workstation_gitbash.sh'
+      - '.github/workflows/v79_tactical_capital_policy.yml'
+      - 'tai_lieu_dieu_phoi/v79_*'
+
+jobs:
+  linux-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install frozen dependency surface
+        run: python -m pip install --disable-pip-version-check scikit-learn==1.9.0
+      - name: Compile V70 V72 V79
+        env:
+          PYTHONPATH: src
+        run: |
+          python -m py_compile \
+            src/he_thong_dinh_luong/deep_portfolio_backtest_v70.py \
+            src/he_thong_dinh_luong/weekly_overlay_backtest_v72.py \
+            src/he_thong_dinh_luong/tactical_capital_policy_v79.py \
+            src/he_thong_dinh_luong/sqlite_market_fingerprint_v79.py \
+            tests/test_weekly_overlay_backtest_v72.py \
+            tests/test_tactical_capital_policy_v79.py \
+            tests/test_sqlite_market_fingerprint_v79.py
+      - name: Run V72 anchors V79 contracts and WAL fingerprint regression
+        env:
+          PYTHONPATH: src
+        run: python -m unittest tests.test_weekly_overlay_backtest_v72 tests.test_tactical_capital_policy_v79 tests.test_sqlite_market_fingerprint_v79 -v
+      - name: Validate Git Bash runners
+        run: |
+          bash -n scripts/run_v79_tactical_capital_policy_gitbash.sh
+          bash -n scripts/run_v79_tactical_capital_policy_workstation_gitbash.sh
+      - name: Exercise approved V78 web-state transaction
+        run: |
+          EXPECTED='agent/v79-c3-tactical-capital-policy'
+          if [[ "$(git branch --show-current)" != "$EXPECTED" ]]; then
+            git switch -c "$EXPECTED"
+          fi
+          WEBAPP='vn_quant_local_system/src/vn_quant_local/webapp.py'
+          INDEX='vn_quant_local_system/web/index.html'
+          printf '\n# V78_TACTICAL_BRIDGE_IMPORT\n' >> "$WEBAPP"
+          printf '\n<!-- V78_TACTICAL_EXISTING_WEB -->\n' >> "$INDEX"
+          cat > /tmp/v79-inner-stub.sh <<'EOF'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          git diff --quiet
+          git diff --cached --quiet
+          echo 'V79_TRANSACTION_INNER_CLEAN=true'
+          EOF
+          chmod +x /tmp/v79-inner-stub.sh
+          V79_INNER_RUNNER=/tmp/v79-inner-stub.sh bash scripts/run_v79_tactical_capital_policy_workstation_gitbash.sh
+          grep -q 'V78_TACTICAL_BRIDGE_IMPORT' "$WEBAPP"
+          grep -q 'V78_TACTICAL_EXISTING_WEB' "$INDEX"
+          git restore --worktree -- "$WEBAPP" "$INDEX"
+          git diff --quiet
+      - name: Guard frozen architecture causal contracts and WAL-safe store gate
+        run: |
+          grep -q 'CHAMPION_MODEL = "C3_STABLE_3_PAST_IC_SHRUNK"' src/he_thong_dinh_luong/tactical_capital_policy_v79.py
+          grep -q 'PRIMARY_SELECTION_END = date(2025, 12, 31)' src/he_thong_dinh_luong/tactical_capital_policy_v79.py
+          grep -q 'NEXT_SESSION_OPEN_AFTER_MONTHLY_SIGNAL_TO_WEEKLY_EVALUATION_CLOSE_GROSS' src/he_thong_dinh_luong/tactical_capital_policy_v79.py
+          grep -q 'DRAG_PERSIST_TRIM25_CASH' src/he_thong_dinh_luong/tactical_capital_policy_v79.py
+          grep -q 'DRAG_PERSIST_TRIM50_CASH' src/he_thong_dinh_luong/tactical_capital_policy_v79.py
+          grep -q 'SEVERE_DRAG_EXIT100_CASH' src/he_thong_dinh_luong/tactical_capital_policy_v79.py
+          grep -q 'L15_CASH_ADD25_SLOT' src/he_thong_dinh_luong/tactical_capital_policy_v79.py
+          grep -q 'DRAG_L15_ROTATE50' src/he_thong_dinh_luong/tactical_capital_policy_v79.py
+          grep -q '"historical_model_search_reopened": False' src/he_thong_dinh_luong/tactical_capital_policy_v79.py
+          grep -q '"automatic_live_orders_allowed": False' src/he_thong_dinh_luong/tactical_capital_policy_v79.py
+          grep -q 'YEAR_2026_USED_FOR_SELECTION=false' scripts/run_v79_tactical_capital_policy_gitbash.sh
+          grep -q 'STORE_LOGICAL_BARS_BEFORE' scripts/run_v79_tactical_capital_policy_gitbash.sh
+          grep -q 'STORE_PHYSICAL_SHA_CHANGED_LOGICAL_BARS_STABLE' scripts/run_v79_tactical_capital_policy_gitbash.sh
+          grep -q 'logical market bars changed during research run' scripts/run_v79_tactical_capital_policy_gitbash.sh
+          grep -q 'set -euo pipefail' scripts/run_v79_tactical_capital_policy_gitbash.sh
+          grep -q 'V78_TACTICAL_BRIDGE_IMPORT' scripts/run_v79_tactical_capital_policy_workstation_gitbash.sh
+          grep -q 'V78_TACTICAL_EXISTING_WEB' scripts/run_v79_tactical_capital_policy_workstation_gitbash.sh
+          grep -q 'git restore --worktree -- "$WEBAPP" "$INDEX"' scripts/run_v79_tactical_capital_policy_workstation_gitbash.sh
+          grep -q 'git apply --whitespace=nowarn "$PATCH"' scripts/run_v79_tactical_capital_policy_workstation_gitbash.sh
+          if grep -Eiq 'send_order|place_order|submit_order|broker_order' src/he_thong_dinh_luong/tactical_capital_policy_v79.py; then exit 1; fi
+
+  windows-contract:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install frozen dependency surface
+        run: python -m pip install --disable-pip-version-check scikit-learn==1.9.0
+      - name: Compile V79 on Windows
+        env:
+          PYTHONPATH: src
+        run: python -m py_compile src/he_thong_dinh_luong/deep_portfolio_backtest_v70.py src/he_thong_dinh_luong/weekly_overlay_backtest_v72.py src/he_thong_dinh_luong/tactical_capital_policy_v79.py src/he_thong_dinh_luong/sqlite_market_fingerprint_v79.py tests/test_weekly_overlay_backtest_v72.py tests/test_tactical_capital_policy_v79.py tests/test_sqlite_market_fingerprint_v79.py
+      - name: Run V72 anchors V79 contracts and WAL fingerprint regression on Windows
+        env:
+          PYTHONPATH: src
+        run: python -m unittest tests.test_weekly_overlay_backtest_v72 tests.test_tactical_capital_policy_v79 tests.test_sqlite_market_fingerprint_v79 -v
