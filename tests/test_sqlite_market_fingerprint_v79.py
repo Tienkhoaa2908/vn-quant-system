@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import closing
 import hashlib
 from pathlib import Path
 import sqlite3
@@ -49,7 +50,7 @@ class TestSqliteMarketFingerprintV79(unittest.TestCase):
     def test_actual_bar_mutation_changes_logical_fingerprint(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             store = Path(temp_dir) / "market.sqlite3"
-            with sqlite3.connect(store) as db:
+            with closing(sqlite3.connect(store)) as db:
                 db.execute(
                     "CREATE TABLE bars(asset_type TEXT, symbol TEXT, day TEXT, open REAL, close REAL, volume INTEGER)"
                 )
@@ -59,7 +60,7 @@ class TestSqliteMarketFingerprintV79(unittest.TestCase):
                 )
                 db.commit()
             before = fingerprint_bars(store)
-            with sqlite3.connect(store) as db:
+            with closing(sqlite3.connect(store)) as db:
                 db.execute("UPDATE bars SET close=12.0 WHERE symbol='AAA'")
                 db.commit()
             after = fingerprint_bars(store)
