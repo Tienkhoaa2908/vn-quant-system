@@ -14,6 +14,23 @@ INDEX="vn_quant_local_system/web/index.html"
 RUNNER="${V80_INNER_RUNNER:-scripts/run_v80_tactical_forward_paper_gitbash.sh}"
 [[ -f "$RUNNER" ]] || fail "khong tim thay inner runner: $RUNNER"
 
+# Windows CPython may not ship IANA zoneinfo data. Canonical workstation entrypoint
+# installs the frozen tiny tzdata package only when the real V80 runner is used.
+if [[ -z "${V80_INNER_RUNNER:-}" ]]; then
+  PY="vn_quant_local_system/.venv/Scripts/python.exe"
+  [[ -f "$PY" ]] || fail "khong tim thay canonical workstation Python"
+  if ! "$PY" - <<'PY' >/dev/null 2>&1
+from zoneinfo import ZoneInfo
+ZoneInfo("Asia/Ho_Chi_Minh")
+PY
+  then
+    echo "DEPENDENCY_tzdata=installing_tzdata==2025.2"
+    "$PY" -m pip install --disable-pip-version-check "tzdata==2025.2"
+  else
+    echo "DEPENDENCY_tzdata=already_verified"
+  fi
+fi
+
 mapfile -t DIRTY_TRACKED < <(git diff --name-only --)
 if [[ "${#DIRTY_TRACKED[@]}" -eq 0 ]]; then
   echo "V80_WORKTREE_MODE=CLEAN_DIRECT"
