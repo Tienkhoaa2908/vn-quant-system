@@ -1,13 +1,28 @@
 from __future__ import annotations
 
 from contextlib import closing
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 import json
 from pathlib import Path
 import sqlite3
 import tempfile
 import unittest
-from zoneinfo import ZoneInfo
+import zoneinfo
+
+# Some bare Windows CPython environments do not bundle IANA tzdata. V80's
+# workstation entrypoint installs pinned tzdata, but the repository-wide
+# unittest discovery intentionally runs on the frozen base environment too.
+# Patch only this synthetic test process so importing the V80 module remains
+# portable without changing production timezone semantics.
+_REAL_ZONEINFO = zoneinfo.ZoneInfo
+try:
+    _REAL_ZONEINFO("Asia/Ho_Chi_Minh")
+except zoneinfo.ZoneInfoNotFoundError:
+    def _test_zoneinfo(key: str):
+        if key == "Asia/Ho_Chi_Minh":
+            return timezone(timedelta(hours=7), name="Asia/Ho_Chi_Minh")
+        return _REAL_ZONEINFO(key)
+    zoneinfo.ZoneInfo = _test_zoneinfo
 
 from he_thong_dinh_luong import deep_portfolio_backtest_v70 as v70
 from he_thong_dinh_luong.tactical_forward_paper_v80 import (
@@ -17,7 +32,7 @@ from he_thong_dinh_luong.tactical_forward_paper_v80 import (
     register_observation,
 )
 
-VN = ZoneInfo("Asia/Ho_Chi_Minh")
+VN = timezone(timedelta(hours=7), name="Asia/Ho_Chi_Minh")
 SYMBOLS = list("ABCDEFGHIJ")
 LEADER = "Z"
 
