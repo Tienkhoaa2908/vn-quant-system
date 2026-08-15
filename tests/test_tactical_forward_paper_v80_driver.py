@@ -1,13 +1,17 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import date, datetime
 from pathlib import Path
 import tempfile
 import unittest
 
+# Import the synthetic V80 fixture first: on bare Windows CPython it installs
+# a process-local UTC+07 fallback for Asia/Ho_Chi_Minh before production V80
+# modules are imported. The workstation runtime itself still uses real ZoneInfo
+# with pinned tzdata when needed.
+from tests.test_tactical_forward_paper_v80 import VN, _make_store, _report, _rows
 from he_thong_dinh_luong import tactical_forward_paper_v80 as core
 from he_thong_dinh_luong.tactical_forward_paper_v80_driver import run
-from tests.test_tactical_forward_paper_v80 import VN, _make_store, _report, _rows
 
 
 class TestTacticalForwardPaperV80Driver(unittest.TestCase):
@@ -15,7 +19,7 @@ class TestTacticalForwardPaperV80Driver(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             store = root / "market.sqlite3"
-            _make_store(store, __import__("datetime").date(2026, 8, 31))
+            _make_store(store, date(2026, 8, 31))
             report_path = root / "v78_report.json"
             rows_path = root / "v78_tactical_rows.csv"
             report_path.write_text(core._json_text(_report(True)), encoding="utf-8")
