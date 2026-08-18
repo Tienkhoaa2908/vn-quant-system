@@ -35,6 +35,8 @@ Observed first V80 state:
 
 This is a valid forward observation, not a failed run. It verifies the real no-action path and registry initialization. A real exact-L15 next-open paper fill is still `not_yet_observed`.
 
+The first observation remains immutable under its original floor. For **new** observations, the canonical driver now uses wall-clock session-aware timing: paper-open cutoff is `09:00:00` Vietnam time; a target frozen before that cutoff may use the still-future same-day open, while a target frozen at/after the cutoff must wait for the next actual market session. See `v80_forward_paper_tactical_contract.md`.
+
 ## Workstation flow
 
 Canonical entrypoint:
@@ -46,8 +48,8 @@ One invocation:
 1. preserves the approved V78 tracked web patch if present;
 2. compiles/tests V78/V79/V80 and WAL fingerprint contracts;
 3. refreshes V78 tactical state directly through the V78 driver, without running the web installer;
-4. freezes/advances the V80 paper registry;
-5. applies only legal next-session-open paper fills;
+4. freezes/advances the V80 paper registry under `FIRST_MARKET_OPEN_STRICTLY_AFTER_CAPTURE_WALL_TIME_VN`;
+5. applies only legal paper-open fills;
 6. advances H5/H10/H20/monthly-boundary outcomes when those sessions exist;
 7. verifies logical market data unchanged and V77 state unchanged;
 8. emits one ZIP.
