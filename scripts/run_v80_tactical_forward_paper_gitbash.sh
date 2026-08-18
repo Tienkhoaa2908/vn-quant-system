@@ -70,7 +70,8 @@ run_all() (
   echo "FROZEN_POLICIES=L15_SWAP25_WORST,L15_SWAP50_WORST,L15_CASH_ADD25_SLOT"
   echo "HISTORICAL_THRESHOLD_SEARCH_REOPENED=false"
   echo "INCUMBENT_HEALTH_AUTO_SELL=false"
-  echo "EXECUTION_FLOOR=FIRST_MARKET_SESSION_ON_OR_AFTER_CAPTURE_VN_DATE_PLUS_1"
+  echo "EXECUTION_FLOOR=FIRST_MARKET_OPEN_STRICTLY_AFTER_CAPTURE_WALL_TIME_VN"
+  echo "PAPER_OPEN_TIME_VN=09:00:00"
   echo "COUNTERFACTUAL_BASIS=CURRENT_CYCLE_NORMALIZED_1B_C3_EQUAL_BASE_DNSE"
   echo "MONTHLY_REBALANCE_PRECEDENCE=true"
   echo "V77_STATE_PRESERVED=$V77_STATE"
@@ -131,7 +132,7 @@ run_all() (
   "$PY" - "$(cygpath -w "$V80_OUT/v80_report.json")" <<'PY'
 import json,sys
 r=json.load(open(sys.argv[1],encoding='utf-8-sig'))
-for key in ('status','current_observation_id','current_capture_market_day','current_capture_wall_time_vn','current_execution_floor_date','current_exact_l15_active','current_leader','current_swap_out','observation_count','action_count','outcome_count','incumbent_health_auto_sell','promotion_authorized','live_orders_allowed'):
+for key in ('status','current_observation_id','current_capture_market_day','current_capture_wall_time_vn','current_execution_floor_date','current_execution_floor_contract','paper_open_time_vn','current_exact_l15_active','current_leader','current_swap_out','observation_count','action_count','outcome_count','incumbent_health_auto_sell','promotion_authorized','live_orders_allowed'):
     print(key.upper()+'='+str(r[key]))
 print('ACTION_STATUS_COUNTS='+json.dumps(r['action_status_counts'],sort_keys=True))
 PY
