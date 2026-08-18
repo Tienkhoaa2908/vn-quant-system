@@ -74,12 +74,15 @@ jobs:
           grep -q 'L15_SWAP50_WORST' src/he_thong_dinh_luong/tactical_forward_paper_v80.py
           grep -q 'L15_CASH_ADD25_SLOT' src/he_thong_dinh_luong/tactical_forward_paper_v80.py
           grep -q 'FIRST_MARKET_SESSION_ON_OR_AFTER_CAPTURE_VN_DATE_PLUS_1' src/he_thong_dinh_luong/tactical_forward_paper_v80.py
+          grep -q 'FIRST_MARKET_OPEN_STRICTLY_AFTER_CAPTURE_WALL_TIME_VN' src/he_thong_dinh_luong/tactical_forward_paper_v80_driver.py
           grep -q 'incumbent_health_can_trigger_trade' src/he_thong_dinh_luong/tactical_forward_paper_v80.py
           grep -q 'live_orders_allowed' src/he_thong_dinh_luong/tactical_forward_paper_v80.py
           grep -q 'rows.json' src/he_thong_dinh_luong/tactical_forward_paper_v80_driver.py
           grep -q 'tactical_forward_paper_v80_driver' scripts/run_v80_tactical_forward_paper_gitbash.sh
           grep -q 'sqlite_market_fingerprint_v79' scripts/run_v80_tactical_forward_paper_gitbash.sh
           grep -q 'V77_STATE_DIGEST_AFTER' scripts/run_v80_tactical_forward_paper_gitbash.sh
+          grep -q 'PRE_SYNC_PYTHONPATH' scripts/run_v80_tactical_forward_paper_workstation_gitbash.sh
+          grep -q 'cygpath -w' scripts/run_v80_tactical_forward_paper_workstation_gitbash.sh
           grep -q 'set -euo pipefail' scripts/run_v80_tactical_forward_paper_gitbash.sh
           if grep -Eiq 'send_order|place_order|submit_order|broker_order|rm -rf.*v80-tactical-paper-state' src/he_thong_dinh_luong/tactical_forward_paper_v80.py src/he_thong_dinh_luong/tactical_forward_paper_v80_driver.py scripts/run_v80_tactical_forward_paper_gitbash.sh; then exit 1; fi
 
@@ -92,6 +95,13 @@ jobs:
           python-version: '3.12'
       - name: Install frozen dependency surface
         run: python -m pip install --disable-pip-version-check scikit-learn==1.9.0 tzdata==2025.2
+      - name: Validate Git Bash pre-sync Python path
+        shell: bash
+        run: |
+          SYSTEM_ROOT="$(pwd)/vn_quant_local_system"
+          ROOT="$(pwd)"
+          PRE_SYNC_PYTHONPATH="$(cygpath -w "$SYSTEM_ROOT/src");$(cygpath -w "$ROOT/src")"
+          env PYTHONPATH="$PRE_SYNC_PYTHONPATH" python -c "import importlib.util; assert importlib.util.find_spec('vn_quant_local') is not None"
       - name: Compile V80 on Windows
         env:
           PYTHONPATH: src
