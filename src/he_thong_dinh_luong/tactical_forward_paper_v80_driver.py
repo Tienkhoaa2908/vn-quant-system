@@ -4,17 +4,26 @@ The core module stores immutable observation records and immutable tactical-row
 snapshots in the same directory. This driver deliberately enumerates only real
 observation records (excluding *.rows.json) so repeated workstation runs remain
 idempotent while preserving the frozen-row evidence files.
+
+Canonical execution timing is wall-clock causal: if the observation is frozen
+before the Vietnam paper-open cutoff, that same market day's open is still a
+future executable price. At or after the cutoff, execution moves to the next
+calendar date and then to the first available market session on/after it.
+Existing observations are never rewritten by this timing refinement.
 """
 from __future__ import annotations
 
 import argparse
 import json
-from datetime import datetime
+from datetime import datetime, time, timedelta
 from pathlib import Path
-from typing import Sequence
+from typing import Mapping, Sequence
 
 from . import deep_portfolio_backtest_v70 as v70
 from . import tactical_forward_paper_v80 as core
+
+PAPER_OPEN_TIME_VN = time(9, 0)
+SESSION_AWARE_EXECUTION_CONTRACT = "FIRST_MARKET_OPEN_STRICTLY_AFTER_CAPTURE_WALL_TIME_VN"
 
 
 def _observation_record_paths(state_dir: Path) -> list[Path]:
@@ -23,6 +32,44 @@ def _observation_record_paths(state_dir: Path) -> list[Path]:
         path for path in sorted(directory.glob("*.json"))
         if not path.name.endswith(".rows.json")
     ]
+
+
+def _execution_floor_for_wall(wall_time: datetime) -> datetime.date:
+    wall = wall_time.astimezone(core.VN_TZ)
+    local_clock = wall.time().replace(tzinfo=None)
+    if local_clock < PAPER_OPEN_TIME_VN:
+        return wall.date()
+    return wall.date() + timedelta(days=1)
+
+
+def _register_observation_session_aware(
+    state_dir: Path,
+    target: Mapping[str, object],
+    wall_time: datetime,
+) -> dict[str, object]:
+    """Register once, refining only a brand-new record's legal execution floor.
+
+    The legacy core registrar uses capture-date + 1 unconditionally. That is
+    safely conservative after the market has opened, but it unnecessarily skips
+    a still-future same-day open when the target was frozen before 09:00 VN.
+    This canonical driver corrects only new observations before any fill can be
+    processed. Existing persistent observations remain byte/semantic stable.
+    """
+    state_dir = Path(state_dir)
+    observation_id = f"{target['source_monthly_signal_day']}__{target['capture_market_day']}"
+    observation_path = state_dir / "observations" / f"{observation_id}.json"
+    existed_before = observation_path.is_file()
+    record = core.register_observation(state_dir, target, wall_time)
+    if existed_before:
+        return record
+
+    wall = wall_time.astimezone(core.VN_TZ)
+    record = dict(record)
+    record["execution_floor_date"] = _execution_floor_for_wall(wall).isoformat()
+    record["execution_floor_contract"] = SESSION_AWARE_EXECUTION_CONTRACT
+    record["paper_open_time_vn"] = PAPER_OPEN_TIME_VN.isoformat()
+    core._atomic_json(observation_path, record)
+    return record
 
 
 def run(
@@ -38,7 +85,7 @@ def run(
     rows = core._read_csv(v78_tactical_rows)
     target = core.build_target(report, rows)
     wall = wall_time.astimezone(core.VN_TZ) if wall_time else datetime.now(core.VN_TZ)
-    current = core.register_observation(state_dir, target, wall)
+    current = _register_observation_session_aware(state_dir, target, wall)
 
     state_dir = Path(state_dir)
     records = [core._read_json(path) for path in _observation_record_paths(state_dir)]
@@ -96,6 +143,8 @@ def run(
         "current_capture_market_day": target["capture_market_day"],
         "current_capture_wall_time_vn": current["capture_wall_time_vn"],
         "current_execution_floor_date": current["execution_floor_date"],
+        "current_execution_floor_contract": current.get("execution_floor_contract"),
+        "paper_open_time_vn": current.get("paper_open_time_vn"),
         "current_exact_l15_active": target["exact_l15_active"],
         "current_leader": target.get("leader"),
         "current_swap_out": target.get("swap_out"),
