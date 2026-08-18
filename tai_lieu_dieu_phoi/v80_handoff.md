@@ -43,16 +43,17 @@ Canonical entrypoint:
 
 `scripts/run_v80_tactical_forward_paper_workstation_gitbash.sh`
 
-One invocation:
+One invocation now owns freshness as well as paper capture:
 
-1. preserves the approved V78 tracked web patch if present;
-2. compiles/tests V78/V79/V80 and WAL fingerprint contracts;
-3. refreshes V78 tactical state directly through the V78 driver, without running the web installer;
-4. freezes/advances the V80 paper registry under `FIRST_MARKET_OPEN_STRICTLY_AFTER_CAPTURE_WALL_TIME_VN`;
-5. applies only legal paper-open fills;
-6. advances H5/H10/H20/monthly-boundary outcomes when those sessions exist;
-7. verifies logical market data unchanged and V77 state unchanged;
-8. emits one ZIP.
+1. syncs the latest available EOD through the existing local pipeline before the V80 read-only store fingerprint is taken;
+2. preserves the approved V78 tracked web patch if present;
+3. compiles/tests V78/V79/V80 and WAL fingerprint contracts;
+4. refreshes V78 tactical state directly through the V78 driver, without running the web installer;
+5. freezes/advances the V80 paper registry under `FIRST_MARKET_OPEN_STRICTLY_AFTER_CAPTURE_WALL_TIME_VN`;
+6. applies only legal paper-open fills;
+7. advances H5/H10/H20/monthly-boundary outcomes when those sessions exist;
+8. verifies logical market data unchanged during the V80 research phase and V77 state unchanged;
+9. emits one V80 ZIP. The pre-sync transcript is retained under `artifacts/v80-pre-sync-*.json` for workstation audit.
 
 Expected artifact:
 
