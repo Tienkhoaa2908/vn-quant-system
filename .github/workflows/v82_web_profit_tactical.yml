@@ -38,6 +38,12 @@ jobs:
         if: runner.os == 'Linux'
         shell: bash
         run: bash -n scripts/run_v82_web_profit_tactical_gitbash.sh
+      - name: Validate Git Bash Windows Python path
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          PYW="$(cygpath -w "$PWD/src");$(cygpath -w "$PWD/vn_quant_local_system/src")"
+          PYTHONPATH="$PYW" python -c "import he_thong_dinh_luong.local_workstation_v82_bridge, vn_quant_local.webapp; print('V82_WINDOWS_GITBASH_IMPORT=PASS')"
       - name: Guard no live-order surface
         shell: bash
         run: |
