@@ -45,10 +45,11 @@ jobs:
           python -m pip install --disable-pip-version-check "tzdata==2025.2"
           PYW="$(cygpath -w "$PWD/src");$(cygpath -w "$PWD/vn_quant_local_system/src")"
           PYTHONPATH="$PYW" python -c "import he_thong_dinh_luong.local_workstation_v82_bridge, vn_quant_local.webapp; print('V82_WINDOWS_GITBASH_IMPORT=PASS')"
-      - name: Guard no live-order surface
+      - name: Guard no live-order surface and dark-theme contrast
         shell: bash
         run: |
           grep -q 'L15_SWAP50_WORST' tai_lieu_dieu_phoi/v81_profit_snapshot_20260818.json
           grep -q 'live_orders_allowed.*false' tai_lieu_dieu_phoi/v81_profit_snapshot_20260818.json
           grep -q '/api/dashboard-v82' src/he_thong_dinh_luong/existing_web_v82_installer.py
+          grep -Fq '.v78-recent-card{background:var(--panel' web_extensions/v82/tactical_profit_v82.css
           if grep -Eiq 'send_order|place_order|submit_order|broker_order' src/he_thong_dinh_luong/local_workstation_v82_bridge.py src/he_thong_dinh_luong/existing_web_v82_installer.py web_extensions/v82/tactical_profit_v82.js; then exit 1; fi
