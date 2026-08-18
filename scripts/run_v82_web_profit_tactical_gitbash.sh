@@ -22,6 +22,16 @@ done
 PY="$ROOT/vn_quant_local_system/.venv/Scripts/python.exe"
 [[ -f "$PY" ]] || fail "khong tim thay canonical workstation Python"
 command -v cygpath >/dev/null 2>&1 || fail "Git Bash cygpath khong san sang"
+if ! "$PY" - <<'PY' >/dev/null 2>&1
+from zoneinfo import ZoneInfo
+ZoneInfo("Asia/Ho_Chi_Minh")
+PY
+then
+  echo "DEPENDENCY_tzdata=installing_tzdata==2025.2"
+  "$PY" -m pip install --disable-pip-version-check "tzdata==2025.2"
+else
+  echo "DEPENDENCY_tzdata=already_verified"
+fi
 PYTHONPATH_WIN="$(cygpath -w "$ROOT/src");$(cygpath -w "$ROOT/vn_quant_local_system/src")"
 export PYTHONPATH="$PYTHONPATH_WIN"
 export PYTHONUTF8=1
