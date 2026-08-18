@@ -21,9 +21,12 @@ done
 
 PY="$ROOT/vn_quant_local_system/.venv/Scripts/python.exe"
 [[ -f "$PY" ]] || fail "khong tim thay canonical workstation Python"
-export PYTHONPATH="$ROOT/src:$ROOT/vn_quant_local_system/src${PYTHONPATH:+:$PYTHONPATH}"
+command -v cygpath >/dev/null 2>&1 || fail "Git Bash cygpath khong san sang"
+PYTHONPATH_WIN="$(cygpath -w "$ROOT/src");$(cygpath -w "$ROOT/vn_quant_local_system/src")"
+export PYTHONPATH="$PYTHONPATH_WIN"
 export PYTHONUTF8=1
 export PYTHONIOENCODING=utf-8
+"$PY" -c "import he_thong_dinh_luong.local_workstation_v82_bridge, vn_quant_local.webapp; print('V82_PYTHONPATH_PREFLIGHT=PASS')"
 
 state_digest(){
   local dir="$1"
