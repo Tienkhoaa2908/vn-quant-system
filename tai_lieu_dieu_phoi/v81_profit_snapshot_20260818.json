@@ -1,0 +1,92 @@
+{
+  "schema_version": "v81_profit_snapshot_20260818",
+  "status": "AUDITED_POST_SELECTION_DIAGNOSTIC",
+  "as_of_market_day": "2026-08-17",
+  "reference_scope": {
+    "variant_id": "GAP18_CLEAN",
+    "allocator": "EQUAL",
+    "cost_scenario": "BASE_DNSE",
+    "settlement_mode": "IMMEDIATE",
+    "initial_capital_vnd": 1000000000
+  },
+  "champion": "C3_STABLE_3_PAST_IC_SHRUNK",
+  "primary_tactical_paper_challenger": "L15_SWAP50_WORST",
+  "policies": [
+    {
+      "policy_id": "NO_OVERLAY",
+      "role": "FROZEN_C3_BASELINE",
+      "ending_nav_vnd": 4813925734.398282,
+      "net_profit_vnd": 3813925734.398282,
+      "total_return": 3.813925734398282,
+      "cagr": 0.188855106814787,
+      "max_drawdown": -0.3745952099034694,
+      "action_count": 0,
+      "modeled_cost_vnd": 371552196.66172045,
+      "incremental_nav_vs_c3_vnd": 0,
+      "total_return_uplift_vs_c3": 0
+    },
+    {
+      "policy_id": "L15_SWAP25_WORST",
+      "role": "CONSERVATIVE_SHADOW",
+      "ending_nav_vnd": 4967695142.321862,
+      "net_profit_vnd": 3967695142.321862,
+      "total_return": 3.967695142321862,
+      "cagr": 0.1929771311902606,
+      "max_drawdown": -0.3660899257519685,
+      "action_count": 87,
+      "modeled_cost_vnd": 384162619.97813946,
+      "incremental_nav_vs_c3_vnd": 153769407.92358017,
+      "total_return_uplift_vs_c3": 0.15376940792357985
+    },
+    {
+      "policy_id": "L15_SWAP50_WORST",
+      "role": "PRIMARY_TACTICAL_PAPER_CHALLENGER",
+      "ending_nav_vnd": 5150706024.582709,
+      "net_profit_vnd": 4150706024.5827093,
+      "total_return": 4.15070602458271,
+      "cagr": 0.19773754255822285,
+      "max_drawdown": -0.362656432953523,
+      "action_count": 87,
+      "modeled_cost_vnd": 399231379.6472926,
+      "incremental_nav_vs_c3_vnd": 336780290.18442726,
+      "total_return_uplift_vs_c3": 0.3367802901844277,
+      "severe_cost_return_uplift_vs_c3": 0.25089442226783554,
+      "t2_return_uplift_vs_c3": 0.17697111300748736,
+      "monthly_replacement_mean_spread_pre2026": 0.01511140679716026,
+      "monthly_replacement_win_rate_pre2026": 0.5555555555555556,
+      "monthly_replacement_regret_rate_pre2026": 0.4444444444444444
+    },
+    {
+      "policy_id": "L15_CASH_ADD25_SLOT",
+      "role": "SECONDARY_DIAGNOSTIC_SHADOW",
+      "ending_nav_vnd": 4832458762.619541,
+      "net_profit_vnd": 3832458762.619541,
+      "total_return": 3.8324587626195408,
+      "cagr": 0.18935807214855527,
+      "max_drawdown": -0.3741930151313585,
+      "action_count": 49,
+      "modeled_cost_vnd": 373381707.9404603,
+      "incremental_nav_vs_c3_vnd": 18533028.221259117,
+      "total_return_uplift_vs_c3": 0.018533028221258796
+    }
+  ],
+  "event_diagnostics": {
+    "pre2026_actionable_exact_l15_events": 81,
+    "pre2026_active_months": 60,
+    "pre2026_no_trigger_months": 41,
+    "pre2026_unique_leaders": 56,
+    "h20_strategy_valid_count": 0,
+    "h20_note": "Monthly C3 rebalance precedence occurs before a full 20-session tactical holding horizon; monthly-boundary outcome is the valid long tactical horizon."
+  },
+  "capacity": {
+    "swap50_100m_max_adv20_participation": 0.012558845998091888,
+    "swap50_1bn_max_adv20_participation": 0.1339610239796468,
+    "swap50_10bn_max_adv20_participation": 1.3437965217958319,
+    "ten_billion_execution_realistic": false
+  },
+  "selection_authorized_from_v81": false,
+  "promotion_authorized": false,
+  "live_orders_allowed": false,
+  "historical_threshold_search_reopened": false,
+  "source_result": "tai_lieu_dieu_phoi/v81_workstation_result_20260818.md"
+}
