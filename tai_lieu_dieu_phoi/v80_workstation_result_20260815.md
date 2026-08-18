@@ -81,13 +81,15 @@ Capture wall time Vietnam:
 
 `2026-08-15T11:41:16.090493+07:00`
 
-Execution floor:
+Execution floor recorded by the original implementation:
 
 `2026-08-16`
 
-Contract:
+Original contract:
 
 `FIRST_MARKET_SESSION_ON_OR_AFTER_CAPTURE_VN_DATE_PLUS_1`
+
+This first observation is immutable. Later V80 code refined **new-observation** timing to `FIRST_MARKET_OPEN_STRICTLY_AFTER_CAPTURE_WALL_TIME_VN` with a `09:00:00` Vietnam paper-open cutoff; that refinement does not rewrite this historical record.
 
 Frozen target hash:
 
@@ -143,7 +145,7 @@ Operational interpretation:
 1. keep `du_lieu/v80-tactical-paper-state/` permanently; never delete/reset it;
 2. continue future V80 runs on the same state to collect genuinely fresh observations;
 3. no policy efficacy claim can be made from this first observation because no exact-L15 event occurred;
-4. a real fill path remains `not_yet_observed` until a future exact-L15 event produces a legal next-session-open paper fill;
+4. a real fill path remains `not_yet_observed` until a future exact-L15 event produces a legal paper-open fill;
 5. no live-order or promotion authority is created by this result;
 6. PIT HOSE membership, price basis, corporate-action inventory, and PIT sector gates remain fail-closed for canonical promotion/live claims.
 
