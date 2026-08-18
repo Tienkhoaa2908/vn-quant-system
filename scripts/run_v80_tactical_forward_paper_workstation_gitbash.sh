@@ -32,9 +32,15 @@ PY
     echo "DEPENDENCY_tzdata=already_verified"
   fi
 
-  export PYTHONPATH="$SYSTEM_ROOT/src:$ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
-  export PYTHONUTF8=1
-  export PYTHONIOENCODING=utf-8
+  # git rev-parse on Git Bash can return D:/... paths. A colon-delimited
+  # PYTHONPATH built from those drive-letter paths is ambiguous to Windows
+  # CPython. Build an explicit Windows-native path list for pre-sync only.
+  PRE_SYNC_PYTHONPATH="$(cygpath -w "$SYSTEM_ROOT/src");$(cygpath -w "$ROOT/src")"
+  if ! env PYTHONPATH="$PRE_SYNC_PYTHONPATH" PYTHONUTF8=1 PYTHONIOENCODING=utf-8 \
+      "$PY" -c "import vn_quant_local.pipeline" >/dev/null 2>&1; then
+    fail "pre-sync khong import duoc vn_quant_local.pipeline"
+  fi
+
   mkdir -p "$ROOT/artifacts"
   SYNC_RUN_ID="$(date +%Y%m%d-%H%M%S)"
   V80_PRE_SYNC_LOG="$ROOT/artifacts/v80-pre-sync-$SYNC_RUN_ID.json"
@@ -43,7 +49,8 @@ PY
   echo "V80_PRE_SYNC_LOG=$V80_PRE_SYNC_LOG"
   (
     cd "$SYSTEM_ROOT"
-    "$PY" -m vn_quant_local.pipeline sync
+    env PYTHONPATH="$PRE_SYNC_PYTHONPATH" PYTHONUTF8=1 PYTHONIOENCODING=utf-8 \
+      "$PY" -m vn_quant_local.pipeline sync
   ) | tee "$V80_PRE_SYNC_LOG"
   echo "V80_PRE_SYNC=SUCCESS"
 fi
