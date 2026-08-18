@@ -12,12 +12,14 @@ git diff --cached --quiet || fail "staging area co thay doi; khong tu dong che t
 WEBAPP="vn_quant_local_system/src/vn_quant_local/webapp.py"
 INDEX="vn_quant_local_system/web/index.html"
 RUNNER="${V80_INNER_RUNNER:-scripts/run_v80_tactical_forward_paper_gitbash.sh}"
+SYSTEM_ROOT="$ROOT/vn_quant_local_system"
+PY="$SYSTEM_ROOT/.venv/Scripts/python.exe"
 [[ -f "$RUNNER" ]] || fail "khong tim thay inner runner: $RUNNER"
 
-# Windows CPython may not ship IANA zoneinfo data. Canonical workstation entrypoint
-# installs the frozen tiny tzdata package only when the real V80 runner is used.
+# Real workstation mode owns freshness: sync latest EOD before V80 computes its
+# read-only store fingerprint. CI transaction tests provide V80_INNER_RUNNER and
+# intentionally skip network/data sync.
 if [[ -z "${V80_INNER_RUNNER:-}" ]]; then
-  PY="vn_quant_local_system/.venv/Scripts/python.exe"
   [[ -f "$PY" ]] || fail "khong tim thay canonical workstation Python"
   if ! "$PY" - <<'PY' >/dev/null 2>&1
 from zoneinfo import ZoneInfo
@@ -29,6 +31,21 @@ PY
   else
     echo "DEPENDENCY_tzdata=already_verified"
   fi
+
+  export PYTHONPATH="$SYSTEM_ROOT/src:$ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
+  export PYTHONUTF8=1
+  export PYTHONIOENCODING=utf-8
+  mkdir -p "$ROOT/artifacts"
+  SYNC_RUN_ID="$(date +%Y%m%d-%H%M%S)"
+  V80_PRE_SYNC_LOG="$ROOT/artifacts/v80-pre-sync-$SYNC_RUN_ID.json"
+  export V80_PRE_SYNC_LOG
+  echo "===== V80 PRE-SYNC LATEST EOD ====="
+  echo "V80_PRE_SYNC_LOG=$V80_PRE_SYNC_LOG"
+  (
+    cd "$SYSTEM_ROOT"
+    "$PY" -m vn_quant_local.pipeline sync
+  ) | tee "$V80_PRE_SYNC_LOG"
+  echo "V80_PRE_SYNC=SUCCESS"
 fi
 
 mapfile -t DIRTY_TRACKED < <(git diff --name-only --)
