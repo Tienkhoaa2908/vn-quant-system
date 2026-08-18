@@ -30,11 +30,20 @@ Persistent state lives at `du_lieu/v80-tactical-paper-state/` and must never be 
 
 ## Causal execution floor
 
-A target observed after the workstation wall-clock capture cannot use an earlier open, even if that bar is later added to the local store.
+A target may use only a market open that is genuinely in the future relative to the first Vietnam wall-clock capture. The canonical workstation driver uses a fixed paper-open cutoff of `09:00:00` Vietnam time.
 
 Execution contract:
 
-`FIRST_MARKET_SESSION_ON_OR_AFTER_CAPTURE_VN_DATE_PLUS_1`
+`FIRST_MARKET_OPEN_STRICTLY_AFTER_CAPTURE_WALL_TIME_VN`
+
+Rules:
+
+- first capture before `09:00:00` VN: the same calendar day's market open is still future and is eligible; the first actual market session on/after that date is used;
+- first capture at or after `09:00:00` VN: that day's open is no longer eligible; the floor advances to the next calendar date and then to the first actual market session on/after it;
+- weekends/holidays are handled by the market calendar, not by inventing a synthetic session;
+- an existing persistent observation is never rewritten when this timing refinement is deployed.
+
+This replaces the earlier unconditional `CAPTURE_VN_DATE_PLUS_1` rule for **new** observations. The first real V80 observation from `2026-08-15` remains unchanged because persistent evidence is immutable.
 
 Paper execution is at that legal session open. If the next monthly C3 rebalance execution has precedence, an unfilled tactical action is cancelled rather than backfilled.
 
