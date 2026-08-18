@@ -18,24 +18,28 @@ Champion remains `C3_STABLE_3_PAST_IC_SHRUNK`.
 
 Never delete/reset this directory to rerun an observation. Same-observation target drift must fail closed. V77 state at `du_lieu/v77-paper-oos-state/` is read-only from the V80 runner and must remain byte-identical.
 
-The first real workstation observation has now been created and audited. See:
+Audited real workstation results:
 
-`tai_lieu_dieu_phoi/v80_workstation_result_20260815.md`
+- `tai_lieu_dieu_phoi/v80_workstation_result_20260815.md`
+- `tai_lieu_dieu_phoi/v80_workstation_result_20260818.md`
 
-Observed first V80 state:
+Observed registry state after the 2026-08-18 workstation run:
 
-- observation ID: `2026-07-31__2026-08-14`;
-- capture wall time VN: `2026-08-15T11:41:16.090493+07:00`;
-- execution floor date: `2026-08-16`;
+- observation IDs: `2026-07-31__2026-08-14`, `2026-07-31__2026-08-17`;
+- latest capture wall time VN: `2026-08-18T08:35:53.960924+07:00`;
+- latest execution floor date: `2026-08-18`;
+- latest floor contract: `FIRST_MARKET_OPEN_STRICTLY_AFTER_CAPTURE_WALL_TIME_VN`;
+- prior-week preview available: `true`;
 - exact L15 active: `false`;
-- three policy statuses: `NO_ACTION_NO_EXACT_L15`;
-- observation count: `1`;
+- total actions: `6`, all `NO_ACTION_NO_EXACT_L15`;
 - outcome count: `0`;
 - promotion/live authorization: `false`.
 
-This is a valid forward observation, not a failed run. It verifies the real no-action path and registry initialization. A real exact-L15 paper fill is still `not_yet_observed`.
-
 The first observation remains immutable under its original floor. For **new** observations, the canonical driver uses wall-clock session-aware timing: paper-open cutoff is `09:00:00` Vietnam time; a target frozen before that cutoff may use the still-future same-day open, while a target frozen at/after the cutoff must wait for the next actual market session. See `v80_forward_paper_tactical_contract.md`.
+
+The 2026-08-17 observation is the first real observation with prior-week persistence available. No exact L15 qualified. `BWE` passed current-rank, prior-week-rank, relative-strength and eligibility gates but failed volume confirmation (`volume_ratio_5_20` about `0.366`). `TLG` had strong relative/volume and prior-week rank 9 but current preview rank 8, so it failed the current-rank <=5 gate. `SBT` had strong relative/volume but current rank 6 and prior-week rank 11. Thresholds remain frozen.
+
+Incumbent health remained advisory: `VIC` reached preview rank 17 with period return about -8.33%, DD20 about -10.0%, DD60 about -14.10%, and R07/R08 both true; V80 correctly created no sell without exact L15.
 
 ## Workstation flow
 
@@ -63,8 +67,6 @@ Expected artifact:
 
 No exact L15 => no action, regardless of how bad an incumbent looks.
 
-The first real observation materially exercised this rule: `VIC` was a severe incumbent health alert (`R07=true`, `R08=true`) but did not create a sell because health is advisory and exact L15 was inactive.
-
 Exact L15 => V80 records independent SWAP25/SWAP50 counterfactuals. CASH_ADD25 additionally requires risk-on and real simulated idle-cash capacity.
 
 All outputs are paper/counterfactual evidence only. No live or promotion decision is authorized by V80.
@@ -73,4 +75,4 @@ All outputs are paper/counterfactual evidence only. No live or promotion decisio
 
 Do not reset V80 state and do not tune the policy matrix after observing future outcomes. Future workstation runs only append/advance fresh observations and legal H5/H10/H20/monthly outcomes under the frozen contract.
 
-As of Tuesday 2026-08-18, the next forward step is to run the canonical workstation entrypoint once. It will sync the newly available Monday 2026-08-17 EOD first. Because 2026-08-14 is now a prior ISO-week preview, this is the first fresh opportunity for the persisted prior-week gate to become available. The exact-L15 outcome must be accepted as observed; do not tune thresholds in response.
+The next meaningful V80 run is after a new EOD session becomes available. Continue using the same one-shot workstation entrypoint. The next milestone is the first observation with `exact_l15_active=true`; after that, a later store containing the legal execution-day open can turn the frozen action into `FILLED_PAPER`, followed by H5/H10/H20/monthly outcomes.
