@@ -33,9 +33,9 @@ Observed first V80 state:
 - outcome count: `0`;
 - promotion/live authorization: `false`.
 
-This is a valid forward observation, not a failed run. It verifies the real no-action path and registry initialization. A real exact-L15 next-open paper fill is still `not_yet_observed`.
+This is a valid forward observation, not a failed run. It verifies the real no-action path and registry initialization. A real exact-L15 paper fill is still `not_yet_observed`.
 
-The first observation remains immutable under its original floor. For **new** observations, the canonical driver now uses wall-clock session-aware timing: paper-open cutoff is `09:00:00` Vietnam time; a target frozen before that cutoff may use the still-future same-day open, while a target frozen at/after the cutoff must wait for the next actual market session. See `v80_forward_paper_tactical_contract.md`.
+The first observation remains immutable under its original floor. For **new** observations, the canonical driver uses wall-clock session-aware timing: paper-open cutoff is `09:00:00` Vietnam time; a target frozen before that cutoff may use the still-future same-day open, while a target frozen at/after the cutoff must wait for the next actual market session. See `v80_forward_paper_tactical_contract.md`.
 
 ## Workstation flow
 
@@ -43,7 +43,7 @@ Canonical entrypoint:
 
 `scripts/run_v80_tactical_forward_paper_workstation_gitbash.sh`
 
-One invocation now owns freshness as well as paper capture:
+One invocation owns freshness as well as paper capture:
 
 1. syncs the latest available EOD through the existing local pipeline before the V80 read-only store fingerprint is taken;
 2. preserves the approved V78 tracked web patch if present;
@@ -72,3 +72,5 @@ All outputs are paper/counterfactual evidence only. No live or promotion decisio
 ## Next operating rule
 
 Do not reset V80 state and do not tune the policy matrix after observing future outcomes. Future workstation runs only append/advance fresh observations and legal H5/H10/H20/monthly outcomes under the frozen contract.
+
+As of Tuesday 2026-08-18, the next forward step is to run the canonical workstation entrypoint once. It will sync the newly available Monday 2026-08-17 EOD first. Because 2026-08-14 is now a prior ISO-week preview, this is the first fresh opportunity for the persisted prior-week gate to become available. The exact-L15 outcome must be accepted as observed; do not tune thresholds in response.
