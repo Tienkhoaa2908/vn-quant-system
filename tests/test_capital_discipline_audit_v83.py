@@ -3,8 +3,8 @@ from __future__ import annotations
 import unittest
 from datetime import date
 
-from src.he_thong_dinh_luong import capital_discipline_audit_v83 as v83
-from src.he_thong_dinh_luong import deep_portfolio_backtest_v70 as v70
+from he_thong_dinh_luong import capital_discipline_audit_v83 as v83
+from he_thong_dinh_luong import deep_portfolio_backtest_v70 as v70
 
 
 class V83CapitalDisciplineAuditTest(unittest.TestCase):
@@ -18,7 +18,6 @@ class V83CapitalDisciplineAuditTest(unittest.TestCase):
         # AAA deteriorates through February, so a March incremental add must be blocked.
         sc["AAA",date(2025,2,28)] = 80_000.0
         so["AAA",date(2025,3,3)] = 80_000.0
-        sc[date(2025,2,28)] if False else None
         ic[date(2025,2,28)] = 1050.0
         return v70.Market(cal,io,ic,so,sc,vol)
 
