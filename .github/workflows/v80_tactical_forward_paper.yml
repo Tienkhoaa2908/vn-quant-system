@@ -1,0 +1,112 @@
+name: v80_tactical_forward_paper
+
+on:
+  push:
+    branches:
+      - agent/v80-forward-paper-tactical-actions
+  pull_request:
+    paths:
+      - 'src/he_thong_dinh_luong/tactical_forward_paper_v80.py'
+      - 'src/he_thong_dinh_luong/tactical_forward_paper_v80_driver.py'
+      - 'tests/test_tactical_forward_paper_v80.py'
+      - 'tests/test_tactical_forward_paper_v80_driver.py'
+      - 'scripts/run_v80_tactical_forward_paper_gitbash.sh'
+      - 'scripts/run_v80_tactical_forward_paper_workstation_gitbash.sh'
+      - '.github/workflows/v80_tactical_forward_paper.yml'
+      - 'tai_lieu_dieu_phoi/v80_*'
+
+jobs:
+  linux-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install frozen dependency surface
+        run: python -m pip install --disable-pip-version-check scikit-learn==1.9.0 tzdata==2025.2
+      - name: Compile V78 V79 V80
+        env:
+          PYTHONPATH: src
+        run: |
+          python -m py_compile \
+            src/he_thong_dinh_luong/c3_tactical_terminal_v78.py \
+            src/he_thong_dinh_luong/c3_tactical_terminal_v78_driver.py \
+            src/he_thong_dinh_luong/tactical_capital_policy_v79.py \
+            src/he_thong_dinh_luong/sqlite_market_fingerprint_v79.py \
+            src/he_thong_dinh_luong/tactical_forward_paper_v80.py \
+            src/he_thong_dinh_luong/tactical_forward_paper_v80_driver.py \
+            tests/test_tactical_forward_paper_v80.py \
+            tests/test_tactical_forward_paper_v80_driver.py
+      - name: Run frozen tactical forward-paper contracts
+        env:
+          PYTHONPATH: src
+        run: python -m unittest tests.test_tactical_forward_paper_v80 tests.test_tactical_forward_paper_v80_driver tests.test_sqlite_market_fingerprint_v79 -v
+      - name: Validate Git Bash runners
+        run: |
+          bash -n scripts/run_v80_tactical_forward_paper_gitbash.sh
+          bash -n scripts/run_v80_tactical_forward_paper_workstation_gitbash.sh
+      - name: Exercise approved V78 web-state transaction
+        run: |
+          EXPECTED='agent/v80-forward-paper-tactical-actions'
+          if [[ "$(git branch --show-current)" != "$EXPECTED" ]]; then git switch -c "$EXPECTED"; fi
+          WEBAPP='vn_quant_local_system/src/vn_quant_local/webapp.py'
+          INDEX='vn_quant_local_system/web/index.html'
+          printf '\n# V78_TACTICAL_BRIDGE_IMPORT\n' >> "$WEBAPP"
+          printf '\n<!-- V78_TACTICAL_EXISTING_WEB -->\n' >> "$INDEX"
+          cat > /tmp/v80-inner-stub.sh <<'EOF'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          git diff --quiet
+          git diff --cached --quiet
+          echo 'V80_TRANSACTION_INNER_CLEAN=true'
+          EOF
+          chmod +x /tmp/v80-inner-stub.sh
+          V80_INNER_RUNNER=/tmp/v80-inner-stub.sh bash scripts/run_v80_tactical_forward_paper_workstation_gitbash.sh
+          grep -q 'V78_TACTICAL_BRIDGE_IMPORT' "$WEBAPP"
+          grep -q 'V78_TACTICAL_EXISTING_WEB' "$INDEX"
+          git restore --worktree -- "$WEBAPP" "$INDEX"
+          git diff --quiet
+      - name: Guard frozen architecture and safety
+        run: |
+          grep -q 'CHAMPION_MODEL = "C3_STABLE_3_PAST_IC_SHRUNK"' src/he_thong_dinh_luong/tactical_forward_paper_v80.py
+          grep -q 'L15_SWAP25_WORST' src/he_thong_dinh_luong/tactical_forward_paper_v80.py
+          grep -q 'L15_SWAP50_WORST' src/he_thong_dinh_luong/tactical_forward_paper_v80.py
+          grep -q 'L15_CASH_ADD25_SLOT' src/he_thong_dinh_luong/tactical_forward_paper_v80.py
+          grep -q 'FIRST_MARKET_SESSION_ON_OR_AFTER_CAPTURE_VN_DATE_PLUS_1' src/he_thong_dinh_luong/tactical_forward_paper_v80.py
+          grep -q 'FIRST_MARKET_OPEN_STRICTLY_AFTER_CAPTURE_WALL_TIME_VN' src/he_thong_dinh_luong/tactical_forward_paper_v80_driver.py
+          grep -q 'incumbent_health_can_trigger_trade' src/he_thong_dinh_luong/tactical_forward_paper_v80.py
+          grep -q 'live_orders_allowed' src/he_thong_dinh_luong/tactical_forward_paper_v80.py
+          grep -q 'rows.json' src/he_thong_dinh_luong/tactical_forward_paper_v80_driver.py
+          grep -q 'tactical_forward_paper_v80_driver' scripts/run_v80_tactical_forward_paper_gitbash.sh
+          grep -q 'sqlite_market_fingerprint_v79' scripts/run_v80_tactical_forward_paper_gitbash.sh
+          grep -q 'V77_STATE_DIGEST_AFTER' scripts/run_v80_tactical_forward_paper_gitbash.sh
+          grep -q 'PRE_SYNC_PYTHONPATH' scripts/run_v80_tactical_forward_paper_workstation_gitbash.sh
+          grep -q 'cygpath -w' scripts/run_v80_tactical_forward_paper_workstation_gitbash.sh
+          grep -q 'set -euo pipefail' scripts/run_v80_tactical_forward_paper_gitbash.sh
+          if grep -Eiq 'send_order|place_order|submit_order|broker_order|rm -rf.*v80-tactical-paper-state' src/he_thong_dinh_luong/tactical_forward_paper_v80.py src/he_thong_dinh_luong/tactical_forward_paper_v80_driver.py scripts/run_v80_tactical_forward_paper_gitbash.sh; then exit 1; fi
+
+  windows-contract:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install frozen dependency surface
+        run: python -m pip install --disable-pip-version-check scikit-learn==1.9.0 tzdata==2025.2
+      - name: Validate Git Bash pre-sync Python path
+        shell: bash
+        run: |
+          SYSTEM_ROOT="$(pwd)/vn_quant_local_system"
+          ROOT="$(pwd)"
+          PRE_SYNC_PYTHONPATH="$(cygpath -w "$SYSTEM_ROOT/src");$(cygpath -w "$ROOT/src")"
+          env PYTHONPATH="$PRE_SYNC_PYTHONPATH" python -c "import importlib.util; assert importlib.util.find_spec('vn_quant_local') is not None"
+      - name: Compile V80 on Windows
+        env:
+          PYTHONPATH: src
+        run: python -m py_compile src/he_thong_dinh_luong/tactical_forward_paper_v80.py src/he_thong_dinh_luong/tactical_forward_paper_v80_driver.py tests/test_tactical_forward_paper_v80.py tests/test_tactical_forward_paper_v80_driver.py
+      - name: Run V80 and WAL contracts on Windows
+        env:
+          PYTHONPATH: src
+        run: python -m unittest tests.test_tactical_forward_paper_v80 tests.test_tactical_forward_paper_v80_driver tests.test_sqlite_market_fingerprint_v79 -v
