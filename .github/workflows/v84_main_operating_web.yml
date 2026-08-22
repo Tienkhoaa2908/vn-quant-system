@@ -1,0 +1,55 @@
+name: v84_main_operating_web
+
+on:
+  push:
+    branches:
+      - agent/v84-main-web-operating-dashboard
+  pull_request:
+    paths:
+      - 'src/he_thong_dinh_luong/existing_web_v84_installer.py'
+      - 'web_extensions/v84/**'
+      - 'tests/test_existing_web_v84_installer.py'
+      - 'scripts/run_v84_main_operating_web_gitbash.sh'
+      - '.github/workflows/v84_main_operating_web.yml'
+
+jobs:
+  contract:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile V84
+        env:
+          PYTHONPATH: src
+        run: python -m py_compile src/he_thong_dinh_luong/existing_web_v84_installer.py tests/test_existing_web_v84_installer.py
+      - name: Validate V84 JavaScript syntax
+        run: node --check web_extensions/v84/main_operating_v84.js
+      - name: Run V84 contracts
+        env:
+          PYTHONPATH: src
+        run: python -m unittest tests.test_existing_web_v84_installer -v
+      - name: Validate Git Bash runner
+        if: runner.os == 'Linux'
+        shell: bash
+        run: bash -n scripts/run_v84_main_operating_web_gitbash.sh
+      - name: Validate Windows Git Bash imports
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          PYW="$(cygpath -w "$PWD/src");$(cygpath -w "$PWD/vn_quant_local_system/src")"
+          PYTHONPATH="$PYW" python -c "import he_thong_dinh_luong.existing_web_v84_installer; print('V84_WINDOWS_GITBASH_IMPORT=PASS')"
+      - name: Guard main operating contract
+        shell: bash
+        run: |
+          grep -q 'DAILY OPERATING DASHBOARD' web_extensions/v84/main_operating_v84.js
+          grep -q 'CẢNH BÁO TĂNG VỐN' web_extensions/v84/main_operating_v84.js
+          grep -q 'PLAN CONFLICT' web_extensions/v84/main_operating_v84.js
+          grep -q '/api/status' web_extensions/v84/main_operating_v84.js
+          grep -q '/api/dashboard-v83' web_extensions/v84/main_operating_v84.js
+          grep -q '/api/tactical-v78' web_extensions/v84/main_operating_v84.js
+          if grep -Eiq 'place_order|submit_order|send_order|broker_order' web_extensions/v84/main_operating_v84.js src/he_thong_dinh_luong/existing_web_v84_installer.py; then exit 1; fi
