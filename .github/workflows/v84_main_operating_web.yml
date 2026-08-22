@@ -27,6 +27,8 @@ jobs:
         env:
           PYTHONPATH: src
         run: python -m py_compile src/he_thong_dinh_luong/existing_web_v84_installer.py tests/test_existing_web_v84_installer.py
+      - name: Validate V84 JavaScript syntax
+        run: node --check web_extensions/v84/main_operating_v84.js
       - name: Run V84 contracts
         env:
           PYTHONPATH: src
