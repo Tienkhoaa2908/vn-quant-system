@@ -7,6 +7,7 @@ on:
   pull_request:
     paths:
       - 'src/he_thong_dinh_luong/capital_discipline_audit_v83.py'
+      - 'src/he_thong_dinh_luong/capital_discipline_selection_v83.py'
       - 'src/he_thong_dinh_luong/local_workstation_v83_bridge.py'
       - 'src/he_thong_dinh_luong/existing_web_v83_installer.py'
       - 'web_extensions/v83/**'
@@ -30,7 +31,7 @@ jobs:
       - name: Compile V83
         env:
           PYTHONPATH: src
-        run: python -m py_compile src/he_thong_dinh_luong/capital_discipline_audit_v83.py src/he_thong_dinh_luong/local_workstation_v83_bridge.py src/he_thong_dinh_luong/existing_web_v83_installer.py tests/test_capital_discipline_audit_v83.py tests/test_local_workstation_v83_bridge.py tests/test_existing_web_v83_installer.py
+        run: python -m py_compile src/he_thong_dinh_luong/capital_discipline_audit_v83.py src/he_thong_dinh_luong/capital_discipline_selection_v83.py src/he_thong_dinh_luong/local_workstation_v83_bridge.py src/he_thong_dinh_luong/existing_web_v83_installer.py tests/test_capital_discipline_audit_v83.py tests/test_local_workstation_v83_bridge.py tests/test_existing_web_v83_installer.py
       - name: Run V83 contracts
         env:
           PYTHONPATH: src
@@ -45,12 +46,14 @@ jobs:
         run: |
           python -m pip install --disable-pip-version-check "tzdata==2025.2"
           PYW="$(cygpath -w "$PWD/src");$(cygpath -w "$PWD/vn_quant_local_system/src")"
-          PYTHONPATH="$PYW" python -c "import he_thong_dinh_luong.capital_discipline_audit_v83, he_thong_dinh_luong.local_workstation_v83_bridge; print('V83_WINDOWS_GITBASH_IMPORT=PASS')"
-      - name: Guard product direction and no live order
+          PYTHONPATH="$PYW" python -c "import he_thong_dinh_luong.capital_discipline_audit_v83, he_thong_dinh_luong.capital_discipline_selection_v83, he_thong_dinh_luong.local_workstation_v83_bridge; print('V83_WINDOWS_GITBASH_IMPORT=PASS')"
+      - name: Guard product direction selection isolation and no live order
         shell: bash
         run: |
           grep -q 'NO_ADD_UNDERWATER' src/he_thong_dinh_luong/capital_discipline_audit_v83.py
           grep -q 'PERSIST2_SEVERE_TRIM50' src/he_thong_dinh_luong/capital_discipline_audit_v83.py
+          grep -q 'PRIMARY_SELECTION_END' src/he_thong_dinh_luong/capital_discipline_selection_v83.py
+          grep -q 'year_2026_used_to_select.*False' src/he_thong_dinh_luong/capital_discipline_selection_v83.py
           grep -q 'NEW-LEADER RESEARCH' web_extensions/v83/capital_discipline_v83.js
           grep -q 'ĐÓNG' web_extensions/v83/capital_discipline_v83.js
-          if grep -Eiq 'send_order|place_order|submit_order|broker_order' src/he_thong_dinh_luong/capital_discipline_audit_v83.py src/he_thong_dinh_luong/local_workstation_v83_bridge.py src/he_thong_dinh_luong/existing_web_v83_installer.py web_extensions/v83/capital_discipline_v83.js; then exit 1; fi
+          if grep -Eiq 'send_order|place_order|submit_order|broker_order' src/he_thong_dinh_luong/capital_discipline_audit_v83.py src/he_thong_dinh_luong/capital_discipline_selection_v83.py src/he_thong_dinh_luong/local_workstation_v83_bridge.py src/he_thong_dinh_luong/existing_web_v83_installer.py web_extensions/v83/capital_discipline_v83.js; then exit 1; fi
