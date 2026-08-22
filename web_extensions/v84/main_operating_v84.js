@@ -55,9 +55,18 @@
     return `<div class="v84-table-wrap"><table class="v84-table"><thead><tr><th>Mã</th><th>SL</th><th>Tỷ trọng</th><th>P&L EOD</th><th>P&L %</th><th>Rank tháng</th><th>Rank hiện tại</th><th>Rel 5p</th><th>Trạng thái</th></tr></thead><tbody>${rows.map(r=>`<tr><td><strong>${esc(r.symbol)}</strong></td><td>${esc(r.quantity)}</td><td>${pct(r.weight)}</td><td class="${cls(r.unrealized_pnl_vnd)}">${signedMoney(r.unrealized_pnl_vnd)}</td><td class="${cls(r.unrealized_pnl_pct)}">${pct(r.unrealized_pnl_pct)}</td><td>${Number(r.tactical?.canonical_rank)<=100?esc(r.tactical.canonical_rank):'—'}</td><td>${Number(r.tactical?.preview_rank)<=100?esc(r.tactical.preview_rank):'—'}</td><td class="${cls(r.tactical?.relative_5)}">${pct(r.tactical?.relative_5)}</td><td>${pill(r)}</td></tr>`).join('')}</tbody></table></div>`;
   }
 
-  function planGuard(status,v83){
+  function planGuard(status,v83,tactical){
     const plan=status?.latest_weekly_plan||status?.latest_capital_plan||{};
     const buys=plan?.buy_orders||[];
+    const planSignal=plan?.signal_day||plan?.rationale?.monthly_signal_day||null;
+    const planMarket=plan?.market_day||plan?.rationale?.market_day||null;
+    const currentSignal=tactical?.report?.source_monthly_signal_day||null;
+    const latestMarket=coverageLastDay(status);
+    const staleSignal=Boolean(planSignal&&currentSignal&&planSignal!==currentSignal);
+    const staleMarket=Boolean(planMarket&&latestMarket&&planMarket<latestMarket);
+    if((planSignal||planMarket)&&(staleSignal||staleMarket)){
+      return `<div class="v84-guard bad"><strong>PLAN CŨ — TẠO LẠI TRƯỚC KHI DÙNG</strong><span>Plan signal ${esc(planSignal||'—')} / market ${esc(planMarket||'—')}; state hiện tại signal ${esc(currentSignal||'—')} / EOD ${esc(latestMarket||'—')}. Không dùng plan cũ để kết luận mua thêm hay xung đột health.</span></div>`;
+    }
     const review=new Set((v83?.no_add_now||[]).map(x=>x.symbol));
     const severe=new Set((v83?.cut_watch_now||[]).map(x=>x.symbol));
     const conflicts=buys.filter(x=>review.has(x.symbol)||severe.has(x.symbol));
@@ -65,7 +74,7 @@
       return `<div class="v84-guard bad"><strong>PLAN CONFLICT — cần rà soát thủ công</strong><span>Kế hoạch vốn hiện tại đang đề xuất mua thêm: ${conflicts.map(x=>`<b>${esc(x.symbol)}</b>`).join(', ')} trong khi các mã này đang có capital-discipline watch. V83 không tự chặn lệnh và historical no-add chưa outperform C3.</span></div>`;
     }
     if(buys.length){
-      return `<div class="v84-guard good"><strong>Kế hoạch vốn không xung đột watch hiện tại</strong><span>${buys.map(x=>`${esc(x.symbol)} ${esc(x.quantity)} cp`).join(' · ')} · vẫn là kế hoạch research-only, không tự gửi lệnh.</span></div>`;
+      return `<div class="v84-guard good"><strong>Kế hoạch vốn không xung đột watch hiện tại</strong><span>${buys.map(x=>`${esc(x.symbol)} ${esc(x.quantity)} cp`).join(' · ')} · plan signal ${esc(planSignal||'—')} / market ${esc(planMarket||'—')} · research-only, không tự gửi lệnh.</span></div>`;
     }
     return '<div class="v84-guard neutral"><strong>Chưa có lệnh mua trong kế hoạch gần nhất</strong><span>Tạo kế hoạch khi cần; dashboard chỉ kiểm tra xung đột, không tự tạo hoặc gửi lệnh.</span></div>';
   }
@@ -111,7 +120,7 @@
       </div>
       <div class="v84-grid2">
         <section><div class="v84-section-head"><div><p class="eyebrow">TODAY'S ATTENTION</p><h3>Danh mục thật × sức khỏe C3</h3></div><span class="v84-advisory">ADVISORY ONLY</span></div>${portfolioTable(rows)}</section>
-        <section><div class="v84-section-head"><div><p class="eyebrow">CAPITAL PLAN GUARDRAIL</p><h3>Kiểm tra mua thêm vào mã đang yếu</h3></div></div>${planGuard(status,v83)}${entrySummary(v83)}</section>
+        <section><div class="v84-section-head"><div><p class="eyebrow">CAPITAL PLAN GUARDRAIL</p><h3>Kiểm tra mua thêm vào mã đang yếu</h3></div></div>${planGuard(status,v83,tactical)}${entrySummary(v83)}</section>
       </div>`;
     q('#v84-sync-broker')?.addEventListener('click',()=>{
       const existing=q('[data-action="sync-broker"]');
