@@ -43,7 +43,7 @@ fi
 export PYTHONPATH="$(cygpath -w "$ROOT/src");$(cygpath -w "$SYSTEM/src")"
 export PYTHONUTF8=1
 export PYTHONIOENCODING=utf-8
-"$PY" -c "import he_thong_dinh_luong.capital_discipline_audit_v83, he_thong_dinh_luong.local_workstation_v83_bridge; print('V83_PYTHONPATH_PREFLIGHT=PASS')"
+"$PY" -c "import he_thong_dinh_luong.capital_discipline_audit_v83, he_thong_dinh_luong.capital_discipline_selection_v83, he_thong_dinh_luong.local_workstation_v83_bridge; print('V83_PYTHONPATH_PREFLIGHT=PASS')"
 
 hash_tree(){
   local dir="$1"
@@ -74,6 +74,8 @@ run_all() (
   echo "NEW_LEADER_RESEARCH_REOPENED=false"
   echo "FIXED_POLICIES=C3_BASE,NO_ADD_UNDERWATER,PERSIST2_SEVERE_TRIM50,NO_ADD_PLUS_PERSIST2_TRIM50"
   echo "ENTRY_AUDIT=T1_OPEN_VS_T2_OPEN_VS_STAGED_50_50"
+  echo "SELECTION_SAMPLE_END=2025-12-31"
+  echo "YEAR_2026_USED_TO_SELECT=false"
   echo "LIVE_ORDERS_ALLOWED=false"
   echo "V77_STATE_DIGEST_BEFORE=$V77_BEFORE"
   echo "V80_STATE_DIGEST_BEFORE=$V80_BEFORE"
@@ -81,6 +83,7 @@ run_all() (
   echo "===== COMPILE + REGRESSION ====="
   "$PY" -m py_compile \
     src/he_thong_dinh_luong/capital_discipline_audit_v83.py \
+    src/he_thong_dinh_luong/capital_discipline_selection_v83.py \
     src/he_thong_dinh_luong/local_workstation_v83_bridge.py \
     src/he_thong_dinh_luong/existing_web_v83_installer.py \
     tests/test_capital_discipline_audit_v83.py \
@@ -109,19 +112,39 @@ run_all() (
     "$PY" -m he_thong_dinh_luong.deep_portfolio_backtest_v70 --v68-output "$(cygpath -w "$V68")" --store "$(cygpath -w "$STORE")" --output-dir "$(cygpath -w "$V70")" --initial-capital 1000000000
   fi
 
-  echo "===== V83 HISTORICAL CAPITAL DISCIPLINE ====="
+  echo "===== V83 ALL-SAMPLE DIAGNOSTIC ====="
   "$PY" -m he_thong_dinh_luong.capital_discipline_audit_v83 \
     --v68-output "$(cygpath -w "$V68")" --v70-output "$(cygpath -w "$V70")" \
     --store "$(cygpath -w "$STORE")" --output-dir "$(cygpath -w "$V83")" --initial-capital 1000000000
-  cp "$V83/v83_report.json" "$SYSTEM/data/v83-capital-discipline/LATEST.json"
 
-  echo "===== PROFIT + ENTRY SUMMARY ====="
-  "$PY" - "$V83/v83_report.json" <<'PY'
+  echo "===== V83 PRE-2026 SELECTION EVIDENCE ====="
+  "$PY" -m he_thong_dinh_luong.capital_discipline_selection_v83 \
+    --v68-output "$(cygpath -w "$V68")" --v70-output "$(cygpath -w "$V70")" \
+    --store "$(cygpath -w "$STORE")" --output-dir "$(cygpath -w "$V83")" --initial-capital 1000000000
+
+  "$PY" - "$V83/v83_report.json" "$V83/v83_selection_report.json" "$SYSTEM/data/v83-capital-discipline/LATEST.json" <<'PY'
+import json,sys
+from pathlib import Path
+allr=json.loads(Path(sys.argv[1]).read_text(encoding='utf-8-sig'))
+sel=json.loads(Path(sys.argv[2]).read_text(encoding='utf-8-sig'))
+allr['primary_base_dnse_all_sample']=allr.get('primary_base_dnse',[])
+allr['primary_base_dnse']=sel.get('primary_base_dnse_pre2026',[])
+allr['selection_sample']='PRE2026_SELECTION'
+allr['selection_end']=sel.get('selection_end')
+allr['entry_timing_primary_pre2026']=sel.get('entry_timing_pre2026',{})
+allr['year_2026_used_to_select']=False
+Path(sys.argv[3]).write_text(json.dumps(allr,ensure_ascii=False,indent=2,sort_keys=True)+'\n',encoding='utf-8')
+PY
+
+  echo "===== PROFIT + ENTRY SUMMARY: PRE-2026 SELECTION ====="
+  "$PY" - "$SYSTEM/data/v83-capital-discipline/LATEST.json" <<'PY'
 import json,sys
 from pathlib import Path
 r=json.loads(Path(sys.argv[1]).read_text(encoding='utf-8-sig'))
 print('STATUS='+str(r['status']))
 print('PRIMARY_VARIANT='+str(r['primary_variant']))
+print('SELECTION_SAMPLE='+str(r.get('selection_sample')))
+print('SELECTION_END='+str(r.get('selection_end')))
 for p in r.get('primary_base_dnse',[]):
     print('POLICY',p['policy_id'],'ENDING_NAV_VND',round(float(p['ending_nav_vnd']),2),'NET_PROFIT_VND',round(float(p['net_profit_vnd']),2),'TOTAL_RETURN',p['total_return'],'CAGR',p.get('cagr'),'MDD',p.get('max_drawdown'),'DELTA_NAV_VND',p.get('incremental_nav_vs_c3_vnd'))
 print('ENTRY_PRE2026='+json.dumps(r.get('entry_timing_primary_pre2026',{}),sort_keys=True))
@@ -150,6 +173,7 @@ cp "$LOG" "$BUNDLE_DIR/run.log" || true
 git branch --show-current > "$BUNDLE_DIR/git_branch.txt"
 git rev-parse HEAD > "$BUNDLE_DIR/git_head.txt"
 [[ -d "$V83" ]] && cp -R "$V83" "$BUNDLE_DIR/v83" || true
+[[ -f "$SYSTEM/data/v83-capital-discipline/LATEST.json" ]] && cp "$SYSTEM/data/v83-capital-discipline/LATEST.json" "$BUNDLE_DIR/LATEST.json" || true
 [[ -f "$SYSTEM/validation/v83_web_integration_report.json" ]] && cp "$SYSTEM/validation/v83_web_integration_report.json" "$BUNDLE_DIR/" || true
 printf '%s\n' "$(hash_tree "$V77")" > "$BUNDLE_DIR/v77_after.txt" || true
 printf '%s\n' "$(hash_tree "$V80")" > "$BUNDLE_DIR/v80_after.txt" || true
