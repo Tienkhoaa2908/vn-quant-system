@@ -1,0 +1,51 @@
+name: v85_dnse_realtime_connectivity_audit
+
+on:
+  push:
+    branches:
+      - agent/v85-dnse-realtime-connectivity-audit
+  pull_request:
+    paths:
+      - 'src/he_thong_dinh_luong/dnse_realtime_connectivity_audit_v85.py'
+      - 'tests/test_dnse_realtime_connectivity_audit_v85.py'
+      - 'scripts/run_v85_dnse_realtime_connectivity_audit_gitbash.sh'
+      - '.github/workflows/v85_dnse_realtime_connectivity_audit.yml'
+      - 'tai_lieu_dieu_phoi/v85_realtime_connectivity_plan.md'
+
+jobs:
+  contract:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile V85
+        env:
+          PYTHONPATH: src
+        run: python -m py_compile src/he_thong_dinh_luong/dnse_realtime_connectivity_audit_v85.py tests/test_dnse_realtime_connectivity_audit_v85.py
+      - name: Run V85 contracts
+        env:
+          PYTHONPATH: src
+        run: python -m unittest tests.test_dnse_realtime_connectivity_audit_v85 -v
+      - name: Validate Git Bash runner
+        if: runner.os == 'Linux'
+        shell: bash
+        run: bash -n scripts/run_v85_dnse_realtime_connectivity_audit_gitbash.sh
+      - name: Validate Windows Git Bash imports
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          PYW="$(cygpath -w "$PWD/src");$(cygpath -w "$PWD/vn_quant_local_system/src")"
+          PYTHONPATH="$PYW" python -c "import he_thong_dinh_luong.dnse_realtime_connectivity_audit_v85; print('V85_WINDOWS_GITBASH_IMPORT=PASS')"
+      - name: Guard read-only connectivity scope
+        shell: bash
+        run: |
+          grep -q 'packages_installed_or_upgraded.*False' src/he_thong_dinh_luong/dnse_realtime_connectivity_audit_v85.py
+          grep -q 'live_order_ready.*False' src/he_thong_dinh_luong/dnse_realtime_connectivity_audit_v85.py
+          grep -q 'PACKAGE_INSTALL_OR_UPGRADE=false' scripts/run_v85_dnse_realtime_connectivity_audit_gitbash.sh
+          grep -q 'ORDERS_SENT=false' scripts/run_v85_dnse_realtime_connectivity_audit_gitbash.sh
+          if grep -Eiq 'post_order|place_order|submit_order|cancel_order|replace_order|create_trading_token|send_email_otp' src/he_thong_dinh_luong/dnse_realtime_connectivity_audit_v85.py scripts/run_v85_dnse_realtime_connectivity_audit_gitbash.sh; then exit 1; fi
