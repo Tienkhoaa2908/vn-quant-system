@@ -1,0 +1,94 @@
+name: v81_frozen_tactical_historical_audit
+
+on:
+  push:
+    branches:
+      - agent/v81-frozen-tactical-historical-audit
+  pull_request:
+    paths:
+      - 'src/he_thong_dinh_luong/frozen_tactical_historical_audit_v81.py'
+      - 'tests/test_frozen_tactical_historical_audit_v81.py'
+      - 'scripts/run_v81_frozen_tactical_historical_audit_gitbash.sh'
+      - 'scripts/run_v81_frozen_tactical_historical_audit_workstation_gitbash.sh'
+      - '.github/workflows/v81_frozen_tactical_historical_audit.yml'
+      - 'tai_lieu_dieu_phoi/v81_*'
+
+jobs:
+  linux-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install frozen dependency surface
+        run: python -m pip install --disable-pip-version-check scikit-learn==1.9.0
+      - name: Compile V70 V72 V79 V81
+        env:
+          PYTHONPATH: src
+        run: |
+          python -m py_compile \
+            src/he_thong_dinh_luong/deep_portfolio_backtest_v70.py \
+            src/he_thong_dinh_luong/weekly_overlay_backtest_v72.py \
+            src/he_thong_dinh_luong/tactical_capital_policy_v79.py \
+            src/he_thong_dinh_luong/frozen_tactical_historical_audit_v81.py \
+            tests/test_frozen_tactical_historical_audit_v81.py
+      - name: Run frozen historical-audit contracts
+        env:
+          PYTHONPATH: src
+        run: python -m unittest tests.test_weekly_overlay_backtest_v72 tests.test_tactical_capital_policy_v79 tests.test_frozen_tactical_historical_audit_v81 tests.test_sqlite_market_fingerprint_v79 -v
+      - name: Validate Git Bash runners
+        run: |
+          bash -n scripts/run_v81_frozen_tactical_historical_audit_gitbash.sh
+          bash -n scripts/run_v81_frozen_tactical_historical_audit_workstation_gitbash.sh
+      - name: Exercise approved V78 web-state transaction
+        run: |
+          EXPECTED='agent/v81-frozen-tactical-historical-audit'
+          if [[ "$(git branch --show-current)" != "$EXPECTED" ]]; then git switch -c "$EXPECTED"; fi
+          WEBAPP='vn_quant_local_system/src/vn_quant_local/webapp.py'
+          INDEX='vn_quant_local_system/web/index.html'
+          printf '\n# V78_TACTICAL_BRIDGE_IMPORT\n' >> "$WEBAPP"
+          printf '\n<!-- V78_TACTICAL_EXISTING_WEB -->\n' >> "$INDEX"
+          cat > /tmp/v81-inner-stub.sh <<'EOF'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          git diff --quiet
+          git diff --cached --quiet
+          echo 'V81_TRANSACTION_INNER_CLEAN=true'
+          EOF
+          chmod +x /tmp/v81-inner-stub.sh
+          V81_INNER_RUNNER=/tmp/v81-inner-stub.sh bash scripts/run_v81_frozen_tactical_historical_audit_workstation_gitbash.sh
+          grep -q 'V78_TACTICAL_BRIDGE_IMPORT' "$WEBAPP"
+          grep -q 'V78_TACTICAL_EXISTING_WEB' "$INDEX"
+          git restore --worktree -- "$WEBAPP" "$INDEX"
+          git diff --quiet
+      - name: Guard frozen policy and anti-tuning contract
+        run: |
+          grep -q 'FROZEN_POLICY_IDS' src/he_thong_dinh_luong/frozen_tactical_historical_audit_v81.py
+          grep -q 'L15_SWAP25_WORST' src/he_thong_dinh_luong/frozen_tactical_historical_audit_v81.py
+          grep -q 'L15_SWAP50_WORST' src/he_thong_dinh_luong/frozen_tactical_historical_audit_v81.py
+          grep -q 'L15_CASH_ADD25_SLOT' src/he_thong_dinh_luong/frozen_tactical_historical_audit_v81.py
+          grep -q 'v79._l15' src/he_thong_dinh_luong/frozen_tactical_historical_audit_v81.py
+          grep -q 'historical_threshold_search_reopened' src/he_thong_dinh_luong/frozen_tactical_historical_audit_v81.py
+          grep -q 'selection_authorized_from_v81' src/he_thong_dinh_luong/frozen_tactical_historical_audit_v81.py
+          grep -q 'V80_STATE_DIGEST_AFTER' scripts/run_v81_frozen_tactical_historical_audit_gitbash.sh
+          grep -q 'V77_STATE_DIGEST_AFTER' scripts/run_v81_frozen_tactical_historical_audit_gitbash.sh
+          if grep -Eiq 'send_order|place_order|submit_order|broker_order|rm -rf.*v80-tactical-paper-state|optuna|gridsearch|randomsearch' src/he_thong_dinh_luong/frozen_tactical_historical_audit_v81.py scripts/run_v81_frozen_tactical_historical_audit_gitbash.sh; then exit 1; fi
+
+  windows-contract:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install frozen dependency surface
+        run: python -m pip install --disable-pip-version-check scikit-learn==1.9.0
+      - name: Compile V81 on Windows
+        env:
+          PYTHONPATH: src
+        run: python -m py_compile src/he_thong_dinh_luong/frozen_tactical_historical_audit_v81.py tests/test_frozen_tactical_historical_audit_v81.py
+      - name: Run V81 contracts on Windows
+        env:
+          PYTHONPATH: src
+        run: python -m unittest tests.test_frozen_tactical_historical_audit_v81 tests.test_sqlite_market_fingerprint_v79 -v
