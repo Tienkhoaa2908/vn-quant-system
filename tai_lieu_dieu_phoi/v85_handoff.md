@@ -11,3 +11,5 @@ Confirmed on the canonical Windows workstation:
 - market/V77/V80 state remained unchanged.
 
 Do not upgrade the canonical `.venv` in place. Next branch is V86: isolated `dnse-sdk-openapi==1.4.6` realtime sidecar for market-data health/ticks first, with the existing 8787 web as the only user-facing UI. Order-event/private stream and any order API stay blocked until sidecar market-data stability is proven.
+
+Verification source: `tai_lieu_dieu_phoi/v85_workstation_result_20260824.md`.
