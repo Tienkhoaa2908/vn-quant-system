@@ -1,23 +1,43 @@
 # Bộ tài liệu điều phối dự án VN Quant System
 
-Thư mục này là đầu não bền vững của dự án. Nội dung đã được gộp vào nhánh `main` của GitHub được ưu tiên hơn trí nhớ của bất kỳ đoạn chat nào.
+Thư mục này là đầu não bền vững của dự án. GitHub/evidence mới hơn luôn ưu tiên trí nhớ chat.
 
-## Thứ tự đọc bắt buộc
+## Thứ tự đọc bắt buộc cho chat/agent mới
 
-1. `nguyen_tac_du_an.md`
-2. `ke_hoach_tong_the.md`
-3. `trang_thai_du_an.md`
-4. `cong_viec_hien_tai.md`
-5. `ban_giao_doan_chat.md`
-6. `../DECISIONS.md`
-7. Các yêu cầu gộp và kết quả kiểm tra tự động trên GitHub
+1. `../AGENTS.md`
+2. `CURRENT_STATE.md`
+3. `CHAT_OPERATING_PROTOCOL.md`
+4. `KNOWN_ISSUES_AND_GUARDRAILS.md`
+5. `ROADMAP.md`
+6. các entry mới nhất trong `CHAT_TURN_LOG.md`
+7. contract/result của Vxx đang active
+8. `../DECISIONS.md` khi cần truy nguyên quyết định lịch sử
 
-## Nguyên tắc cập nhật
+`RESTORE_PROMPTS.md` chứa prompt khôi phục chat mới và prompt continuity checkpoint chuẩn.
 
-- `trang_thai_du_an.md` chỉ ghi sự thật đã được đối chiếu với GitHub hoặc log chạy thật.
-- `cong_viec_hien_tai.md` chỉ chứa công việc đang hoạt động, điều kiện nghiệm thu và đầu ra cần bàn giao.
-- `ban_giao_doan_chat.md` được cập nhật khi thay đổi đầu mối điều phối hoặc có quyết định quan trọng.
-- Quyết định kỹ thuật có ảnh hưởng lâu dài phải ghi vào `DECISIONS.md`.
-- Mỗi mốc hoàn thành phải có nhánh, commit, kiểm thử và yêu cầu gộp.
-- Không chuyển sang mốc kế tiếp khi mốc hiện tại chưa được gộp và xác minh.
-- Không ghi khóa truy cập, mật khẩu hoặc dữ liệu thị trường thật vào kho mã nguồn.
+## Current vs historical
+
+Current authority chỉ nằm ở bộ file current/protocol phía trên sau khi đã đối chiếu GitHub/evidence.
+
+Các file tên theo phiên bản/ngày như `v83_*`, `v84_*`, `v85_*`, `v86_*` là evidence/contract lịch sử hoặc work-package-specific. Chúng có thể rất quan trọng nhưng không tự động đại diện cho trạng thái hiện tại toàn dự án.
+
+Các file anti-regression và research-standard vẫn là guardrail ổn định nếu không bị current evidence supersede.
+
+## Quy tắc cập nhật bắt buộc
+
+Mỗi prompt trong dự án phải có hai động tác:
+
+1. read-back GitHub trước khi trả lời;
+2. GitHub continuity checkpoint trước final response.
+
+Ít nhất phải append `CHAT_TURN_LOG.md`. Nếu có thay đổi bền vững thì cập nhật `CURRENT_STATE.md`, guardrails/roadmap hoặc Vxx result/contract tương ứng.
+
+Nếu không có state change, vẫn ghi `NO_STATE_CHANGE` trong turn log. Nếu GitHub write thất bại, phải nói rõ; không được giả vờ đã lưu.
+
+## Hygiene
+
+- Không tạo thêm nhiều file cùng tự nhận là “current/status/handoff”.
+- Không giữ tài liệu top-level đã lỗi thời chỉ vì lịch sử; Git history đã bảo toàn bản cũ.
+- Không xóa versioned evidence/contract chỉ vì cũ nếu nó còn giá trị audit.
+- Không commit credential/API secret/OTP/Trading Token/private broker payload.
+- Không merge nếu user chưa yêu cầu rõ.
