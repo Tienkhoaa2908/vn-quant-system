@@ -38,6 +38,22 @@ Possible semantic states include `HEALTHY`, `IDLE_MARKET_CLOSED`, `DEGRADED_*`, 
 
 The first rollout intentionally uses a local-clock market-window approximation only for tick-staleness classification. It is explicitly not an exchange-calendar truth claim. DNSE working-dates/session/security-definition integration is a later hardening increment after the sidecar itself is proven stable.
 
+## Legacy V59 ownership closure
+
+The final architecture review found a critical compatibility path: the approved workstation launcher still starts `vn_quant_local.webapp_v59`. Historically that wrapper imported and started the old private and market WebSocket implementations, including automatic startup during web-server launch and broker refresh.
+
+V86 therefore changes the historical `webapp_v59` module into a compatibility shell rather than leaving it untouched:
+
+- fast legacy REST/account/plan behavior is preserved;
+- the web process imports no V59 realtime transport module;
+- the web process performs no legacy realtime start/stop call;
+- `/api/realtime` and `/api/realtime/status` read V86 sidecar health only;
+- legacy POST realtime start/stop endpoints return `DISABLED_V86_SIDECAR_OWNED` and perform no network mutation;
+- root HTML no longer injects the V59 realtime JavaScript/CSS transport UI;
+- `serve_web_gitbash.sh` explicitly declares `WEB_PROCESS_OWNS_WEBSOCKET=false` and uses a Windows-native semicolon-separated `PYTHONPATH`.
+
+The V86 installer now fails closed unless this compatibility wrapper contains the V86 disable marker and contains none of the legacy WebSocket ownership imports/calls. Dedicated CI checks the same contract on Ubuntu and Windows.
+
 ## Safety contract
 
 Hard false throughout V86:
@@ -62,6 +78,7 @@ The one-shot upgrade must prove:
 - real WebSocket connects, authenticates, records subscriptions, and reports heartbeat healthy;
 - active sidecar state is sanitized and `live_order_ready=false`;
 - market logical bars, V77 and V80 digests are unchanged;
-- web installer adds no order endpoint.
+- web installer adds no order endpoint;
+- the actual launcher path `serve_web_gitbash.sh -> vn_quant_local.webapp_v59` cannot create or own a legacy V59 WebSocket.
 
 After the one-shot is audited, run the long-lived sidecar through multiple real sessions before any private Trading WebSocket or order-state-machine work is permitted.
