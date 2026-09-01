@@ -47,6 +47,25 @@ class V86InstallerTest(unittest.TestCase):
         self.assertIn('read_v86_realtime_status', once)
         self.assertNotIn('start_market_realtime_v59', once)
 
+    def test_actual_v59_web_wrapper_is_sidecar_only(self):
+        wrapper = v86._assert_legacy_wrapper_safe(Path("vn_quant_local_system"))
+        text = wrapper.read_text(encoding="utf-8")
+        self.assertIn("V86_LEGACY_WS_DISABLED = True", text)
+        self.assertIn("read_v86_realtime_status", text)
+        self.assertIn("DISABLED_V86_SIDECAR_OWNED", text)
+        self.assertIn("web_process_owns_websocket", text)
+        for forbidden in v86.LEGACY_WS_FORBIDDEN:
+            self.assertNotIn(forbidden, text)
+
+    def test_web_runner_keeps_8787_but_does_not_claim_stream_ownership(self):
+        runner = Path("vn_quant_local_system/scripts/serve_web_gitbash.sh").read_text(encoding="utf-8")
+        self.assertIn('REALTIME_OWNER=ISOLATED_V86_SIDECAR', runner)
+        self.assertIn('WEB_PROCESS_OWNS_WEBSOCKET=false', runner)
+        self.assertIn('LIVE_ORDER_READY=false', runner)
+        self.assertIn('PYTHONPATH_WIN="$(cygpath -w "$SYSTEM_DIR/src");$(cygpath -w "$REPO_ROOT/src")"', runner)
+        self.assertNotIn('DNSE_REALTIME_READ_ONLY=true', runner)
+        self.assertNotIn('web server + DNSE streams', runner)
+
     def test_frontend_is_health_only_and_no_order_mutation(self):
         js = Path("web_extensions/v86/realtime_v86.js").read_text(encoding="utf-8")
         self.assertIn('/api/realtime-v86', js)
