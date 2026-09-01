@@ -18,6 +18,15 @@ from . import existing_web_v84_installer as v84
 
 HTML_MARK = "V86_DNSE_OPENAPI_REALTIME_HEALTH"
 PY_MARK = "V86_DNSE_OPENAPI_REALTIME_BRIDGE"
+LEGACY_WRAPPER_RELATIVE = Path("src/vn_quant_local/webapp_v59.py")
+LEGACY_WS_FORBIDDEN = (
+    "from .v59_fast_realtime import",
+    "from .v59_market_stream import",
+    "start_realtime_stream_v59",
+    "stop_realtime_stream_v59",
+    "start_market_realtime_v59",
+    "stop_market_realtime_v59",
+)
 
 
 def _replace_once(text: str, old: str, new: str, label: str) -> str:
@@ -47,6 +56,21 @@ def _replace_route_block(text: str, route: str, replacement: str) -> tuple[str, 
             break
     new_lines = lines[:start] + [replacement] + lines[end:]
     return "".join(new_lines), True
+
+
+def _assert_legacy_wrapper_safe(root: Path) -> Path:
+    wrapper = Path(root).resolve() / LEGACY_WRAPPER_RELATIVE
+    if not wrapper.is_file():
+        raise ValueError("V86_LEGACY_WEB_WRAPPER_NOT_FOUND")
+    text = wrapper.read_text(encoding="utf-8")
+    if "V86_LEGACY_WS_DISABLED = True" not in text:
+        raise ValueError("V86_LEGACY_WS_DISABLE_MARKER_MISSING")
+    found = [token for token in LEGACY_WS_FORBIDDEN if token in text]
+    if found:
+        raise ValueError("V86_LEGACY_WS_OWNER_STILL_PRESENT:" + ",".join(found))
+    if "read_v86_realtime_status" not in text:
+        raise ValueError("V86_LEGACY_WRAPPER_NOT_BRIDGED_TO_SIDECAR")
+    return wrapper
 
 
 def patch_index(text: str) -> str:
@@ -124,6 +148,7 @@ def install(system_root: Path, assets_root: Path) -> dict[str, object]:
     if not index.is_file() or not webapp.is_file():
         raise ValueError("V86_EXISTING_WORKSTATION_WEB_NOT_FOUND")
 
+    legacy_wrapper = _assert_legacy_wrapper_safe(root)
     before = {"index": v78.digest(index), "webapp": v78.digest(webapp)}
     index_text = index.read_text(encoding="utf-8")
     webapp_text = webapp.read_text(encoding="utf-8")
@@ -166,6 +191,8 @@ def install(system_root: Path, assets_root: Path) -> dict[str, object]:
         "existing_port": 8787,
         "endpoint": "/api/realtime-v86",
         "legacy_realtime_get_route_replaced": legacy_replaced,
+        "legacy_v59_wrapper": str(legacy_wrapper),
+        "legacy_v59_wrapper_ws_disabled": True,
         "web_process_owns_websocket": False,
         "isolated_sidecar_required": True,
         "canonical_rest_runtime_replaced": False,
