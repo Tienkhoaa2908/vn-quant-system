@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-from datetime import datetime, time as dtime
+from datetime import datetime, time as dtime, timedelta, timezone
 from importlib import metadata
 import json
 import os
@@ -21,7 +21,6 @@ import signal
 import sys
 import time
 from typing import Any, Mapping
-from zoneinfo import ZoneInfo
 
 V86 = "V86_DNSE_OPENAPI_REALTIME_SIDECAR"
 EXPECTED_DIST = "dnse-sdk-openapi"
@@ -29,7 +28,7 @@ EXPECTED_VERSION = "1.4.6"
 PINNED_API_VERSION = "2026-05-07"
 WS_BASE = "wss://ws-openapi.dnse.com.vn"
 REST_BASE = "https://openapi.dnse.com.vn"
-VN_TZ = ZoneInfo("Asia/Ho_Chi_Minh")
+VN_TZ = timezone(timedelta(hours=7))
 STALE_TICK_SEC = 30.0
 
 
