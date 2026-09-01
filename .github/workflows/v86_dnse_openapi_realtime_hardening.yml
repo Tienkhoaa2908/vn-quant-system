@@ -9,6 +9,8 @@ on:
       - 'src/he_thong_dinh_luong/dnse_openapi_sidecar_v86.py'
       - 'src/he_thong_dinh_luong/local_workstation_v86_bridge.py'
       - 'src/he_thong_dinh_luong/existing_web_v86_installer.py'
+      - 'vn_quant_local_system/src/vn_quant_local/webapp_v59.py'
+      - 'vn_quant_local_system/scripts/serve_web_gitbash.sh'
       - 'web_extensions/v86/**'
       - 'tests/test_dnse_openapi_sidecar_v86.py'
       - 'tests/test_local_workstation_v86_bridge.py'
@@ -37,6 +39,7 @@ jobs:
           src/he_thong_dinh_luong/dnse_openapi_sidecar_v86.py
           src/he_thong_dinh_luong/local_workstation_v86_bridge.py
           src/he_thong_dinh_luong/existing_web_v86_installer.py
+          vn_quant_local_system/src/vn_quant_local/webapp_v59.py
           tests/test_dnse_openapi_sidecar_v86.py
           tests/test_local_workstation_v86_bridge.py
           tests/test_existing_web_v86_installer.py
@@ -57,6 +60,7 @@ jobs:
         run: |
           bash -n scripts/run_v86_dnse_openapi_realtime_upgrade_gitbash.sh
           bash -n scripts/run_v86_dnse_openapi_realtime_sidecar_gitbash.sh
+          bash -n vn_quant_local_system/scripts/serve_web_gitbash.sh
       - name: Validate Windows Git Bash imports
         if: runner.os == 'Windows'
         shell: bash
@@ -73,10 +77,18 @@ jobs:
           grep -q 'LIVE_ORDER_READY=false' scripts/run_v86_dnse_openapi_realtime_upgrade_gitbash.sh
           grep -q 'LIVE_ORDER_READY=false' scripts/run_v86_dnse_openapi_realtime_sidecar_gitbash.sh
           grep -q 'web_process_owns_websocket.*False' src/he_thong_dinh_luong/existing_web_v86_installer.py
+          grep -q 'V86_LEGACY_WS_DISABLED = True' vn_quant_local_system/src/vn_quant_local/webapp_v59.py
+          grep -q 'REALTIME_OWNER=ISOLATED_V86_SIDECAR' vn_quant_local_system/scripts/serve_web_gitbash.sh
+          if grep -Eq 'start_realtime_stream_v59|stop_realtime_stream_v59|start_market_realtime_v59|stop_market_realtime_v59|from \.v59_fast_realtime import|from \.v59_market_stream import' \
+            vn_quant_local_system/src/vn_quant_local/webapp_v59.py; then
+            echo 'Legacy V59 websocket ownership still present in web runtime'
+            exit 1
+          fi
           if grep -Eiq 'post_order|place_order|cancel_order|replace_order|create_trading_token|send_email_otp|subscribe_order_event|subscribe_position_event' \
             src/he_thong_dinh_luong/dnse_openapi_sidecar_v86.py \
             src/he_thong_dinh_luong/local_workstation_v86_bridge.py \
             src/he_thong_dinh_luong/existing_web_v86_installer.py \
+            vn_quant_local_system/src/vn_quant_local/webapp_v59.py \
             scripts/run_v86_dnse_openapi_realtime_upgrade_gitbash.sh \
             scripts/run_v86_dnse_openapi_realtime_sidecar_gitbash.sh; then
             echo 'Forbidden order/private-stream surface found'
