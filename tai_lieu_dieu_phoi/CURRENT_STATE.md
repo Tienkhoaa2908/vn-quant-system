@@ -1,6 +1,6 @@
 # CURRENT STATE — VN Quant System
 
-Updated: 2026-09-01 (Vietnam time)
+Updated: 2026-09-04 (Vietnam time)
 
 This is the single current operational snapshot. If older coordination documents, historical handoffs, chat memory, or stale PR descriptions conflict with this file, verify GitHub/current workstation evidence and update this file. Versioned research contracts/results remain historical evidence, not current-state authority.
 
@@ -10,9 +10,14 @@ Repository: `Tienkhoaa2908/vn-quant-system`.
 
 Current infrastructure branch: `agent/v86-dnse-openapi-realtime-hardening`.
 
-V86 implementation head verified by CI before this continuity-cleanup checkpoint: `57001d64096b25cc9044a432bc8b5b997d6c4bd3`.
+PR #62 (`V86: isolate and harden DNSE OpenAPI realtime`) is Open, Draft, mergeable, not merged. Do not merge without explicit user instruction.
 
-PR #62 (`V86: isolate and harden DNSE OpenAPI realtime`) is Open, Draft, mergeable, not merged. At implementation head `57001d...`, dedicated V86 Ubuntu/Windows and full `kiem_tra_tu_dong` Ubuntu/Windows including HTTP smoke completed successfully.
+The prior continuity HEAD `0b7fd1b1272f4985aa7d32d047982a6bde26fea6` completed both exact-head workflows successfully:
+
+- `v86_dnse_openapi_realtime_hardening` run 17: success;
+- `kiem_tra_tu_dong` run 930: success.
+
+The 2026-09-04 broker-freshness patch/checkpoint is newer than that green anchor and must obtain its own exact-head CI before being called fully green.
 
 Relevant stacked PRs remain open/unmerged:
 
@@ -24,9 +29,9 @@ Relevant stacked PRs remain open/unmerged:
 - #59 V83 capital discipline + primary web — Draft.
 - #60 V84 main daily operating dashboard — Ready.
 - #61 V85 DNSE realtime forensic audit — Ready.
-- #62 V86 DNSE OpenAPI realtime hardening — Draft pending full workstation/long-lived verification.
+- #62 V86 DNSE OpenAPI realtime hardening — Draft.
 
-Do not merge any PR without explicit user instruction. Because the later PRs are stacked, verify bases and merge order before any merge operation.
+Because later PRs are stacked, verify bases and merge order before any merge operation.
 
 ## 2. Frozen quant champion / research stop rule
 
@@ -76,9 +81,7 @@ Reference: GAP18_CLEAN / BASE_DNSE / Equal / 1bn, through 2025-12-31.
 
 Decision: none of these automatic capital-discipline rules is promoted. Web labels remain advisory (`ADD REVIEW`, `SEVERE WATCH`, recovery/entry diagnostics), not executable instructions.
 
-VPI recovery is a concrete warning against one-shot auto-sell logic: transient drag can recover. Do not infer that every deteriorating position should be held indefinitely; use the frozen evidence/health contracts and fresh observations.
-
-Entry timing PRE-2026 also did not support replacing canonical T+1 with T+2/staged execution. 2026 shadow moved the other way, so execution quality should be monitored forward rather than retroactively retuned.
+VPI recovery remains a concrete warning against one-shot auto-sell logic. Entry timing PRE-2026 also did not support replacing canonical T+1 with T+2/staged execution. Monitor forward rather than retuning from contaminated 2026 examples.
 
 ## 6. V84 approved main web
 
@@ -101,20 +104,20 @@ Canonical wording: `NO_SEPARATE_PUBLIC_API_FEE_FOUND` as of 2026-09-01. This is 
 Workstation forensic evidence established:
 
 - canonical runtime `dnse==0.5.0`;
-- REST/account path healthy;
-- legacy SDK source carries the nonce/reconnect bug signatures (integer nonce pattern and reconnect without closing/resetting the old socket first);
+- REST/account path was generally working but is now known to have intermittent portfolio-read reliability by time of day;
+- legacy SDK source carries the nonce/reconnect bug signatures for WebSocket use;
 - localhost `GET /api/realtime` HTTP 200 is not evidence that the upstream realtime feed is healthy.
 
 WebSocket close code `1000 (OK)` can be a normal closure. The defect was the legacy reconnect lifecycle/health semantics, not the numeric close code by itself.
 
 ## 9. V86 architecture
 
-V86 isolates realtime from the canonical REST runtime:
+V86 isolates public realtime from the canonical REST runtime:
 
-- canonical `.venv`: temporarily keeps `dnse==0.5.0` for working EOD/account/portfolio REST;
+- canonical `.venv`: temporarily keeps `dnse==0.5.0` for EOD/account/portfolio REST;
 - isolated `.venv-dnse-openapi-v86`: `dnse-sdk-openapi==1.4.6`;
 - new read-only REST smoke pins API version `2026-05-07`;
-- market WebSocket uses official OpenAPI `TradingClient`, msgpack, authentication, heartbeat and reconnect/re-auth/re-subscribe capabilities;
+- public market WebSocket uses official OpenAPI `TradingClient`, msgpack, authentication, heartbeat and reconnect/re-auth/re-subscribe capabilities;
 - web process does not own a WebSocket;
 - V59 compatibility wrapper no longer imports/starts/stops legacy market/private WS;
 - `/api/realtime` and `/api/realtime/status` read V86 sidecar state;
@@ -124,17 +127,16 @@ V86 isolates realtime from the canonical REST runtime:
 
 ## 10. V86 real workstation smoke — 2026-09-01
 
-User-provided run transcript for implementation head `57001d...` completed with `V86_EXIT_CODE=0`.
+User-provided run transcript for implementation head `57001d64096b25cc9044a432bc8b5b997d6c4bd3` completed with `V86_EXIT_CODE=0`.
 
-Observed real OpenAPI smoke:
+Observed:
 
 - isolated SDK `dnse-sdk-openapi==1.4.6` installed successfully;
 - canonical `dnse==0.5.0` remained unchanged;
-- 20-symbol public market subscription set built;
-- WebSocket connected successfully to `wss://ws-openapi.dnse.com.vn/v1/stream?encoding=msgpack`;
+- WebSocket connected to `wss://ws-openapi.dnse.com.vn/v1/stream?encoding=msgpack`;
 - authentication succeeded;
-- subscriptions were accepted across the SDK's public tick channels for the symbol set;
-- server ping was received and pong sent;
+- 20-symbol public subscriptions accepted;
+- server ping received and pong sent;
 - `transport_connected=True`;
 - `authenticated=True`;
 - `subscriptions_active=True`;
@@ -143,23 +145,63 @@ Observed real OpenAPI smoke:
 - read-only REST smoke `SUCCESS`;
 - `live_order_ready=False`.
 
-Smoke ran around 19:58 Vietnam time, outside market hours, so `IDLE_MARKET_CLOSED` and `event_count=0` are expected and are not evidence of failure.
+The smoke ran after market hours, therefore `IDLE_MARKET_CLOSED` and zero ticks were expected. V77/V80 digests remained unchanged. V86 installer reported no web-owned WebSocket, no live-order endpoint and no credential/trading-state mutation.
 
-V77 and V80 digests remained unchanged before/after. V86 installer reported `web_process_owns_websocket=false`, `legacy_v59_wrapper_ws_disabled=true`, no live-order endpoint, no credential/trading-state mutation.
-
-Generated workstation ZIP path from the run:
+Generated ZIP reported by the runner:
 `artifacts/UPLOAD_THIS_v86_DNSE_OPENAPI_REALTIME-20260901-195512.zip`
 
 Reported SHA-256:
 `95ad8d4d9b84117659aeae4388340039322402c024094712e0b1433a703efb9e`
 
-The transcript is sufficient to establish a successful smoke. The ZIP itself had not yet been uploaded/audited in chat at this checkpoint, and long-lived next-session tick freshness has not yet been proven.
+The ZIP itself has not yet been independently uploaded/audited in chat.
 
-## 11. Current V86 runtime procedure
+## 11. Active-session V86 visual verification — 2026-09-04
+
+User screenshots around `2026-09-04 13:45 +07:00` showed the approved web with actual market-session public feed state:
+
+- semantic `HEALTHY`;
+- transport `CONNECTED`;
+- auth `AUTHENTICATED`;
+- subscriptions `ACTIVE` for 20 symbols / msgpack;
+- tick freshness about `0.6s`;
+- visible last tick `VIC 253`;
+- reconnect count `0`;
+- pong age about `15.0s`;
+- contract `1.4.6`, API date `2026-05-07`.
+
+This is real active-session evidence that the public sidecar can receive fresh ticks. It is still only one observed trading session; multi-session reconnect/recovery reliability remains unproven.
+
+Full durable note: `tai_lieu_dieu_phoi/v86_visual_and_broker_freshness_20260904.md`.
+
+## 12. DNSE broker-state freshness finding — 2026-09-04
+
+The same screenshots showed:
+
+- DNSE holdings/cash captured at `2026-09-04T13:45:37+07:00`;
+- official V55 EOD valuation day `2026-08-21`;
+- 7 positions;
+- available cash about 59,566 VND;
+- official EOD NAV about 543,618 VND.
+
+Important distinction: `2026-08-21` is the local final-EOD valuation day, not the holdings capture timestamp. The holdings/cash REST call in this screenshot was fresh at 13:45.
+
+However the user separately reports intermittent inability to obtain the real DNSE portfolio during some windows, especially market/open-session periods, with better success later in the evening. This is now an operational blocker.
+
+Current active V59 fast REST reconcile reads account -> balances -> positions before persisting. A thrown balance/positions error therefore fails before snapshot write. The dangerous ambiguous case is a successful-but-empty positions response after a previously non-empty checkpoint.
+
+The 2026-09-04 V86 broker-freshness patch adds:
+
+- broker sync health state separate from last good snapshot;
+- market-hours fail-closed protection for sudden non-empty -> empty holdings transitions;
+- separate API freshness fields for holdings capture age and EOD valuation age;
+- conservative absolute EOD-age warning;
+- V86 UI correction so stale EOD cannot remain labeled operationally ready simply because broker valuation day equals the equally stale local market day.
+
+V55 final-EOD-only official valuation remains unchanged. No broker market-price fallback is introduced.
+
+## 13. Current V86 runtime procedure
 
 The one-shot upgrade intentionally exits after install/smoke. It does not keep the web or sidecar alive.
-
-For normal read-only V86 observation use two Git Bash terminals:
 
 Terminal A — long-lived realtime sidecar:
 
@@ -178,30 +220,32 @@ bash scripts/run_web_gitbash.sh
 
 Keep both terminals open. Outside market hours the semantic state may be `IDLE_MARKET_CLOSED`; during a real session the target state is `HEALTHY` with fresh ticks and bounded reconnect behavior.
 
-## 12. Current blockers / next evidence
+## 14. Current blockers / next evidence
 
-1. V86 REST smoke emitted `InsecureRequestWarning` for an unverified HTTPS request. TLS certificate verification must be investigated and made fail-closed before any order-mutation work.
-2. Run the long-lived sidecar through multiple actual market sessions and record tick freshness, heartbeat, reconnect count/reasons and recovery behavior.
-3. Verify the V86 realtime health panel visually on web 8787.
-4. Only after stable public market-data sessions: design private order/position stream + REST reconciliation state machine. Still no order mutation at that stage unless separately approved and gated.
-5. Before any future auto-order authority, require idempotent intent/order identity, uncertain-submit reconciliation, circuit breaker, REST account/order reconciliation, private order/position stream health and Trading Token lifecycle.
+1. Obtain exact-head CI for the 2026-09-04 broker-freshness patch before workstation rollout.
+2. Then rerun/install the V86 web patch and verify the broker freshness warning visually.
+3. Collect time-of-day broker REST sync success/failure evidence; a failed read must retain/display last-known-good holdings with explicit degraded state.
+4. V86 REST smoke emitted `InsecureRequestWarning` for an unverified HTTPS request. TLS certificate verification must be made fail-closed before any order-mutation work.
+5. Continue long-lived public sidecar through multiple actual market sessions and record tick freshness, heartbeat, reconnect count/reasons and recovery behavior.
+6. In an isolated read-only experiment, verify modern DNSE private position/account stream semantics and whether it provides initial state versus change-only events. No order mutation.
+7. Before any future auto-order authority, require idempotency, uncertain-submit reconciliation, circuit breaker, REST reconciliation, private event health, Trading Token lifecycle and explicit promotion approval.
 
-## 13. Workstation path and command safety
+## 15. Workstation path and command safety
 
 Canonical Git Bash repo path is `/d/VNQuant/vn-quant-system`.
 
 A previous assistant command accidentally used `~/v31_mt5_40usd`, which belongs to another project and caused immediate script exit. Never reuse that path for VN Quant.
 
-On Windows CPython launched from Git Bash, multi-entry `PYTHONPATH` must use Windows semantics (`;`) with `cygpath -w`; this has caused earlier path/import issues and is now explicitly guarded in current runners.
+On Windows CPython launched from Git Bash, multi-entry `PYTHONPATH` must use Windows semantics (`;`) with `cygpath -w`.
 
-## 14. Evidence discipline
+## 16. Evidence discipline
 
 Always distinguish:
 
 - CI green: code/contracts compile and tests pass;
-- workstation smoke: the real local environment performed the tested action;
+- workstation smoke/visual evidence: the real local environment performed/displayed the tested state;
 - historical research evidence: may be selected/contaminated and is not fresh OOS;
 - forward-paper evidence: fresh observations under frozen policy;
 - live authority: currently false.
 
-Never promote a policy or auto-order capability because a UI renders, an HTTP endpoint returns 200, or one shadow observation looks favorable.
+Never promote a policy or auto-order capability because a UI renders, an HTTP endpoint returns 200, one market session looks healthy, or one shadow observation looks favorable.

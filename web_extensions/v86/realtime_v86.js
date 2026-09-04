@@ -3,12 +3,19 @@
   const q=s=>document.querySelector(s);
   const esc=v=>String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
   const fmtAge=v=>Number.isFinite(Number(v))?`${Number(v).toFixed(1)}s`:'—';
+  const fmtCaptureAge=v=>{
+    const n=Number(v);
+    if(!Number.isFinite(n))return '—';
+    if(n<120)return `${Math.round(n)}s`;
+    if(n<7200)return `${(n/60).toFixed(1)} phút`;
+    return `${(n/3600).toFixed(1)} giờ`;
+  };
 
   function badgeClass(status){
     const s=String(status||'');
-    if(s==='HEALTHY')return 'good';
+    if(s==='HEALTHY'||s==='READY'||s==='SUCCESS')return 'good';
     if(s==='IDLE_MARKET_CLOSED')return 'idle';
-    if(s.startsWith('DEGRADED')||s==='ERROR'||s==='STATE_INVALID')return 'bad';
+    if(s.startsWith('DEGRADED')||s==='DEGRADED'||s==='ERROR'||s==='STATE_INVALID'||s==='FAILED')return 'bad';
     return 'warn';
   }
 
@@ -28,7 +35,38 @@
     dashboard.insertBefore(panel,anchor);
   }
 
-  function render(d){
+  function brokerFreshnessNote(statusPayload){
+    const f=statusPayload?.broker_freshness_v86||{};
+    const h=statusPayload?.broker_sync_health_v86||{};
+    if(!Object.keys(f).length){
+      return '<div class="v86-note warn"><strong>Broker freshness chưa có contract V86</strong><span>Không suy diễn trạng thái danh mục chỉ từ realtime market feed.</span></div>';
+    }
+    const flags=Array.isArray(f.flags)?f.flags:[];
+    const cls=f.status==='READY'?'good':'warn';
+    const title=f.status==='READY'?'DNSE holdings/EOD freshness đang đạt guard hiện tại':'BROKER STATE CẦN RÀ SOÁT — không đồng nhất freshness';
+    const flagText=flags.length?flags.join(' · '):'không có freshness flag';
+    return `<div class="v86-note ${cls}">
+      <strong>${esc(title)}</strong>
+      <span>Holdings capture ${esc(f.holdings_captured_at||'—')} · age ${fmtCaptureAge(f.holdings_capture_age_sec)} · EOD valuation ${esc(f.valuation_market_day||'—')} (${esc(f.valuation_age_calendar_days??'—')} ngày lịch) · last sync ${esc(h.status||f.last_sync_status||'—')}.</span>
+      <span>${esc(flagText)}. V55 final-EOD vẫn là định giá chính thức; public realtime tick không tự biến thành broker-position truth.</span>
+    </div>`;
+  }
+
+  function decorateOperating(statusPayload){
+    const f=statusPayload?.broker_freshness_v86||{};
+    if(f.status!=='DEGRADED')return;
+    const line=q('#v84-operating-body .v84-status-line')||q('.v84-status-line');
+    if(!line)return;
+    line.classList.remove('good');
+    line.classList.add('warn');
+    const strong=line.querySelector('strong');
+    const span=line.querySelector('span');
+    const flags=Array.isArray(f.flags)?f.flags:[];
+    if(strong)strong.textContent=flags.includes('EOD_VALUATION_ABSOLUTELY_STALE')?'REALTIME KHỎE NHƯNG EOD ĐANG CŨ':'BROKER STATE CẦN ĐỒNG BỘ/RÀ SOÁT';
+    if(span)span.textContent=`DNSE holdings capture ${f.holdings_captured_at||'—'} · EOD valuation ${f.valuation_market_day||'—'} · ${flags.join(' · ')||'freshness degraded'}`;
+  }
+
+  function render(d,statusPayload){
     const body=q('#v86-realtime-body'), badge=q('#v86-status-badge');
     if(!body||!badge)return;
     const status=String(d?.status||'UNKNOWN');
@@ -48,17 +86,28 @@
       <div class="v86-note ${badgeClass(status)}">
         <strong>${esc(d?.message||status)}</strong>
         <span>HTTP 200 không đồng nghĩa feed khỏe. Live-order authority: <b>BLOCKED</b>. REST smoke: ${esc(d?.rest_smoke?.status||'—')}.</span>
-      </div>`;
+      </div>
+      ${brokerFreshnessNote(statusPayload)}`;
+    decorateOperating(statusPayload);
+  }
+
+  async function getJson(path){
+    const r=await fetch(path,{cache:'no-store'});
+    const d=await r.json();
+    if(!r.ok)throw new Error(`${path}:HTTP_${r.status}`);
+    return d;
   }
 
   async function load(){
     ensurePanel();
     try{
-      const r=await fetch('/api/realtime-v86',{cache:'no-store'});
-      const d=await r.json();
-      render(d);
+      const [d,statusPayload]=await Promise.all([
+        getJson('/api/realtime-v86'),
+        getJson('/api/status'),
+      ]);
+      render(d,statusPayload);
     }catch(e){
-      render({status:'WEB_BRIDGE_ERROR',message:String(e)});
+      render({status:'WEB_BRIDGE_ERROR',message:String(e)},{});
     }
   }
 

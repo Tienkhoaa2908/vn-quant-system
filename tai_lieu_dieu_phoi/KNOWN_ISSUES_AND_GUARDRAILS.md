@@ -1,6 +1,6 @@
 # KNOWN ISSUES AND GUARDRAILS
 
-Updated: 2026-09-01
+Updated: 2026-09-04
 
 This file records failure modes already encountered so future chats/agents do not repeat them.
 
@@ -215,3 +215,55 @@ Required before any future live authority includes at least:
 - circuit breaker and unresolved-order gate.
 
 Until separately approved and proven: `AUTO_ORDER = BLOCKED`.
+
+## 19. Holdings capture freshness and EOD valuation freshness are different clocks
+
+The 2026-09-04 screenshot showed DNSE cash/quantities captured at `13:45:37+07:00` while official local EOD valuation remained `2026-08-21`.
+
+Do:
+- display and reason about DNSE holdings capture time, EOD valuation day and public tick age separately;
+- keep V55 final-EOD valuation as the official valuation contract until a separately validated intraday layer exists.
+
+Avoid:
+- calling the holdings snapshot stale merely because its valuation day is old;
+- conversely, calling the whole operating state fresh because the holdings request or public ticks are fresh.
+
+## 20. V84 had a false-ready state when both market DB and broker valuation were equally stale
+
+V84 only compared `broker.market_day < latest local market day`. On 2026-09-04 both values were `2026-08-21`, so the UI displayed `DỮ LIỆU VẬN HÀNH SẴN SÀNG` despite a roughly two-week-old EOD basis.
+
+Do:
+- include an absolute-age freshness guard in addition to relative broker-vs-market comparison;
+- label calendar-age guards as conservative approximations until verified exchange working-date logic is wired into the UI.
+
+Avoid:
+- inferring freshness from equality of two stale timestamps.
+
+## 21. DNSE positions REST is intermittently unreliable during market hours
+
+User operational observation: the real portfolio read can fail or become unavailable in some time windows, especially around/open market hours, while the same read may work later in the evening.
+
+Current active V59 fast reconcile reads balances then the legacy `/accounts/{account}/positions` endpoint before writing a snapshot. A thrown positions/balance exception currently stops before snapshot persistence, which is good. The remaining ambiguous case is a successful-but-empty positions response after a previously non-empty checkpoint.
+
+Do:
+- record broker sync success/failure/timing separately from the last good snapshot;
+- fail closed on a sudden non-empty -> empty transition during market hours;
+- retain the prior completed snapshot for operational display rather than silently replacing it with an ambiguous empty response;
+- collect time-of-day failure evidence before replacing the REST source.
+
+Avoid:
+- turning an empty transient response into an authoritative zero-holdings state during market hours;
+- overwriting last-known-good broker state merely because the HTTP request itself returned successfully.
+
+## 22. Public realtime market health is not broker-position truth
+
+The 2026-09-04 active-session screenshot showed V86 public market realtime `HEALTHY` with about `0.6s` tick age and zero reconnects while broker/EOD freshness remained a separate concern.
+
+Do:
+- use public ticks only as market-price evidence;
+- require an independently reliable broker account/position source for quantities/cash;
+- investigate the modern isolated DNSE private position/account stream read-only before considering it authoritative.
+
+Avoid:
+- using a healthy public market WebSocket to infer that DNSE holdings are current;
+- enabling private/order mutation merely to solve a read-only portfolio freshness problem.
