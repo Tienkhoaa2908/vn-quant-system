@@ -1,0 +1,105 @@
+name: v86_dnse_openapi_realtime_hardening
+
+on:
+  push:
+    branches:
+      - agent/v86-dnse-openapi-realtime-hardening
+  pull_request:
+    paths:
+      - 'src/he_thong_dinh_luong/dnse_openapi_sidecar_v86.py'
+      - 'src/he_thong_dinh_luong/local_workstation_v86_bridge.py'
+      - 'src/he_thong_dinh_luong/existing_web_v86_installer.py'
+      - 'vn_quant_local_system/src/vn_quant_local/__init__.py'
+      - 'vn_quant_local_system/src/vn_quant_local/v86_broker_freshness.py'
+      - 'vn_quant_local_system/src/vn_quant_local/webapp_v59.py'
+      - 'vn_quant_local_system/tests/test_v86_broker_freshness.py'
+      - 'vn_quant_local_system/scripts/serve_web_gitbash.sh'
+      - 'web_extensions/v86/**'
+      - 'tests/test_dnse_openapi_sidecar_v86.py'
+      - 'tests/test_local_workstation_v86_bridge.py'
+      - 'tests/test_existing_web_v86_installer.py'
+      - 'scripts/run_v86_dnse_openapi_realtime_upgrade_gitbash.sh'
+      - 'scripts/run_v86_dnse_openapi_realtime_sidecar_gitbash.sh'
+      - '.github/workflows/v86_dnse_openapi_realtime_hardening.yml'
+      - 'tai_lieu_dieu_phoi/v86_*'
+
+jobs:
+  contract:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile V86
+        env:
+          PYTHONPATH: src
+        run: >-
+          python -m py_compile
+          src/he_thong_dinh_luong/dnse_openapi_sidecar_v86.py
+          src/he_thong_dinh_luong/local_workstation_v86_bridge.py
+          src/he_thong_dinh_luong/existing_web_v86_installer.py
+          vn_quant_local_system/src/vn_quant_local/v86_broker_freshness.py
+          vn_quant_local_system/src/vn_quant_local/webapp_v59.py
+          vn_quant_local_system/tests/test_v86_broker_freshness.py
+          tests/test_dnse_openapi_sidecar_v86.py
+          tests/test_local_workstation_v86_bridge.py
+          tests/test_existing_web_v86_installer.py
+      - name: Run V86 contracts
+        env:
+          PYTHONPATH: src
+        run: >-
+          python -m unittest
+          tests.test_dnse_openapi_sidecar_v86
+          tests.test_local_workstation_v86_bridge
+          tests.test_existing_web_v86_installer -v
+      - name: Run V86 broker freshness contracts
+        run: python vn_quant_local_system/tests/test_v86_broker_freshness.py -v
+      - name: Validate JavaScript
+        shell: bash
+        run: node --check web_extensions/v86/realtime_v86.js
+      - name: Validate Git Bash runners
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          bash -n scripts/run_v86_dnse_openapi_realtime_upgrade_gitbash.sh
+          bash -n scripts/run_v86_dnse_openapi_realtime_sidecar_gitbash.sh
+          bash -n vn_quant_local_system/scripts/serve_web_gitbash.sh
+      - name: Validate Windows Git Bash imports
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          PYW="$(cygpath -w "$PWD/src");$(cygpath -w "$PWD/vn_quant_local_system/src")"
+          PYTHONPATH="$PYW" python -c "import he_thong_dinh_luong.dnse_openapi_sidecar_v86, he_thong_dinh_luong.local_workstation_v86_bridge, he_thong_dinh_luong.existing_web_v86_installer, vn_quant_local.v86_broker_freshness; print('V86_WINDOWS_GITBASH_IMPORT=PASS')"
+      - name: Guard isolated package and no order authority
+        shell: bash
+        run: |
+          grep -q 'EXPECTED_VERSION = "1.4.6"' src/he_thong_dinh_luong/dnse_openapi_sidecar_v86.py
+          grep -q 'PINNED_API_VERSION = "2026-05-07"' src/he_thong_dinh_luong/dnse_openapi_sidecar_v86.py
+          grep -q 'dnse-sdk-openapi==1.4.6' scripts/run_v86_dnse_openapi_realtime_upgrade_gitbash.sh
+          grep -q '.venv-dnse-openapi-v86' scripts/run_v86_dnse_openapi_realtime_upgrade_gitbash.sh
+          grep -q 'LIVE_ORDER_READY=false' scripts/run_v86_dnse_openapi_realtime_upgrade_gitbash.sh
+          grep -q 'LIVE_ORDER_READY=false' scripts/run_v86_dnse_openapi_realtime_sidecar_gitbash.sh
+          grep -q 'web_process_owns_websocket.*False' src/he_thong_dinh_luong/existing_web_v86_installer.py
+          grep -q 'V86_LEGACY_WS_DISABLED = True' vn_quant_local_system/src/vn_quant_local/webapp_v59.py
+          grep -q 'REALTIME_OWNER=ISOLATED_V86_SIDECAR' vn_quant_local_system/scripts/serve_web_gitbash.sh
+          grep -q 'DNSE_POSITIONS_EMPTY_DURING_MARKET_HOURS_PRESERVE_LAST_GOOD' vn_quant_local_system/src/vn_quant_local/v86_broker_freshness.py
+          if grep -Eq 'start_realtime_stream_v59|stop_realtime_stream_v59|start_market_realtime_v59|stop_market_realtime_v59|from \.v59_fast_realtime import|from \.v59_market_stream import' \
+            vn_quant_local_system/src/vn_quant_local/webapp_v59.py; then
+            echo 'Legacy V59 websocket ownership still present in web runtime'
+            exit 1
+          fi
+          if grep -Eiq 'post_order|place_order|cancel_order|replace_order|create_trading_token|send_email_otp|subscribe_order_event|subscribe_position_event' \
+            src/he_thong_dinh_luong/dnse_openapi_sidecar_v86.py \
+            src/he_thong_dinh_luong/local_workstation_v86_bridge.py \
+            src/he_thong_dinh_luong/existing_web_v86_installer.py \
+            vn_quant_local_system/src/vn_quant_local/v86_broker_freshness.py \
+            vn_quant_local_system/src/vn_quant_local/webapp_v59.py \
+            scripts/run_v86_dnse_openapi_realtime_upgrade_gitbash.sh \
+            scripts/run_v86_dnse_openapi_realtime_sidecar_gitbash.sh; then
+            echo 'Forbidden order/private-stream surface found'
+            exit 1
+          fi

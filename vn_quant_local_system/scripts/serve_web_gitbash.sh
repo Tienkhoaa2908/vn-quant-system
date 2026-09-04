@@ -12,8 +12,12 @@ fail() {
 }
 
 [[ -f "$PY" ]] || fail "Chưa có môi trường local: $PY"
+command -v cygpath >/dev/null 2>&1 || fail "Git Bash cygpath không sẵn sàng"
 
-export PYTHONPATH="$SYSTEM_DIR/src:$REPO_ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
+# Windows Python uses ';' as sys.path separator. Do not pass a POSIX ':' joined
+# PYTHONPATH from Git Bash; that can silently break imports on the workstation.
+PYTHONPATH_WIN="$(cygpath -w "$SYSTEM_DIR/src");$(cygpath -w "$REPO_ROOT/src")"
+export PYTHONPATH="$PYTHONPATH_WIN"
 export PYTHONUTF8=1
 export PYTHONIOENCODING=utf-8
 
@@ -42,7 +46,7 @@ open_browser() {
 
 if check_web >/dev/null 2>&1; then
   echo "WEB_ALREADY_RUNNING=$URL"
-  echo "Neu vua cap nhat V59, hay Ctrl+C web cu truoc khi chay lai."
+  echo "Nếu vừa nâng cấp V86, hãy Ctrl+C web cũ rồi chạy lại để nạp runtime mới."
   if ! open_browser; then
     echo "Không tự mở được trình duyệt. Mở thủ công: $URL"
   fi
@@ -51,10 +55,13 @@ fi
 
 cd "$SYSTEM_DIR"
 
-echo "===== KHỞI ĐỘNG WEB SERVER V59 ====="
+echo "===== KHỞI ĐỘNG WEB SERVER V86 COMPATIBILITY ====="
 echo "FAST_STATUS=true"
-echo "DNSE_REALTIME_READ_ONLY=true"
+echo "WEB_PROCESS_OWNS_WEBSOCKET=false"
+echo "REALTIME_OWNER=ISOLATED_V86_SIDECAR"
+echo "CANONICAL_DNSE_REST_RUNTIME=legacy_dnse_0.5.0"
 echo "OFFICIAL_VALUATION=FINAL_EOD_ONLY"
+echo "LIVE_ORDER_READY=false"
 "$PY" -m vn_quant_local.webapp_v59 &
 SERVER_PID=$!
 
@@ -82,7 +89,8 @@ done
 [[ "$READY" -eq 1 ]] || fail "web server không phản hồi tại $URL"
 
 echo "WEB_READY=$URL"
-echo "Terminal này giữ web server + DNSE streams hoạt động. Dừng bằng Ctrl+C."
+echo "Terminal này chỉ giữ web :8787. V86 realtime sidecar phải chạy ở terminal riêng."
+echo "Dừng web bằng Ctrl+C."
 
 if ! open_browser; then
   echo "Không tự mở được trình duyệt. Mở thủ công: $URL"
