@@ -7,9 +7,12 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-WORKSTATION_SRC = Path(__file__).resolve().parents[1] / "src"
-if str(WORKSTATION_SRC) not in sys.path:
-    sys.path.insert(0, str(WORKSTATION_SRC))
+REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_SRC = REPO_ROOT / "src"
+WORKSTATION_SRC = REPO_ROOT / "vn_quant_local_system" / "src"
+for source_path in (REPO_SRC, WORKSTATION_SRC):
+    if str(source_path) not in sys.path:
+        sys.path.insert(0, str(source_path))
 
 from vn_quant_local import v86_broker_freshness as v86  # noqa: E402
 
